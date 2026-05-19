@@ -1,0 +1,399 @@
+:root {
+    --bg-color: #120a06; /* Café espresso extremadamente oscuro */
+    --card-bg: rgba(36, 22, 14, 0.75); /* Chocolate con leche translúcido */
+    --border-color: rgba(214, 163, 114, 0.12); /* Sutil color canela translúcido */
+    --border-hover: rgba(214, 163, 114, 0.25);
+    --primary-color: #d6a372; /* Café latte / Oro caramelo */
+    --primary-glow: rgba(214, 163, 114, 0.35);
+    --text-color: #ffffff; /* Letras blancas para máximo contraste y legibilidad */
+    --text-muted: #d0c4b9; /* Crema suave para textos secundarios */
+    --success-color: #4ade80; 
+    --error-color: #f87171;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Outfit', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow-x: hidden;
+    position: relative;
+}
+
+/* Background Glowing Accents - Efecto de luces cálidas en tonos chocolate/café */
+body::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    top: -10%;
+    left: -10%;
+    background: radial-gradient(circle, rgba(139, 90, 43, 0.18) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+body::after {
+    content: '';
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    bottom: -10%;
+    right: -10%;
+    background: radial-gradient(circle, rgba(214, 163, 114, 0.12) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+}
+
+/* Main Wrapper */
+.login-wrapper {
+    width: 100%;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+/* Glassmorphism Split Card en Tonos Café Chocolatey */
+.login-split-card {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    max-width: 960px;
+    min-height: 600px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
+    overflow: hidden;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 
+        0 20px 50px rgba(0, 0, 0, 0.65),
+        0 0 40px rgba(139, 90, 43, 0.1);
+    animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+}
+
+.login-container {
+    background: transparent;
+    padding: 48px;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Left Banner Illustration */
+.login-banner {
+    flex: 1.2;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    background-image: url('../images/clinical_lab.png');
+}
+
+.banner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to top, rgba(18, 10, 6, 0.95) 0%, rgba(18, 10, 6, 0.3) 60%, transparent 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 48px;
+    text-align: left;
+}
+
+.banner-overlay h3 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 10px;
+    letter-spacing: -0.5px;
+}
+
+.banner-overlay p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Header / Logo */
+.login-header {
+    text-align: center;
+    margin-bottom: 36px;
+}
+
+.logo-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #8b5a2b 0%, #5c3317 100%); /* Degradado café chocolatey premium */
+    color: white;
+    border-radius: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px auto;
+    box-shadow: 0 8px 24px rgba(139, 90, 43, 0.4);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.logo-icon:hover {
+    transform: scale(1.1) rotate(5deg);
+}
+
+.logo-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+.login-header h2 {
+    font-size: 1.85rem;
+    font-weight: 700;
+    color: white; /* Letras blancas */
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+}
+
+.login-header p {
+    color: var(--text-muted); /* Color crema suave */
+    font-size: 0.95rem;
+    font-weight: 400;
+}
+
+/* Unified Access Indicator Badges */
+.access-roles {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+}
+
+.role-badge {
+    background-color: rgba(214, 163, 114, 0.08);
+    border: 1px solid rgba(214, 163, 114, 0.15);
+    color: var(--primary-color);
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 12px;
+    letter-spacing: 0.3px;
+}
+
+/* Forms general */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white; /* Letras blancas */
+    letter-spacing: 0.2px;
+}
+
+/* Input wrappers */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.field-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+}
+
+.field-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+/* Inputs styled */
+.form-control {
+    width: 100%;
+    background-color: #3a1f10; /* Fondo chocolate oscuro premium */
+    border: 1px solid #ffffff; /* Borde blanco */
+    border-radius: 12px;
+    padding: 14px 16px 14px 48px;
+    color: #ffffff; /* Letras blancas */
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.form-control::placeholder {
+    color: rgba(255, 255, 255, 0.7); /* Letras del placeholder claras para buena legibilidad */
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #ffffff;
+    background-color: #2d170a; /* Café chocolate aún más oscuro al enfocar */
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
+}
+
+.form-control:focus + .field-icon,
+.input-wrapper:focus-within .field-icon {
+    color: #ffffff;
+}
+
+/* Validation errors */
+.field-error {
+    color: var(--error-color);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+/* Submit Button styled in premium chocolate */
+.submit-btn {
+    background: linear-gradient(135deg, #8b5a2b 0%, #5c3317 100%);
+    color: white; /* Letras blancas */
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(139, 90, 43, 0.35);
+    position: relative;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.submit-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 25px rgba(139, 90, 43, 0.55);
+    filter: brightness(1.12);
+}
+
+.submit-btn:active {
+    transform: translateY(0);
+}
+
+.btn-arrow {
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.submit-btn:hover .btn-arrow {
+    transform: translateX(4px);
+}
+
+/* Session alerts / errors banner */
+.messages-container {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    line-height: 1.4;
+    animation: fadeInAlert 0.4s ease forwards;
+}
+
+@keyframes fadeInAlert {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.alert-error {
+    background-color: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.25);
+    color: var(--error-color);
+}
+
+.alert-success {
+    background-color: rgba(74, 222, 128, 0.08);
+    border: 1px solid rgba(74, 222, 128, 0.25);
+    color: var(--success-color);
+}
+
+.alert-icon {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.alert-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.alert-text {
+    flex-grow: 1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 840px) {
+    .login-banner {
+        display: none;
+    }
+    .login-split-card {
+        max-width: 480px;
+        min-height: auto;
+    }
+    .login-container {
+        padding: 40px 24px;
+    }
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        padding: 32px 16px;
+    }
+}

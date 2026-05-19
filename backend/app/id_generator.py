@@ -3,12 +3,17 @@ from sqlalchemy import select, func
 from datetime import date
 
 async def get_next_int_id(db: AsyncSession, model, pk_column_name: str = "id") -> int:
-    """Genera el siguiente ID para tablas con PK INT (comienza en 1000)."""
+    """Genera el siguiente ID para tablas con PK INT o VARCHAR representando INT (comienza en 1000)."""
     pk_column = getattr(model, pk_column_name)
     stmt = select(func.max(pk_column))
     result = await db.execute(stmt)
     max_id = result.scalar_one()
-    return (max_id + 1) if max_id is not None else 1000
+    if max_id is not None:
+        try:
+            return int(max_id) + 1
+        except (ValueError, TypeError):
+            pass
+    return 1000
 
 async def generate_persona_id(
     db: AsyncSession,

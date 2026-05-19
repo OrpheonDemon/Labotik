@@ -162,3 +162,18 @@ class Pago(Base):
     referencia_pago = Column(String(100))
     estado_pago = Column(Enum('pendiente','completado','fallido','reembolsado'), default='completado')
     activo = Column(Integer, default=1)
+
+class Administrador(Base):
+    __tablename__ = "administradores"
+    id_administrador = Column(Integer, primary_key=True)
+    nombre = Column(String(80), nullable=False)
+    apellido_paterno = Column(String(80), nullable=False)
+    apellido_materno = Column(String(80))
+    fecha_nacimiento = Column(Date, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    telefono = Column(String(20))
+    rol_administrador = Column(Enum('super_admin', 'admin_general', 'admin_financiero', 'admin_lab'), default='admin_general')
+    activo = Column(Integer, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

@@ -50,6 +50,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         stmt = select(Laboratorista).where(Laboratorista.email == token_data.email, Laboratorista.activo == 1)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
+    elif token_data.rol == "administrador":
+        from sqlalchemy import select
+        from app.models import Administrador
+        stmt = select(Administrador).where(Administrador.email == token_data.email, Administrador.activo == 1)
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
 
     if user is None:
         raise credentials_exception
@@ -75,4 +81,9 @@ async def require_medico(current_user: dict = Depends(get_current_active_user)):
 async def require_paciente(current_user: dict = Depends(get_current_active_user)):
     if current_user.get("rol") != "paciente":
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Paciente)")
+    return current_user
+
+async def require_admin(current_user: dict = Depends(get_current_active_user)):
+    if current_user.get("rol") != "administrador":
+        raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Administrador)")
     return current_user

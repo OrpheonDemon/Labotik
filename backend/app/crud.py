@@ -47,37 +47,38 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             data['id_detalle_factura'] = await get_next_int_id(db, DetalleFactura, 'id_detalle_factura')
         elif self.model == Pago:
             data['id_pago'] = await get_next_int_id(db, Pago, 'id_pago')
-        elif self.model in [Paciente, Medico, Laboratorista]:
-            # Validación de email único en todo el sistema
+        elif self.model == Administrador:
+            next_id = await get_next_int_id(db, Administrador, 'id_administrador')
+            data['id_administrador'] = next_id
+
+        # Validación de email único y hashing de password para entidades de usuario
+        if self.model in [Paciente, Medico, Laboratorista, Administrador]:
             if 'email' in data:
                 if await check_email_exists(db, data['email']):
                     from fastapi import HTTPException
                     raise HTTPException(
                         status_code=400, 
-                        detail="El correo ya está registrado en el sistema (Laboratorista, Médico o Paciente)"
+                        detail="El correo ya está registrado en el sistema (Administrador, Laboratorista, Médico o Paciente)"
                     )
             
+            if 'password' in data:
+                data['password'] = hash_password(data.pop('password'))
+
             if self.model == Paciente:
                 data['id_paciente'] = await generate_persona_id(
                     db, Paciente, data['nombre'], data['apellido_paterno'],
                     data.get('apellido_materno', ''), data['fecha_nacimiento'], data.get('genero')
                 )
-                if 'password' in data:
-                    data['password'] = hash_password(data.pop('password'))
             elif self.model == Medico:
                 data['id_medico'] = await generate_persona_id(
                     db, Medico, data['nombre'], data['apellido_paterno'],
                     data.get('apellido_materno', ''), data['fecha_nacimiento'], data.get('genero', 'M')
                 )
-                if 'password' in data:
-                    data['password'] = hash_password(data.pop('password'))
             elif self.model == Laboratorista:
                 data['id_laboratorista'] = await generate_persona_id(
                     db, Laboratorista, data['nombre'], data['apellido_paterno'],
                     data.get('apellido_materno', ''), data['fecha_nacimiento'], data.get('genero', 'M')
                 )
-                if 'password' in data:
-                    data['password'] = hash_password(data.pop('password'))
         # Para áreas, el ID lo envía el usuario (VARCHAR)
         db_obj = self.model(**data)
         db.add(db_obj)
@@ -155,12 +156,28 @@ class CRUDLaboratorista(CRUDBase[Laboratorista, LaboratoristaCreate, Laboratoris
         result = await db.execute(stmt)
         return result.scalars().all()
 
+class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, AdministradorUpdate]):
+    async def search_by_names(self, db: AsyncSession, apellido_paterno: str = "", apellido_materno: str = "", nombre: str = ""):
+        conditions = []
+        if apellido_paterno:
+            conditions.append(Administrador.apellido_paterno.like(f"%{apellido_paterno}%"))
+        if apellido_materno:
+            conditions.append(Administrador.apellido_materno.like(f"%{apellido_materno}%"))
+        if nombre:
+            conditions.append(Administrador.nombre.like(f"%{nombre}%"))
+        if not conditions:
+            return []
+        stmt = select(Administrador).where(Administrador.activo == 1).where(or_(*conditions))
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
 # Instancias
 area_crud = CRUDBase(AreaLaboratorio, "id_area")
 prueba_crud = CRUDBase(Prueba, "id_prueba")
 paciente_crud = CRUDPaciente(Paciente, "id_paciente")
 medico_crud = CRUDMedico(Medico, "id_medico")
 laboratorista_crud = CRUDLaboratorista(Laboratorista, "id_laboratorista")
+administrador_crud = CRUDAdministrador(Administrador, "id_administrador")
 solicitud_crud = CRUDBase(Solicitud, "id_solicitud")
 detalle_solicitud_crud = CRUDBase(DetalleSolicitud, "id_detalle")
 resultado_crud = CRUDBase(Resultado, "id_resultado")
@@ -192,6 +209,13 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     if user and verify_password(password, user.password):
         return {"user": user, "rol": "paciente"}
 
+    # 4. Buscar en Administradores
+    stmt = select(Administrador).where(Administrador.email == email, Administrador.activo == 1)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if user and verify_password(password, user.password):
+        return {"user": user, "rol": "administrador"}
+
     return None
 
 # Función para verificar si un email ya existe en cualquier tabla de usuarios
@@ -213,6 +237,12 @@ async def check_email_exists(db: AsyncSession, email: str):
         
     # Buscar en Pacientes
     stmt = select(Paciente).where(Paciente.email == email, Paciente.activo == 1)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        return True
+        
+    # Buscar en Administradores
+    stmt = select(Administrador).where(Administrador.email == email, Administrador.activo == 1)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         return True

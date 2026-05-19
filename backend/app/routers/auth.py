@@ -41,6 +41,8 @@ async def login_access_token(
         user_id = user.id_medico
     elif rol == "paciente":
         user_id = user.id_paciente
+    elif rol == "administrador":
+        user_id = user.id_administrador
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.database import engine, Base
 from app.routers import (
-    areas, pruebas, pacientes, medicos, laboratoristas,
+    areas, pruebas, pacientes, medicos, laboratoristas, administradores,
     solicitudes, resultados, reportes, facturas, pagos, auth
 )
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,6 +30,7 @@ app.include_router(pruebas.router)
 app.include_router(pacientes.router)
 app.include_router(medicos.router)
 app.include_router(laboratoristas.router)
+app.include_router(administradores.router)
 app.include_router(solicitudes.router)
 app.include_router(resultados.router)
 app.include_router(reportes.router)

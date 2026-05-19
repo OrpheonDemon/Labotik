@@ -313,6 +313,35 @@ class PagoUpdate(BaseModel):
 class PagoOut(PagoBase):
     activo: int
 
+# ---------- Administradores ----------
+class AdministradorBase(BaseModel):
+    id_administrador: Optional[int | str] = None
+    nombre: str
+    apellido_paterno: str
+    apellido_materno: Optional[str] = None
+    fecha_nacimiento: date
+    email: EmailStr
+    telefono: Optional[str] = None
+    rol_administrador: Optional[str] = "admin_general"
+
+class AdministradorCreate(AdministradorBase):
+    password: str
+
+class AdministradorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido_paterno: Optional[str] = None
+    apellido_materno: Optional[str] = None
+    fecha_nacimiento: Optional[date] = None
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = None
+    rol_administrador: Optional[str] = None
+    password: Optional[str] = None
+
+class AdministradorOut(AdministradorBase):
+    activo: int
+    created_at: datetime
+    updated_at: datetime
+
 # ---------- Autenticación ----------
 class Token(BaseModel):
     access_token: str
