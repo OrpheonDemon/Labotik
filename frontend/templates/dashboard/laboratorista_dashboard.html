@@ -1,0 +1,94 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil Laboratorista - Labotik</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+    <script>
+        (function() {
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = "/";
+                return;
+            }
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(base64));
+                if (!payload || payload.rol !== 'laboratorista') {
+                    window.location.href = "/";
+                }
+            } catch (e) {
+                window.location.href = "/";
+            }
+        })();
+    </script>
+
+    <div class="container">
+        <div class="card profile-card" id="profileCard">
+            <div class="header">
+                <div class="success-icon-container">
+                    <svg class="success-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1>Bienvenido al Perfil de Laboratorista</h1>
+                <p class="subtitle">Has ingresado correctamente como laboratorista.</p>
+            </div>
+
+            <div class="user-info">
+                <div class="info-row">
+                    <span class="info-label">Correo</span>
+                    <span class="info-value" id="profileEmail">usuario@correo.com</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Rol</span>
+                    <span class="badge" id="profileRole">laboratorista</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">ID Laboratorista</span>
+                    <span class="info-value" id="profileId">Sin ID</span>
+                </div>
+                <div class="info-row" style="margin-top: 16px;">
+                    <span class="info-label" style="font-size: 12px;">Nota</span>
+                    <span class="info-value">Esta página se abrió según tu rol y tabla de usuario.</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="handleLogout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <script>
+        function decodeJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                return JSON.parse(atob(base64));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const token = sessionStorage.getItem('access_token');
+            const payload = token ? decodeJwt(token) : null;
+            if (payload) {
+                document.getElementById('profileEmail').innerText = payload.sub || 'No definido';
+                document.getElementById('profileRole').innerText = payload.rol || 'No definido';
+                document.getElementById('profileId').innerText = payload.id_usuario || 'Sin ID';
+            }
+        });
+
+        function handleLogout() {
+            sessionStorage.removeItem('access_token');
+            window.location.href = "/";
+        }
+    </script>
+</body>
+</html>

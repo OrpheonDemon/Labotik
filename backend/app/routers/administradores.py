@@ -18,6 +18,13 @@ async def search_administradores(
 ):
     return await crud.administrador_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
+@router.get("/by-email", response_model=schemas.AdministradorOut)
+async def get_administrador_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
+    administrador = await crud.administrador_crud.get_by_email(db, email)
+    if not administrador:
+        raise HTTPException(status_code=404, detail="Administrador no encontrado")
+    return administrador
+
 @router.get("/{id_administrador}", response_model=schemas.AdministradorOut)
 async def get_administrador(id_administrador: str, db: AsyncSession = Depends(get_db)):
     administrador = await crud.administrador_crud.get(db, id_administrador)

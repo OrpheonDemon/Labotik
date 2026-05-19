@@ -157,6 +157,14 @@ class CRUDLaboratorista(CRUDBase[Laboratorista, LaboratoristaCreate, Laboratoris
         return result.scalars().all()
 
 class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, AdministradorUpdate]):
+    async def get_by_email(self, db: AsyncSession, email: str):
+        stmt = select(Administrador).where(
+            Administrador.email == email,
+            Administrador.activo == 1
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def search_by_names(self, db: AsyncSession, apellido_paterno: str = "", apellido_materno: str = "", nombre: str = ""):
         conditions = []
         if apellido_paterno:

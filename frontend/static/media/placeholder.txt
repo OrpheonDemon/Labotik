@@ -1,0 +1,1 @@
+This folder is for frontend multimedia assets (videos, audios, large files).
