@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -28,7 +28,6 @@
     <title>Dashboard Super Admin - Labotik</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-    <!-- Chart.js CDN for premium interactive charts -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Specific dashboard overrides to form a modular application layout */
@@ -54,10 +53,10 @@
         /* Sidebar styling */
         .sidebar {
             width: 320px;
-            background: rgba(248, 243, 238, 0.95); /* Cream background */
+            background: rgba(248, 243, 238, 0.95);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
-            border-right: 1px solid rgba(74, 46, 27, 0.1); /* Subtle brown border */
+            border-right: 1px solid rgba(74, 46, 27, 0.1);
             display: flex;
             flex-direction: column;
             padding: 25px 20px 25px 16px;
@@ -79,7 +78,7 @@
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: #8c6a54; /* Medium brown for labels */
+            color: #8c6a54;
             margin-bottom: 15px;
             margin-top: 20px;
             padding-left: 10px;
@@ -99,8 +98,8 @@
             padding: 16px 18px;
             min-height: 52px;
             border-radius: 14px;
-            background: #4a2e1b; /* Dark brown background */
-            color: #e5dfda; /* Cream text and icons */
+            background: #4a2e1b;
+            color: #e5dfda;
             text-decoration: none;
             font-size: 15px;
             font-weight: 600;
@@ -111,8 +110,8 @@
 
         .menu-item a:hover,
         .menu-item.active a {
-            background: rgba(74, 46, 27, 0.15); /* Light brown hover background */
-            color: #3e2723; /* Darker brown on hover */
+            background: rgba(74, 46, 27, 0.15);
+            color: #3e2723;
             border-color: rgba(74, 46, 27, 0.15);
             padding-left: 22px;
         }
@@ -180,9 +179,69 @@
 
         .profile-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
         }
+
+        .entity-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .entity-list-item {
+            background: #fff;
+            border: 1px solid #e1e8f5;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .entity-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .entity-table th, .entity-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #eef2f7;
+            text-align: left;
+            color: #4b2e2a;
+        }
+        .entity-table thead th {
+            background: #f7fafc;
+            font-weight: 700;
+        }
+        .entity-table td[style*="maxWidth"] {
+            max-width: 300px;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .pagination { margin-top: 12px; display:flex; align-items:center; gap:8px }
+        .pagination .btn { padding:6px 10px; border-radius:8px; background: #fff; color:#4b2e2a; border:1px solid rgba(75,46,42,0.08); }
+        .search-panel { display:flex; flex-wrap: wrap; gap:10px; margin-bottom:16px; align-items:center; }
+        .search-input { min-width:160px; max-width:240px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 12px; color: var(--text-cream); }
+        .search-input::placeholder { color: rgba(241,231,214,0.75); }
+        .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; display:inline-flex; align-items:center; justify-content:center; border-radius: 12px; transition: background 0.2s ease; }
+        .icon-btn svg { width:18px; height:18px; fill: #3d2014; }
+        .icon-btn:hover { background: rgba(255,255,255,0.12); }
+        .icon-btn.search-btn { border: 1px solid rgba(255,255,255,0.18); width: 42px; height: 42px; color: var(--text-cream); }
+        .icon-btn.add-btn { border: 1px solid rgba(255,255,255,0.24); background: rgba(255,255,255,0.06); border-radius: 12px; width: 40px; height: 40px; color: var(--text-cream); }
+
+        /* Modal cancel/button styling */
+        .modal-inner { color: #4b2e2a; }
+        .modal-inner h3 { color: #4b2e2a; }
+        .modal-inner input, .modal-inner select, .modal-inner textarea { color:#4b2e2a; }
+        .modal-inner input::placeholder, .modal-inner select::placeholder, .modal-inner textarea::placeholder { color: rgba(75,46,42,0.55); }
+        .modal-inner .modal-cancel { background: transparent; color: #4b2e2a; border: 1px solid rgba(75,46,42,0.06); }
+        .modal-inner .field { position: relative; }
+        .modal-inner .field label { position: absolute; top: 8px; left: 12px; font-size: 11px; color: #4b2e2a; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; }
+        .modal-inner .field input, .modal-inner .field select { padding-top: 24px; }
+        .modal-inner .field select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
 
         .profile-field-card {
             background: rgba(255, 255, 255, 0.05);
@@ -208,6 +267,30 @@
             word-break: break-word;
         }
 
+        .profile-input, .profile-select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: var(--text-cream);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .profile-input:focus, .profile-select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .profile-input[disabled], .profile-select[disabled] {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
         .profile-status-message {
             color: var(--accent-gold);
             font-size: 13px;
@@ -215,7 +298,47 @@
             min-height: 18px;
         }
 
-        /* Top Header (Full Width) */
+        .profile-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-gold), var(--chocolate-light));
+            color: #1e0f08;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-cream);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Top Header */
         .top-header {
             width: 100%;
             height: 80px;
@@ -267,7 +390,6 @@
             white-space: nowrap;
         }
 
-        /* Footer (Full Width) */
         .app-footer {
             width: 100%;
             height: 45px;
@@ -340,7 +462,7 @@
             font-weight: 600;
             letter-spacing: 0.5px;
         }
-        /* Status Badge overrides */
+
         .status-pill {
             display: inline-block;
             padding: 4px 10px;
@@ -356,7 +478,6 @@
             border: 1px solid rgba(200, 150, 102, 0.3);
         }
 
-        /* Custom Alert Modals */
         .loading-screen {
             position: fixed;
             top: 0;
@@ -382,7 +503,6 @@
             animation: spin 1s infinite linear;
         }
 
-        /* Scrollbars custom */
         ::-webkit-scrollbar {
             width: 8px;
         }
@@ -396,13 +516,16 @@
         ::-webkit-scrollbar-thumb:hover {
             background: var(--chocolate-light);
         }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
 
-
-
-    <!-- TOP HEADER (Full Width) -->
+    <!-- TOP HEADER -->
     <header class="top-header">
         <div style="display: flex; align-items: center; gap: 24px;">
             <img src="{% static 'images/LaboLogo.png' %}" alt="Labotik Logo" class="sidebar-logo" style="max-height: 40px; width: auto;">
@@ -413,7 +536,6 @@
             <div class="header-clock-time" id="headerDateTime">Cargando fecha y hora...</div>
         </div>
         <div class="header-actions">
-            <!-- User Profile badge -->
             <div class="user-profile" id="userProfileButton" style="cursor: pointer;">
                 <div class="user-avatar" id="avatarLetter">S</div>
                 <div class="user-details">
@@ -432,7 +554,7 @@
                 <div class="menu-label">Administración</div>
                 <ul class="menu-list">
                     <li class="menu-item active">
-                        <a href="#" onclick="navigateMenu(event, 'Dashboard')">
+                        <a href="#" onclick="navigateMenu(event, 'dashboard', 'Dashboard')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
                             </svg>
@@ -440,7 +562,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Administradores')">
+                        <a href="#" onclick="navigateMenu(event, 'administradores', 'Administradores')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c2.21 0 4-1.79 4-4S14.21 3 12 3 8 4.79 8 7s1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v3h16v-3c0-2.66-5.33-4-8-4z" />
                             </svg>
@@ -448,7 +570,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Pacientes')">
+                        <a href="#" onclick="navigateMenu(event, 'pacientes', 'Pacientes')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                             </svg>
@@ -456,7 +578,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Médicos')">
+                        <a href="#" onclick="navigateMenu(event, 'medicos', 'Médicos')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                             </svg>
@@ -464,7 +586,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Laboratoristas')">
+                        <a href="#" onclick="navigateMenu(event, 'laboratoristas', 'Laboratoristas')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
                             </svg>
@@ -476,7 +598,7 @@
                 <div class="menu-label">Sistema</div>
                 <ul class="menu-list">
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Áreas de laboratorio')">
+                        <a href="#" onclick="navigateMenu(event, 'areas', 'Áreas de Laboratorio')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
@@ -484,7 +606,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Pruebas')">
+                        <a href="#" onclick="navigateMenu(event, 'pruebas', 'Pruebas de Laboratorio')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2l1.5 4.5L18 8l-3.75 2.75L14.5 16 12 13.75 9.5 16l.25-5.25L6 8l4.5-1.5z" />
                             </svg>
@@ -559,68 +681,129 @@
                     <div class="profile-panel-header">
                         <div>
                             <h1 class="profile-panel-title">Perfil de usuario</h1>
-                            <p class="profile-panel-subtitle">Datos del administrador logueado cargados desde el backend.</p>
+                            <p class="profile-panel-subtitle">Edita tus datos personales y actualiza tu contraseña.</p>
                         </div>
                     </div>
 
-                    <div class="profile-grid">
-                        <div class="profile-field-card">
-                            <span class="profile-label">Nombre completo</span>
-                            <span class="profile-value" id="profileFullName">Cargando...</span>
+                    <form id="profileForm">
+                        <div class="profile-grid">
+                            <!-- Campo: ID (solo lectura) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileId">ID administrador</label>
+                                <input type="text" id="profileId" class="profile-input" disabled>
+                            </div>
+                            <!-- Campo: Nombre -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileFirstName">Nombre</label>
+                                <input type="text" id="profileFirstName" class="profile-input" required>
+                            </div>
+                            <!-- Campo: Apellido paterno -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileLastName">Apellido paterno</label>
+                                <input type="text" id="profileLastName" class="profile-input" required>
+                            </div>
+                            <!-- Campo: Apellido materno -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileMiddleName">Apellido materno</label>
+                                <input type="text" id="profileMiddleName" class="profile-input">
+                            </div>
+                            <!-- Campo: Email (bloqueado, solo lectura) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileEmail">Email</label>
+                                <input type="email" id="profileEmail" class="profile-input" disabled>
+                            </div>
+                            <!-- Campo: Rol (select) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileRole">Rol</label>
+                                <select id="profileRole" class="profile-select">
+                                    <option value="super_admin">Super Administrador</option>
+                                    <option value="admin_general">Admin General</option>
+                                    <option value="admin_financiero">Admin Financiero</option>
+                                    <option value="admin_lab">Admin Laboratorio</option>
+                                    <option value="recepcionista">Recepcionista</option>
+                                </select>
+                            </div>
+                            <!-- Campo: Fecha de nacimiento -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileBirthdate">Fecha de nacimiento</label>
+                                <input type="date" id="profileBirthdate" class="profile-input">
+                            </div>
+                            <!-- Campo: Teléfono -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePhone">Teléfono</label>
+                                <input type="tel" id="profilePhone" class="profile-input" placeholder="Ej. +591 71234567">
+                            </div>
+                            <!-- Campo: Nueva contraseña -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePassword">Nueva contraseña</label>
+                                <input type="password" id="profilePassword" class="profile-input" placeholder="Dejar vacío para no cambiar">
+                            </div>
+                            <!-- Campo: Confirmar contraseña -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePasswordConfirm">Confirmar contraseña</label>
+                                <input type="password" id="profilePasswordConfirm" class="profile-input" placeholder="Repite la nueva contraseña">
+                            </div>
                         </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Nombre</span>
-                            <span class="profile-value" id="profileFirstName">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Apellido paterno</span>
-                            <span class="profile-value" id="profileLastName">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Apellido materno</span>
-                            <span class="profile-value" id="profileMiddleName">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Email</span>
-                            <span class="profile-value" id="profileEmail">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Rol</span>
-                            <span class="profile-value" id="profileRole">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">ID administrador</span>
-                            <span class="profile-value" id="profileId">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Fecha de nacimiento</span>
-                            <span class="profile-value" id="profileBirthdate">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Teléfono</span>
-                            <span class="profile-value" id="profilePhone">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Estado</span>
-                            <span class="profile-value" id="profileStatus">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Creado</span>
-                            <span class="profile-value" id="profileCreatedAt">Cargando...</span>
-                        </div>
-                        <div class="profile-field-card">
-                            <span class="profile-label">Última actualización</span>
-                            <span class="profile-value" id="profileUpdatedAt">Cargando...</span>
-                        </div>
-                    </div>
 
-                    <div class="profile-status-message" id="profileLoadStatus"></div>
+                        <div class="profile-actions">
+                            <button type="button" class="btn btn-secondary" id="cancelProfileBtn">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                        </div>
+                        <div class="profile-status-message" id="profileLoadStatus"></div>
+                    </form>
                 </div>
             </section>
+            <section id="dashboard" class="dashboard-section active" aria-hidden="false">
+                <div class="profile-panel">
+                    <div class="profile-panel-header">
+                        <div>
+                            <h1 class="profile-panel-title">Dashboard</h1>
+                            <p class="profile-panel-subtitle">Visión general del sistema.</p>
+                        </div>
+                    </div>
+                    <div class="list-panel">
+                        <p>Selecciona una sección del menú para ver los usuarios por rol.</p>
+                    </div>
+                </div>
+            </section>
+            <!-- ENTITY EDIT MODAL (constrained to workspace, no cover header/sidebar/footer) -->
+            <div id="entityModal" class="modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.35); z-index:50;">
+                <div class="modal-inner" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 20px 40px rgba(0,0,0,0.3); color:#4b2e2a;">
+                    <h3 id="modalTitle">Editar registro</h3>
+                    <form id="entityForm">
+                        <input type="hidden" id="modalId">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="field" id="fIdAreaText" style="display:none;"><label for="modalIdAreaText">ID Área</label><input id="modalIdAreaText" class="profile-input" placeholder="ID (ej. HEMATOLOGIA)" /></div>
+                            <div class="field" id="fNombre"><label for="modalNombre">Nombre</label><input id="modalNombre" class="profile-input" placeholder="Nombre" /></div>
+                            <div class="field" id="fDescripcion" style="display:none;"><label for="modalDescripcion">Descripción</label><input id="modalDescripcion" class="profile-input" placeholder="Descripción" /></div>
+                            <div class="field" id="fApellidoP"><label for="modalApellidoP">Apellido paterno</label><input id="modalApellidoP" class="profile-input" placeholder="Apellido paterno" /></div>
+                            <div class="field" id="fApellidoM"><label for="modalApellidoM">Apellido materno</label><input id="modalApellidoM" class="profile-input" placeholder="Apellido materno" /></div>
+                            <div class="field" id="fEmail"><label for="modalEmail">Email</label><input id="modalEmail" class="profile-input" placeholder="Email" /></div>
+                            <div class="field" id="fTelefono"><label for="modalTelefono">Teléfono</label><input id="modalTelefono" class="profile-input" placeholder="Teléfono" /></div>
+                            <div class="field" id="fFecha"><label for="modalFecha">Fecha de nacimiento</label><input id="modalFecha" type="date" class="profile-input" placeholder="Fecha de nacimiento" /></div>
+                            <div class="field" id="fGenero"><label for="modalGenero">Género</label><select id="modalGenero" class="profile-select"><option value="">Seleccione</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+                            <div class="field" id="fDireccion"><label for="modalDireccion">Dirección</label><input id="modalDireccion" class="profile-input" placeholder="Dirección" /></div>
+                            <div class="field" id="fTipoSangre"><label for="modalTipoSangre">Tipo de sangre</label><select id="modalTipoSangre" class="profile-select"><option value="">Seleccione</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select></div>
+                            <div class="field" id="fAlergias"><label for="modalAlergias">Alergias</label><input id="modalAlergias" class="profile-input" placeholder="Alergias" /></div>
+                            <div class="field" id="fPassword"><label for="modalPassword">Contraseña</label><input id="modalPassword" class="profile-input" type="password" placeholder="Nueva contraseña (opcional)" /></div>
+                            <div class="field" id="fRol"><label for="modalRol">Rol</label><select id="modalRol" class="profile-select"><option value="admin_general">admin_general</option><option value="super_admin">super_admin</option><option value="admin_financiero">admin_financiero</option><option value="admin_lab">admin_lab</option><option value="recepcionista">recepcionista</option></select></div>
+                            <div class="field" id="fEspecialidad"><label for="modalEspecialidad">Especialidad</label><select id="modalEspecialidad" class="profile-select"><option value="">Seleccione especialidad</option><option value="Cardiología">Cardiología</option><option value="Dermatología">Dermatología</option><option value="Endocrinología">Endocrinología</option><option value="Gastroenterología">Gastroenterología</option><option value="Ginecología">Ginecología</option><option value="Neurología">Neurología</option><option value="Pediatría">Pediatría</option><option value="Psiquiatría">Psiquiatría</option><option value="Oncología">Oncología</option><option value="Ortopedia">Ortopedia</option><option value="Oftalmología">Oftalmología</option><option value="Otorrinolaringología">Otorrinolaringología</option><option value="Urología">Urología</option><option value="Nefrología">Nefrología</option><option value="Reumatología">Reumatología</option><option value="Cirugía general">Cirugía general</option><option value="Medicina interna">Medicina interna</option><option value="Neumología">Neumología</option><option value="Infectología">Infectología</option><option value="Medicina familiar">Medicina familiar</option><option value="Anestesiología">Anestesiología</option><option value="Radiología">Radiología</option><option value="Hematología">Hematología</option></select></div>
+                            <div class="field" id="fIdArea"><label for="modalIdArea">Área</label><select id="modalIdArea" class="profile-select"><option value="">Seleccione área</option></select></div>
+                            <div class="field" id="fValorReferencia" style="display:none;"><label for="modalValorReferencia">Valor de referencia</label><input id="modalValorReferencia" class="profile-input" placeholder="Valor de referencia" /></div>
+                            <div class="field" id="fUnidad" style="display:none;"><label for="modalUnidad">Unidad</label><input id="modalUnidad" class="profile-input" placeholder="Unidad (ej. mg/dL)" /></div>
+                            <div class="field" id="fPrecio" style="display:none;"><label for="modalPrecio">Precio</label><input id="modalPrecio" type="number" step="0.01" class="profile-input" placeholder="Precio" /></div>
+                            <div class="field" id="fTiempoEstimado" style="display:none;"><label for="modalTiempoEstimado">Tiempo estimado (minutos)</label><input id="modalTiempoEstimado" type="number" class="profile-input" placeholder="Tiempo en minutos" /></div>
+                        <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                            <button type="button" class="btn btn-secondary modal-cancel" onclick="closeEditModal()">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </main>
-    </div> <!-- Close app-middle-container -->
+    </div>
 
-    <!-- FOOTER (Full Width) -->
+    <!-- FOOTER -->
     <footer class="app-footer">
         <p>&copy; 2026 Labotik. Todos los derechos reservados. | Conexión Segura SSL | Portal de Administrador</p>
     </footer>
@@ -638,6 +821,8 @@
             }
         }
 
+        let currentAdminData = null;
+
         window.addEventListener('DOMContentLoaded', () => {
             const token = sessionStorage.getItem('access_token');
             if (!token) {
@@ -651,10 +836,14 @@
                 return;
             }
 
-            document.getElementById('adminName').innerText = payload.sub || "Administrador";
-            document.getElementById('avatarLetter').innerText = (payload.sub || "A").charAt(0).toUpperCase();
+            const fullName = [payload.nombre, payload.apellido_paterno, payload.apellido_materno].filter(Boolean).join(' ');
+            document.getElementById('adminName').innerText = fullName || payload.sub || "Administrador";
+            document.getElementById('avatarLetter').innerText = (payload.nombre?.charAt(0) || payload.sub?.charAt(0) || "A").toUpperCase();
+            const adminRoleText = payload.rol || payload.rol_administrador || 'ADMINISTRADOR';
+            document.getElementById('adminRole').innerText = adminRoleText.replace(/_/g, ' ').toUpperCase();
             updateHeaderDateTime();
             setInterval(updateHeaderDateTime, 1000);
+            loadProfileData();
 
             const profileButton = document.getElementById('userProfileButton');
             if (profileButton) {
@@ -663,6 +852,27 @@
                     showUserProfile();
                 });
             }
+
+            const profileForm = document.getElementById('profileForm');
+            profileForm.addEventListener('submit', saveProfileChanges);
+
+            const cancelBtn = document.getElementById('cancelProfileBtn');
+            cancelBtn.addEventListener('click', () => loadProfileData());
+
+            const entityForm = document.getElementById('entityForm');
+            if (entityForm) entityForm.addEventListener('submit', submitEntityForm);
+
+            // close modal when clicking outside
+            const entityModal = document.getElementById('entityModal');
+            if (entityModal) {
+                entityModal.addEventListener('click', (ev) => {
+                    if (ev.target === entityModal) closeEditModal();
+                });
+            }
+
+            // Show dashboard by default on load
+            document.querySelector('.page-title').innerText = 'Panel de Control';
+            showOnlyDashboardSection('dashboard');
         });
 
         function showOnlyDashboardSection(sectionId) {
@@ -671,62 +881,39 @@
                 section.classList.toggle('active', isActive);
                 section.setAttribute('aria-hidden', String(!isActive));
             });
+            if (sectionId === 'user-profile') {
+                document.querySelector('.page-title').innerText = 'Perfil de usuario';
+            }
         }
 
-        function formatProfileDate(value) {
-            if (!value) return 'No definido';
+        function formatDateForInput(value) {
+            if (!value) return '';
             const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return 'No definido';
-            return new Intl.DateTimeFormat('es-BO', {
-                timeZone: 'America/La_Paz',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            }).format(date);
+            if (isNaN(date)) return '';
+            return date.toISOString().slice(0, 10);
         }
 
-        function formatProfileDateTime(value) {
-            if (!value) return 'No disponible';
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return 'No disponible';
-            return new Intl.DateTimeFormat('es-BO', {
-                timeZone: 'America/La_Paz',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }).format(date);
+        function fillProfileForm(admin) {
+            currentAdminData = admin;
+            document.getElementById('profileId').value = admin.id_administrador || '';
+            document.getElementById('profileFirstName').value = admin.nombre || '';
+            document.getElementById('profileLastName').value = admin.apellido_paterno || '';
+            document.getElementById('profileMiddleName').value = admin.apellido_materno || '';
+            document.getElementById('profileEmail').value = admin.email || '';
+            const roleSelect = document.getElementById('profileRole');
+            if (roleSelect) {
+                roleSelect.value = admin.rol_administrador || 'admin_general';
+            }
+            document.getElementById('profileBirthdate').value = formatDateForInput(admin.fecha_nacimiento);
+            document.getElementById('profilePhone').value = admin.telefono || '';
+            // Limpiar campos de contraseña
+            document.getElementById('profilePassword').value = '';
+            document.getElementById('profilePasswordConfirm').value = '';
         }
 
-        function setProfileText(id, value) {
-            const element = document.getElementById(id);
-            if (element) element.innerText = value || 'No definido';
-        }
-
-        function renderUserProfile(adminData) {
-            const fullName = `${adminData.nombre || ''} ${adminData.apellido_paterno || ''} ${adminData.apellido_materno || ''}`.trim();
-            setProfileText('profileFullName', fullName || 'No definido');
-            setProfileText('profileFirstName', adminData.nombre);
-            setProfileText('profileLastName', adminData.apellido_paterno);
-            setProfileText('profileMiddleName', adminData.apellido_materno || 'No definido');
-            setProfileText('profileEmail', adminData.email);
-            setProfileText('profileRole', adminData.rol_administrador);
-            setProfileText('profileId', adminData.id_administrador ? String(adminData.id_administrador) : 'Sin ID');
-            setProfileText('profileBirthdate', formatProfileDate(adminData.fecha_nacimiento));
-            setProfileText('profilePhone', adminData.telefono || 'No definido');
-            setProfileText('profileStatus', adminData.activo === 1 ? 'Activo' : 'Desactivado');
-            setProfileText('profileCreatedAt', formatProfileDateTime(adminData.created_at));
-            setProfileText('profileUpdatedAt', formatProfileDateTime(adminData.updated_at));
-        }
-
-        async function showUserProfile() {
-            showOnlyDashboardSection('user-profile');
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-            document.querySelector('.page-title').innerText = 'Perfil de usuario';
-            const status = document.getElementById('profileLoadStatus');
-            if (status) status.innerText = 'Cargando datos del usuario...';
-
+        async function loadProfileData() {
+            const statusDiv = document.getElementById('profileLoadStatus');
+            statusDiv.innerText = 'Cargando datos del usuario...';
             const token = sessionStorage.getItem('access_token');
             const payload = token ? decodeJwt(token) : null;
             if (!token || !payload || payload.rol !== 'administrador' || !payload.sub) {
@@ -738,24 +925,563 @@
                 const response = await fetch(`${API_URL}/administradores/by-email?email=${encodeURIComponent(payload.sub)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-
-                if (!response.ok) {
-                    throw new Error('No se pudo cargar el perfil desde el backend.');
-                }
-
+                if (!response.ok) throw new Error('Error al obtener perfil');
                 const adminData = await response.json();
-                renderUserProfile(adminData);
-                if (status) status.innerText = 'Datos actualizados desde el backend.';
+                fillProfileForm(adminData);
+                const adminNameEl = document.getElementById('adminName');
+                const avatarLetterEl = document.getElementById('avatarLetter');
+                const adminRoleEl = document.getElementById('adminRole');
+                if (adminNameEl) {
+                    adminNameEl.innerText = `${adminData.nombre || ''} ${adminData.apellido_paterno || ''} ${adminData.apellido_materno || ''}`.trim();
+                }
+                if (avatarLetterEl && adminData.nombre) {
+                    avatarLetterEl.innerText = adminData.nombre.charAt(0).toUpperCase();
+                }
+                if (adminRoleEl) {
+                    adminRoleEl.innerText = adminData.rol_administrador ? adminData.rol_administrador.replace('_', ' ').toUpperCase() : 'ADMINISTRADOR';
+                }
+                statusDiv.innerText = 'Perfil cargado correctamente.';
             } catch (error) {
                 console.error(error);
-                if (status) status.innerText = 'Error al cargar los datos del usuario.';
+                statusDiv.innerText = 'Error al cargar los datos. Intente nuevamente.';
+            }
+        }
+
+        async function saveProfileChanges(event) {
+            event.preventDefault();
+            const statusDiv = document.getElementById('profileLoadStatus');
+            const token = sessionStorage.getItem('access_token');
+            if (!token) {
+                window.location.href = "/";
+                return;
+            }
+
+            const password = document.getElementById('profilePassword').value;
+            const confirmPassword = document.getElementById('profilePasswordConfirm').value;
+            if (password && password !== confirmPassword) {
+                statusDiv.innerText = 'Las contraseñas no coinciden.';
+                return;
+            }
+
+            // Solo campos editables (excluimos email, id, y campos eliminados)
+            const roleElement = document.getElementById('profileRole');
+            const selectedRole = roleElement ? roleElement.value : (currentAdminData?.rol_administrador || 'admin_general');
+            const updatedData = {
+                nombre: document.getElementById('profileFirstName').value.trim(),
+                apellido_paterno: document.getElementById('profileLastName').value.trim(),
+                apellido_materno: document.getElementById('profileMiddleName').value.trim() || null,
+                telefono: document.getElementById('profilePhone').value.trim() || null,
+                fecha_nacimiento: document.getElementById('profileBirthdate').value || null,
+                rol_administrador: selectedRole,
+            };
+            if (password) {
+                updatedData.password = password;
+            }
+
+            const adminId = document.getElementById('profileId').value;
+            if (!adminId) {
+                statusDiv.innerText = 'ID de administrador no encontrado.';
+                return;
+            }
+
+            statusDiv.innerText = 'Guardando cambios...';
+            try {
+                const response = await fetch(`${API_URL}/administradores/${adminId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.detail || 'Error al guardar');
+                }
+                const savedAdmin = await response.json();
+                fillProfileForm(savedAdmin);
+                statusDiv.innerText = 'Perfil actualizado exitosamente.';
+                // Actualizar nombre en el header
+                const fullName = `${savedAdmin.nombre} ${savedAdmin.apellido_paterno}`.trim();
+                document.getElementById('adminName').innerText = fullName || savedAdmin.email;
+                document.getElementById('avatarLetter').innerText = (savedAdmin.nombre?.[0] || savedAdmin.email?.[0] || 'A').toUpperCase();
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        function showUserProfile() {
+            showOnlyDashboardSection('user-profile');
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            loadProfileData();
+        }
+        async function loadSectionHtml(sectionId) {
+            const workspace = document.querySelector('.workspace');
+            let section = document.getElementById(sectionId);
+            
+            // if not in DOM, fetch and append
+            if (!section && ['administradores', 'pacientes', 'medicos', 'laboratoristas', 'areas', 'pruebas'].includes(sectionId)) {
+                try {
+                    const response = await fetch(`/static/partials/${sectionId}.html`);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const temp = document.createElement('div');
+                        temp.innerHTML = html;
+                        const newSection = temp.firstElementChild;
+                        if(newSection) {
+                            workspace.insertBefore(newSection, document.getElementById('entityModal'));
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error loading section:", e);
+                }
+            }
+        }
+
+        async function navigateMenu(event, sectionId, title) {
+            event.preventDefault();
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            const menuItem = event.currentTarget.closest('.menu-item');
+            if (menuItem) {
+                menuItem.classList.add('active');
+            }
+            
+            await loadSectionHtml(sectionId);
+            
+            showOnlyDashboardSection(sectionId);
+            if (title) {
+                document.querySelector('.page-title').innerText = title;
+            }
+            loadSectionData(sectionId);
+        }
+
+
+        function loadSectionData(sectionId) {
+            if (!sectionId) return;
+            // use paginated fetch
+            if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas'].includes(sectionId)) {
+                fetchAndRender(sectionId, 0, 10);
+            }
+        }
+
+        // Utility to create action buttons for a row
+        function createActionCell(sectionKey, entity, page, pageSize) {
+            const td = document.createElement('td');
+            // Edit icon button (pencil)
+            const editBtn = document.createElement('button');
+            editBtn.className = 'icon-btn';
+            editBtn.title = 'Modificar';
+            editBtn.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M14.846 2.56a2.25 2.25 0 0 1 3.182 3.183l-9.193 9.194a.75.75 0 0 1-.338.197l-4.03.99a.75.75 0 0 1-.91-.91l.99-4.03a.75.75 0 0 1 .197-.338l9.193-9.193zM6.5 13.5l6-6"/></svg>`;
+            editBtn.addEventListener('click', () => openEditModal(sectionKey, entity));
+
+            // Delete icon button (trash)
+            const delBtn = document.createElement('button');
+            delBtn.className = 'icon-btn';
+            delBtn.title = 'Borrar';
+            delBtn.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h8v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h2a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/></svg>`;
+            delBtn.addEventListener('click', () => handleDeleteEntity(sectionKey, entity));
+
+            td.appendChild(editBtn);
+            td.appendChild(delBtn);
+            return td;
+        }
+
+        const sectionConfig = {
+            administradores: { endpoint: 'administradores', idField: 'id_administrador', searchIdParam: 'id_administrador' },
+            pacientes: { endpoint: 'pacientes', idField: 'id_paciente', searchIdParam: 'id_paciente' },
+            medicos: { endpoint: 'medicos', idField: 'id_medico', searchIdParam: 'id_medico' },
+            laboratoristas: { endpoint: 'laboratoristas', idField: 'id_laboratorista', searchIdParam: 'id_laboratorista', searchAreaIdParam: 'id_area' },
+            areas: { endpoint: 'areas', idField: 'id_area', searchIdParam: 'id_area' },
+            pruebas: { endpoint: 'pruebas', idField: 'id_prueba', searchIdParam: 'id_prueba', searchAreaIdParam: 'id_area' }
+        };
+
+        function getSearchFilters(sectionKey) {
+            const cfg = sectionConfig[sectionKey];
+            if (!cfg) return {};
+            const filters = {};
+            const idValue = document.getElementById(`${sectionKey}SearchId`);
+            if (idValue && cfg.searchIdParam) filters[cfg.searchIdParam] = idValue.value.trim();
+            const apellidoP = document.getElementById(`${sectionKey}SearchApellidoP`);
+            const apellidoM = document.getElementById(`${sectionKey}SearchApellidoM`);
+            if (apellidoP) filters['apellido_paterno'] = apellidoP.value.trim();
+            if (apellidoM) filters['apellido_materno'] = apellidoM.value.trim();
+            if (sectionKey === 'laboratoristas') {
+                const areaId = document.getElementById('laboratoristasSearchAreaId');
+                if (areaId) filters['id_area'] = areaId.value.trim();
+            }
+            return filters;
+        }
+
+        function searchSection(sectionKey) {
+            fetchAndRender(sectionKey, 0, 10);
+        }
+
+        function clearSearch(sectionKey) {
+            ['SearchId','SearchApellidoP','SearchApellidoM'].forEach(field => {
+                const input = document.getElementById(`${sectionKey}${field}`);
+                if (input) input.value = '';
+            });
+            if (sectionKey === 'laboratoristas') {
+                const areaId = document.getElementById('laboratoristasSearchAreaId');
+                if (areaId) areaId.value = '';
+            }
+            fetchAndRender(sectionKey, 0, 10);
+        }
+
+        let areaSearchTimeout = null;
+        async function loadAreaOptions(query = '', selectedId = null) {
+            const select = document.getElementById('modalIdArea');
+            if (!select) return;
+            select.innerHTML = '<option value="">Cargando áreas...</option>';
+            
+            try {
+                const token = sessionStorage.getItem('access_token');
+                const params = new URLSearchParams();
+                if (query && query.trim()) {
+                    params.set('query', query);
+                }
+                
+                const response = await fetch(`${API_URL}/areas/search?${params.toString()}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (!response.ok) {
+                    select.innerHTML = '<option value="">No se pudo cargar áreas</option>';
+                    return;
+                }
+                
+                const areas = await response.json();
+                select.innerHTML = '<option value="">Seleccione área</option>';
+                
+                if (!Array.isArray(areas) || areas.length === 0) {
+                    select.innerHTML += '<option value="" disabled>No hay áreas disponibles</option>';
+                    return;
+                }
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id_area;
+                    option.textContent = area.nombre;
+                    if (selectedId && area.id_area === selectedId) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar áreas:', error);
+                select.innerHTML = '<option value="">Error al cargar áreas</option>';
+            }
+        }
+
+        let areasCache = {};
+        async function loadAreasCache() {
+            try {
+                const token = sessionStorage.getItem('access_token');
+                const response = await fetch(`${API_URL}/areas/search`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const areas = await response.json();
+                    if (Array.isArray(areas)) {
+                        areasCache = {};
+                        areas.forEach(area => {
+                            areasCache[area.id_area] = area.nombre;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error al cargar áreas en caché:", error);
+            }
+        }
+
+        function debouncedAreaSearch() {
+            if (areaSearchTimeout) clearTimeout(areaSearchTimeout);
+            areaSearchTimeout = setTimeout(() => {
+                const query = document.getElementById('modalAreaSearch')?.value.trim() || '';
+                loadAreaOptions(query);
+            }, 300);
+        }
+
+        async function fetchAndRender(sectionKey, page = 0, pageSize = 10) {
+            const cfg = sectionConfig[sectionKey];
+            if (!cfg) return;
+            
+            if (sectionKey === 'pruebas' || sectionKey === 'laboratoristas') {
+                await loadAreasCache();
+            }
+
+            const status = document.getElementById(`${sectionKey}Status`);
+            const tbody = document.getElementById(`${sectionKey}Tbody`);
+            const pagination = document.getElementById(`${sectionKey}Pagination`);
+            status.innerText = `Cargando ${sectionKey}...`;
+            tbody.innerHTML = '';
+            pagination.innerHTML = '';
+            const searchFilters = getSearchFilters(sectionKey);
+            const hasSearch = Object.values(searchFilters).some(value => value);
+            try {
+                const token = sessionStorage.getItem('access_token');
+                let response;
+                if (hasSearch) {
+                    const query = new URLSearchParams(searchFilters).toString();
+                    response = await fetch(`${API_URL}/${cfg.endpoint}/search?${query}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                } else {
+                    const skip = page * pageSize;
+                    response = await fetch(`${API_URL}/${cfg.endpoint}?skip=${skip}&limit=${pageSize}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                }
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        status.innerText = 'No hay registros.';
+                        return;
+                    }
+                    const err = await response.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al cargar datos');
+                }
+                const items = await response.json();
+                if (!Array.isArray(items)) throw new Error('Respuesta inesperada del servidor');
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    const idCell = document.createElement('td');
+                    idCell.textContent = item[cfg.idField] || item.id || '';
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = `${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`.trim() || item.email || '';
+                    tr.appendChild(idCell);
+                    tr.appendChild(nameCell);
+                    
+                    // Agregar descripción para áreas
+                    if (sectionKey === 'areas') {
+                        const descCell = document.createElement('td');
+                        descCell.textContent = item.descripcion || '';
+                        descCell.style.maxWidth = '300px';
+                        descCell.style.whiteSpace = 'normal';
+                        descCell.style.wordWrap = 'break-word';
+                        tr.appendChild(descCell);
+                    }
+                    
+                    // Agregar área para laboratoristas
+                    if (sectionKey === 'laboratoristas') {
+                        const areaCell = document.createElement('td');
+                        areaCell.textContent = areasCache[item.id_area] || item.id_area || 'Sin asignar';
+                        tr.appendChild(areaCell);
+                    }
+                    
+                    // Agregar área y descripción para pruebas
+                    if (sectionKey === 'pruebas') {
+                        const areaCell = document.createElement('td');
+                        areaCell.textContent = areasCache[item.id_area] || item.id_area || 'Sin asignar';
+                        tr.appendChild(areaCell);
+                        
+                        const descCell = document.createElement('td');
+                        descCell.textContent = item.descripcion || '';
+                        descCell.style.maxWidth = '300px';
+                        descCell.style.whiteSpace = 'normal';
+                        descCell.style.wordWrap = 'break-word';
+                        tr.appendChild(descCell);
+                    }
+                    
+                    tr.appendChild(createActionCell(sectionKey, item, page, pageSize));
+                    tbody.appendChild(tr);
+                });
+                status.innerText = items.length ? '' : 'No hay registros.';
+                pagination.style.display = hasSearch ? 'none' : 'flex';
+                if (!hasSearch) {
+                    const prev = document.createElement('button');
+                    prev.className = 'btn';
+                    prev.textContent = 'Anterior';
+                    prev.disabled = page === 0;
+                    prev.addEventListener('click', () => fetchAndRender(sectionKey, Math.max(0, page - 1), pageSize));
+                    const next = document.createElement('button');
+                    next.className = 'btn';
+                    next.textContent = 'Siguiente';
+                    next.disabled = items.length < pageSize;
+                    next.addEventListener('click', () => fetchAndRender(sectionKey, page + 1, pageSize));
+                    pagination.appendChild(prev);
+                    pagination.appendChild(document.createTextNode(` Página ${page + 1} `));
+                    pagination.appendChild(next);
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        function openAddModal(sectionKey) {
+            openEntityModal(sectionKey, null, 'create');
+        }
+
+        function openEditModal(sectionKey, entity) {
+            openEntityModal(sectionKey, entity, 'edit');
+        }
+
+        function openEntityModal(sectionKey, entity = null, mode = 'edit') {
+            const modal = document.getElementById('entityModal');
+            const form = document.getElementById('entityForm');
+            form.dataset.section = sectionKey;
+            form.dataset.mode = mode;
+            const cfg = sectionConfig[sectionKey];
+            form.dataset.idField = cfg.idField;
+            const isEdit = mode === 'edit';
+            document.getElementById('entityModal').querySelector('#modalTitle').innerText = isEdit ? 'Editar registro' : 'Agregar registro';
+
+            const entityData = entity || {};
+            document.getElementById('modalId').value = entityData[cfg.idField] || entityData.id || '';
+            if(document.getElementById('modalIdAreaText')) document.getElementById('modalIdAreaText').value = entityData.id_area || '';
+            if(document.getElementById('modalIdAreaText')) document.getElementById('modalIdAreaText').disabled = (isEdit && sectionKey === 'areas');
+            if(document.getElementById('modalDescripcion')) document.getElementById('modalDescripcion').value = entityData.descripcion || '';
+            document.getElementById('modalNombre').value = entityData.nombre || '';
+            document.getElementById('modalApellidoP').value = entityData.apellido_paterno || '';
+            document.getElementById('modalApellidoM').value = entityData.apellido_materno || '';
+            document.getElementById('modalEmail').value = entityData.email || '';
+            document.getElementById('modalTelefono').value = entityData.telefono || '';
+            document.getElementById('modalFecha').value = entityData.fecha_nacimiento ? entityData.fecha_nacimiento.slice(0,10) : '';
+            document.getElementById('modalGenero').value = entityData.genero || '';
+            document.getElementById('modalDireccion').value = entityData.direccion || '';
+            document.getElementById('modalTipoSangre').value = entityData.tipo_sangre || '';
+            document.getElementById('modalAlergias').value = entityData.alergias || '';
+            document.getElementById('modalPassword').value = '';
+            if(document.getElementById('modalValorReferencia')) document.getElementById('modalValorReferencia').value = entityData.valor_referencia || '';
+            if(document.getElementById('modalUnidad')) document.getElementById('modalUnidad').value = entityData.unidad || '';
+            if(document.getElementById('modalPrecio')) document.getElementById('modalPrecio').value = entityData.precio || '';
+            if(document.getElementById('modalTiempoEstimado')) document.getElementById('modalTiempoEstimado').value = entityData.tiempo_estimado_minutos || '';
+
+            const fRol = document.getElementById('fRol');
+            const fEspecialidad = document.getElementById('fEspecialidad');
+            const fIdArea = document.getElementById('fIdArea');
+            if (document.getElementById('modalRol')) document.getElementById('modalRol').value = entityData.rol_administrador || entityData.rol || 'admin_general';
+            if (document.getElementById('modalEspecialidad')) document.getElementById('modalEspecialidad').value = entityData.especialidad || '';
+            const modalAreaSelect = document.getElementById('modalIdArea');
+            if (modalAreaSelect) {
+                modalAreaSelect.innerHTML = '<option value="">Seleccione área</option>';
+            }
+            if (sectionKey === 'laboratoristas') {
+                loadAreaOptions('', entityData.id_area);
+            } else if (sectionKey === 'pruebas') {
+                loadAreaOptions('', entityData.id_area);
+            }
+
+            [fRol, fEspecialidad, fIdArea, document.getElementById('fIdAreaText'), document.getElementById('fDescripcion'), document.getElementById('fGenero'), document.getElementById('fDireccion'), document.getElementById('fTipoSangre'), document.getElementById('fAlergias'), document.getElementById('fValorReferencia'), document.getElementById('fUnidad'), document.getElementById('fPrecio'), document.getElementById('fTiempoEstimado')].forEach(el => { if (el) el.style.display = 'none'; });
+            ['fNombre','fApellidoP','fApellidoM','fEmail','fTelefono','fFecha','fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+            if (sectionKey === 'areas') {
+                if (isEdit) {
+                    ['fIdAreaText', 'fDescripcion'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                } else {
+                    ['fDescripcion'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                }
+                ['fApellidoP', 'fApellidoM', 'fEmail', 'fTelefono', 'fFecha', 'fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+            } else if (sectionKey === 'administradores') {
+                if (fRol) fRol.style.display = '';
+            } else if (sectionKey === 'pacientes') {
+                ['fGenero','fDireccion','fTipoSangre','fAlergias'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+            } else if (sectionKey === 'medicos') {
+                if (fEspecialidad) fEspecialidad.style.display = '';
+            } else if (sectionKey === 'laboratoristas') {
+                if (fIdArea) fIdArea.style.display = '';
+            } else if (sectionKey === 'pruebas') {
+                if (fIdArea) fIdArea.style.display = '';
+                ['fDescripcion', 'fValorReferencia', 'fUnidad', 'fPrecio', 'fTiempoEstimado'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                ['fApellidoP', 'fApellidoM', 'fEmail', 'fTelefono', 'fFecha', 'fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('entityModal');
+            modal.style.display = 'none';
+        }
+
+        async function submitEntityForm(event) {
+            event.preventDefault();
+            const form = document.getElementById('entityForm');
+            const sectionKey = form.dataset.section;
+            const mode = form.dataset.mode || 'edit';
+            const cfg = sectionConfig[sectionKey];
+            const id = document.getElementById('modalId').value;
+            const payload = {};
+            // only include fields that are present in the form
+            ['modalNombre','modalApellidoP','modalApellidoM','modalEmail','modalTelefono','modalFecha','modalGenero','modalDireccion','modalTipoSangre','modalAlergias','modalPassword','modalRol','modalEspecialidad','modalIdArea','modalIdAreaText','modalDescripcion','modalValorReferencia','modalUnidad','modalPrecio','modalTiempoEstimado'].forEach(fid => {
+                const el = document.getElementById(fid);
+                if (!el || el.style.display === 'none' || el.closest('.field').style.display === 'none') return;
+                if (fid === 'modalPassword' && !el.value) return;
+                if (fid === 'modalApellidoP') payload['apellido_paterno'] = el.value || null;
+                else if (fid === 'modalApellidoM') payload['apellido_materno'] = el.value || null;
+                else if (fid === 'modalFecha') payload['fecha_nacimiento'] = el.value || null;
+                else if (fid === 'modalTipoSangre') payload['tipo_sangre'] = el.value || null;
+                else if (fid === 'modalAlergias') payload['alergias'] = el.value || null;
+                else if (fid === 'modalDireccion') payload['direccion'] = el.value || null;
+                else if (fid === 'modalGenero') payload['genero'] = el.value || null;
+                else if (fid === 'modalPassword') payload['password'] = el.value;
+                else if (fid === 'modalRol') payload['rol_administrador'] = el.value || null;
+                else if (fid === 'modalEspecialidad') payload['especialidad'] = el.value || null;
+                else if (fid === 'modalIdArea') payload['id_area'] = el.value || null;
+                else if (fid === 'modalNombre') payload['nombre'] = el.value || null;
+                else if (fid === 'modalIdAreaText') payload['id_area'] = el.value || null;
+                else if (fid === 'modalDescripcion') payload['descripcion'] = el.value || null;
+                else if (fid === 'modalEmail') payload['email'] = el.value || null;
+                else if (fid === 'modalTelefono') payload['telefono'] = el.value || null;
+                else if (fid === 'modalValorReferencia') payload['valor_referencia'] = el.value || null;
+                else if (fid === 'modalUnidad') payload['unidad'] = el.value || null;
+                else if (fid === 'modalPrecio') payload['precio'] = el.value ? parseFloat(el.value) : 0.0;
+                else if (fid === 'modalTiempoEstimado') payload['tiempo_estimado_minutos'] = el.value ? parseInt(el.value) : 30;
+            });
+            // Validar contraseña solo para secciones de usuarios, no para áreas o pruebas
+            const userSections = ['pacientes', 'medicos', 'laboratoristas', 'administradores'];
+            if (mode === 'create' && userSections.includes(sectionKey) && !payload.password) {
+                alert('Para crear un usuario debe ingresar una contraseña.');
+                return;
+            }
+            try {
+                const token = sessionStorage.getItem('access_token');
+                const method = mode === 'create' ? 'POST' : 'PUT';
+                const url = mode === 'create' ? `${API_URL}/${cfg.endpoint}/` : `${API_URL}/${cfg.endpoint}/${id}`;
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al guardar');
+                }
+                closeEditModal();
+                fetchAndRender(sectionKey);
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function handleDeleteEntity(sectionKey, entity) {
+            const cfg = sectionConfig[sectionKey];
+            const id = entity[cfg.idField] || entity.id;
+            if (!confirm('¿Confirma el borrado lógico de este registro?')) return;
+            try {
+                const token = sessionStorage.getItem('access_token');
+                const res = await fetch(`${API_URL}/${cfg.endpoint}/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al borrar');
+                }
+                // refresh list
+                fetchAndRender(sectionKey);
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
             }
         }
 
         function updateHeaderDateTime() {
             const target = document.getElementById('headerDateTime');
             if (!target) return;
-
             const formatter = new Intl.DateTimeFormat('es-BO', {
                 timeZone: 'America/La_Paz',
                 weekday: 'long',
@@ -766,17 +1492,7 @@
                 minute: '2-digit',
                 second: '2-digit'
             });
-
             target.innerText = formatter.format(new Date());
-        }
-
-        function navigateMenu(event, sectionName) {
-            event.preventDefault();
-            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
-            const clickedItem = event.currentTarget.closest('.menu-item');
-            if (clickedItem) clickedItem.classList.add('active');
-            showOnlyDashboardSection('');
-            document.querySelector('.page-title').innerText = sectionName === 'Dashboard' ? 'Panel de Control' : `Módulo: ${sectionName}`;
         }
 
         async function handleLogout() {

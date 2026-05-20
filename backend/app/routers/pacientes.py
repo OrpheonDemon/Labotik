@@ -14,20 +14,24 @@ async def list_pacientes(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para listar pacientes")
     return await crud.paciente_crud.get_multi(db, skip, limit)
 
 @router.get("/search", response_model=list[schemas.PacienteOut])
 async def search_pacientes(
+    id_paciente: str = Query(None),
     apellido_paterno: str = Query(None),
     apellido_materno: str = Query(None),
     nombre: str = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para buscar pacientes")
+    if id_paciente:
+        paciente = await crud.paciente_crud.get(db, id_paciente)
+        return [paciente] if paciente else []
     return await crud.paciente_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
 @router.get("/{id_paciente}", response_model=schemas.PacienteOut)
@@ -72,8 +76,11 @@ async def update_paciente(
 async def delete_paciente(
     id_paciente: str, 
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_laboratorista)
+    current_user: dict = Depends(get_current_active_user)
 ):
+    # permitir borrado lógico a laboratorista o administrador
+    if current_user.get("rol") not in ["laboratorista", "administrador"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar pacientes")
     deleted = await crud.paciente_crud.soft_delete(db, id_paciente)
     if not deleted:
         raise HTTPException(status_code=404, detail="Paciente no encontrado")

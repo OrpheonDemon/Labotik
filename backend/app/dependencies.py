@@ -69,21 +69,27 @@ async def get_current_active_user(current_user: dict = Depends(get_current_user)
     return current_user
 
 async def require_laboratorista(current_user: dict = Depends(get_current_active_user)):
-    if current_user.get("rol") != "laboratorista":
+    if current_user.get("rol") not in ["laboratorista", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Laboratorista)")
     return current_user
 
 async def require_medico(current_user: dict = Depends(get_current_active_user)):
-    if current_user.get("rol") != "medico":
+    if current_user.get("rol") not in ["medico", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Médico)")
     return current_user
 
 async def require_paciente(current_user: dict = Depends(get_current_active_user)):
-    if current_user.get("rol") != "paciente":
+    if current_user.get("rol") not in ["paciente", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Paciente)")
     return current_user
 
 async def require_admin(current_user: dict = Depends(get_current_active_user)):
     if current_user.get("rol") != "administrador":
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Administrador)")
+    return current_user
+
+async def require_admin_or_laboratorista(current_user: dict = Depends(get_current_active_user)):
+    rol = current_user.get("rol")
+    if rol not in ["administrador", "laboratorista"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Administrador o Laboratorista)")
     return current_user

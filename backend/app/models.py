@@ -173,7 +173,7 @@ class Administrador(Base):
     email = Column(String(100), unique=True, nullable=False)
     password = Column(String(255), nullable=False)
     telefono = Column(String(20))
-    rol_administrador = Column(Enum('super_admin', 'admin_general', 'admin_financiero', 'admin_lab'), default='admin_general')
+    rol_administrador = Column(Enum('super_admin', 'admin_general', 'admin_financiero', 'admin_lab', 'recepcionista'), default='admin_general')
     activo = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

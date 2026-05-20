@@ -1,6 +1,38 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from datetime import date
+import re
+
+async def generate_area_id(db: AsyncSession, model, nombre: str) -> str:
+    """
+    Genera ID para áreas de laboratorio con formato:
+    - Base: primeras 3 letras del nombre en mayúscula
+    - Número: siempre comienza en 1 y se incrementa si ya existen IDs con las mismas 3 letras
+    - Ejemplo: "Cardiología" -> "CAR1", si ya existe -> "CAR2", "CAR3", etc.
+                "Hematología" -> "HEM1"
+    """
+    from app.models import AreaLaboratorio
+    
+    # Extraer las primeras 3 letras del nombre
+    base_letters = nombre[:3].upper()
+    
+    # Buscar todos los IDs que comienzan con las mismas 3 letras
+    stmt = select(AreaLaboratorio).where(
+        AreaLaboratorio.id_area.ilike(f"{base_letters}%")
+    )
+    result = await db.execute(stmt)
+    existing_ids = [area.id_area for area in result.scalars().all()]
+    
+    # Extraer números existentes
+    numbers = []
+    for id_str in existing_ids:
+        match = re.search(rf"{re.escape(base_letters)}(\d+)", id_str)
+        if match:
+            numbers.append(int(match.group(1)))
+    
+    # El siguiente número: máximo + 1, comenzando desde 1 si no hay números
+    next_number = max(numbers) + 1 if numbers else 1
+    return f"{base_letters}{next_number}"
 
 async def get_next_int_id(db: AsyncSession, model, pk_column_name: str = "id") -> int:
     """Genera el siguiente ID para tablas con PK INT o VARCHAR representando INT (comienza en 1000)."""

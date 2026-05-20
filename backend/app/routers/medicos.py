@@ -11,11 +11,15 @@ async def list_medicos(skip: int = 0, limit: int = 100, db: AsyncSession = Depen
 
 @router.get("/search", response_model=list[schemas.MedicoOut])
 async def search_medicos(
+    id_medico: str = Query(None),
     apellido_paterno: str = Query(None),
     apellido_materno: str = Query(None),
     nombre: str = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
+    if id_medico:
+        medico = await crud.medico_crud.get(db, id_medico)
+        return [medico] if medico else []
     return await crud.medico_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
 @router.get("/{id_medico}", response_model=schemas.MedicoOut)

@@ -4,7 +4,7 @@ from datetime import date, datetime
 
 # ---------- Áreas ----------
 class AreaBase(BaseModel):
-    id_area: str
+    id_area: Optional[str] = None
     nombre: str
     descripcion: Optional[str] = None
 

@@ -1,0 +1,30 @@
+<section id="administradores" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Administradores</h1>
+                <p class="profile-panel-subtitle">Lista de administradores registrados.</p>
+            </div>
+            <button class="icon-btn add-btn" title="Agregar administrador" onclick="openAddModal('administradores')">
+                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 4v12m6-6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="search-panel">
+            <input id="administradoresSearchId" class="search-input" placeholder="Buscar por ID" />
+            <input id="administradoresSearchApellidoP" class="search-input" placeholder="Apellido paterno" />
+            <input id="administradoresSearchApellidoM" class="search-input" placeholder="Apellido materno" />
+            <button class="icon-btn search-btn" title="Buscar" aria-label="Buscar administradores" onclick="searchSection('administradores')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zm7-1l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </button>
+            <button class="icon-btn search-btn" title="Limpiar" aria-label="Limpiar busqueda administradores" onclick="clearSearch('administradores')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div id="administradoresStatus" class="profile-status-message"></div>
+        <table class="entity-table" id="administradoresTable">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Acciones</th></tr></thead>
+            <tbody id="administradoresTbody"></tbody>
+        </table>
+        <div class="pagination" id="administradoresPagination"></div>
+    </div>
+</section>

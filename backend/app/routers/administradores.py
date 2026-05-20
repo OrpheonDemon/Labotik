@@ -11,11 +11,15 @@ async def list_administradores(skip: int = 0, limit: int = 100, db: AsyncSession
 
 @router.get("/search", response_model=list[schemas.AdministradorOut])
 async def search_administradores(
+    id_administrador: str = Query(None),
     apellido_paterno: str = Query(None),
     apellido_materno: str = Query(None),
     nombre: str = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
+    if id_administrador:
+        administrador = await crud.administrador_crud.get(db, id_administrador)
+        return [administrador] if administrador else []
     return await crud.administrador_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
 @router.get("/by-email", response_model=schemas.AdministradorOut)

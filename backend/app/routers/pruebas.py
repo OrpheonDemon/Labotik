@@ -1,10 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, crud
 from app.database import get_db
 from app.dependencies import require_laboratorista
 
 router = APIRouter(prefix="/pruebas", tags=["Pruebas"])
+
+@router.get("/search", response_model=list[schemas.PruebaOut])
+async def search_pruebas(
+    id_area: str = Query(None),
+    nombre: str = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    if id_area:
+        return await crud.prueba_crud.search_by_area(db, id_area)
+    if nombre:
+        return await crud.prueba_crud.search_by_name(db, nombre)
+    return []
 
 @router.get("/", response_model=list[schemas.PruebaOut])
 async def list_pruebas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):

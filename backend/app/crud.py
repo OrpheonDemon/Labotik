@@ -3,7 +3,7 @@ from sqlalchemy import select, update, or_
 from typing import Type, TypeVar, Generic, Optional, List, Any
 from app.models import *
 from app.schemas import *
-from app.id_generator import get_next_int_id, generate_persona_id
+from app.id_generator import get_next_int_id, generate_persona_id, generate_area_id
 from app.utils import hash_password, verify_password
 
 ModelType = TypeVar("ModelType")
@@ -50,6 +50,10 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         elif self.model == Administrador:
             next_id = await get_next_int_id(db, Administrador, 'id_administrador')
             data['id_administrador'] = next_id
+        elif self.model == AreaLaboratorio:
+            nombre = data.get('nombre', '')
+            if nombre:
+                data['id_area'] = await generate_area_id(db, AreaLaboratorio, nombre)
 
         # Validación de email único y hashing de password para entidades de usuario
         if self.model in [Paciente, Medico, Laboratorista, Administrador]:
@@ -156,6 +160,31 @@ class CRUDLaboratorista(CRUDBase[Laboratorista, LaboratoristaCreate, Laboratoris
         result = await db.execute(stmt)
         return result.scalars().all()
 
+    async def search_by_area(self, db: AsyncSession, id_area: str):
+        stmt = select(Laboratorista).where(
+            Laboratorista.activo == 1,
+            Laboratorista.id_area == id_area
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+class CRUDPrueba(CRUDBase[Prueba, PruebaCreate, PruebaUpdate]):
+    async def search_by_area(self, db: AsyncSession, id_area: str):
+        stmt = select(Prueba).where(
+            Prueba.activo == 1,
+            Prueba.id_area == id_area
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
+    async def search_by_name(self, db: AsyncSession, nombre: str):
+        stmt = select(Prueba).where(
+            Prueba.activo == 1,
+            Prueba.nombre.like(f"%{nombre}%")
+        )
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
 class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, AdministradorUpdate]):
     async def get_by_email(self, db: AsyncSession, email: str):
         stmt = select(Administrador).where(
@@ -181,7 +210,7 @@ class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, Administrad
 
 # Instancias
 area_crud = CRUDBase(AreaLaboratorio, "id_area")
-prueba_crud = CRUDBase(Prueba, "id_prueba")
+prueba_crud = CRUDPrueba(Prueba, "id_prueba")
 paciente_crud = CRUDPaciente(Paciente, "id_paciente")
 medico_crud = CRUDMedico(Medico, "id_medico")
 laboratorista_crud = CRUDLaboratorista(Laboratorista, "id_laboratorista")
