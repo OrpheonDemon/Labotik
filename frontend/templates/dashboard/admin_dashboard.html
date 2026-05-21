@@ -98,7 +98,7 @@
             padding: 16px 18px;
             min-height: 52px;
             border-radius: 14px;
-            background: #4a2e1b;
+            background: var(--chocolate-dark);
             color: #e5dfda;
             text-decoration: none;
             font-size: 15px;
@@ -110,9 +110,9 @@
 
         .menu-item a:hover,
         .menu-item.active a {
-            background: rgba(74, 46, 27, 0.15);
-            color: #3e2723;
-            border-color: rgba(74, 46, 27, 0.15);
+            background: var(--chocolate-medium);
+            color: #e5dfda;
+            border-color: var(--chocolate-light);
             padding-left: 22px;
         }
 
@@ -622,7 +622,7 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Resultados')">
+                        <a href="#" onclick="navigateMenu(event, 'resultados', 'Resultados')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                             </svg>
@@ -630,40 +630,15 @@
                         </a>
                     </li>
                     <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Reportes')">
+                        <a href="#" onclick="navigateMenu(event, 'reportes', 'Reportes')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 17h6M9 3h6" />
                             </svg>
                             Reportes
                         </a>
                     </li>
-                    <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Facturas')">
-                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 21h6M9 3h6" />
-                            </svg>
-                            Facturas
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Pagos')">
-                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5v14" />
-                            </svg>
-                            Pagos
-                        </a>
-                    </li>
-                    <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'Configuración')">
-                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                            Configuración
-                        </a>
-                    </li>
-                    <li class="menu-item" onclick="handleLogout()" style="cursor:pointer;">
-                        <a style="color: #e74c3c;">
+                    <li class="menu-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; padding-top: 20px;">
+                        <a href="#" onclick="handleLogout()" style="color: #e74c3c;">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #e74c3c;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                             </svg>
@@ -1068,6 +1043,11 @@
                 await loadPaidSolicitudes();
                 await loadResultados();
                 // NOTE: fetchAndRender not needed here, resultados has custom rendering
+            }
+            // Custom load for Reportes: listar reportes generados y resultados registrados
+            if (sectionId === 'reportes' || sectionId === 'Reportes') {
+                await loadReportes();
+                await loadReportesList();
             }
         }
 
@@ -2242,6 +2222,720 @@
             if (!proceed) return;
             sessionStorage.removeItem('access_token');
             window.location.href = "/";
+        }
+
+        // ---------- Reportes Section Logic ----------
+        let reportesPage = 0;
+        const reportesPageSize = 10;
+
+        // Cargar tabla de resultados registrados
+        async function loadReportes(){
+            const token = sessionStorage.getItem('access_token');
+            const tbody = document.getElementById('reportesTbody');
+            const status = document.getElementById('reportesStatus');
+            if(!tbody) { console.error('No se encontró tabla de resultados'); return; }
+            
+            try{
+                console.log('Iniciando carga de resultados desde:', `${API_URL}/resultados/registered`);
+                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const res = await fetch(`${API_URL}/resultados/registered?limit=1000`, { headers });
+                
+                console.log('Respuesta del servidor - Status:', res.status);
+                
+                if(!res.ok){ 
+                    status.innerText=`Error cargando resultados (${res.status})`;
+                    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando resultados</td></tr>`;
+                    return; 
+                }
+                const items = await res.json();
+                console.log('Datos recibidos:', items);
+                
+                if(!Array.isArray(items) || items.length===0){ 
+                    status.innerText='No hay resultados registrados.';
+                    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">No hay resultados registrados</td></tr>`;
+                    return; 
+                }
+                status.innerText='';
+                tbody.innerHTML='';
+                
+                items.forEach(r=>{
+                    const tr=document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.addEventListener('click', () => {
+                        openResultadoDetailsModal(r.id_resultado);
+                    });
+                    
+                    const idTd=document.createElement('td'); idTd.textContent=r.id_resultado||'-';
+                    const detTd=document.createElement('td'); detTd.textContent=r.id_detalle||'-';
+                    const pacTd=document.createElement('td'); 
+                    pacTd.textContent=((r.paciente_nombre||'') + ' ' + (r.paciente_apellido_paterno||'') + ' ' + (r.paciente_apellido_materno||'')).trim() || r.id_paciente || '-';
+                    const pruebaTd=document.createElement('td'); pruebaTd.textContent=r.prueba_nombre||'-';
+                    const valorRefTd=document.createElement('td'); valorRefTd.textContent=r.valor_referencia||'-';
+                    const resTd=document.createElement('td'); resTd.textContent=r.resultado||'-';
+                    
+                    // Premium badge styling for Resultado Estado
+                    const estTd=document.createElement('td'); 
+                    const stateBadge = document.createElement('span');
+                    stateBadge.className = 'badge';
+                    stateBadge.textContent = r.estado || '-';
+                    if (r.estado === 'reportado') {
+                        stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                        stateBadge.style.color = 'var(--success-green)';
+                        stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                    } else if (r.estado === 'validado') {
+                        stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                        stateBadge.style.color = 'var(--accent-gold)';
+                        stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    } else {
+                        stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                        stateBadge.style.color = 'var(--text-muted)';
+                        stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                    estTd.appendChild(stateBadge);
+                    
+                    // Column actions: Reportar button
+                    const aTd=document.createElement('td');
+                    aTd.style.textAlign = 'center';
+                    const repBtn=document.createElement('button');
+                    repBtn.className='btn btn-primary';
+                    repBtn.textContent='Reportar';
+                    repBtn.style.padding='6px 14px';
+                    repBtn.style.fontSize='12px';
+                    repBtn.style.width='auto';
+                    repBtn.style.margin='0 auto';
+                    repBtn.style.background='linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    repBtn.style.color='#1e0f08';
+                    repBtn.style.borderRadius='20px';
+                    repBtn.style.border='none';
+                    repBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Evita que se dispare el click en la fila
+                        openResultadoDetailsModal(r.id_resultado);
+                    });
+                    aTd.appendChild(repBtn);
+                    
+                    tr.appendChild(idTd); 
+                    tr.appendChild(detTd); 
+                    tr.appendChild(pacTd); 
+                    tr.appendChild(pruebaTd); 
+                    tr.appendChild(valorRefTd); 
+                    tr.appendChild(resTd); 
+                    tr.appendChild(estTd);
+                    tr.appendChild(aTd);
+                    tbody.appendChild(tr);
+                });
+                console.log('Tabla de resultados cargada:', items.length, 'items');
+            }catch(e){ 
+                console.error('Error cargando resultados:', e); 
+                status.innerText=`Error: ${e.message}`;
+                tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando resultados</td></tr>`;
+            }
+        }
+
+        // Cargar lista de reportes generados
+        async function loadReportesList(){
+            const token = sessionStorage.getItem('access_token');
+            const tbody = document.getElementById('reportesListTbody');
+            const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
+            if(!tbody) { console.error('No se encontró tabla de reportes'); return; }
+            
+            tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Cargando...</td></tr>';
+            try{
+                const skip = reportesPage * reportesPageSize;
+                console.log('Iniciando carga de reportes desde:', `${API_URL}/reportes?skip=${skip}&limit=${reportesPageSize}`);
+                const res = await fetch(`${API_URL}/reportes?skip=${skip}&limit=${reportesPageSize}`, { headers });
+                
+                console.log('Respuesta del servidor - Status:', res.status);
+                
+                if(!res.ok){ 
+                    tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando reportes</td></tr>'; 
+                    return; 
+                }
+                const items = await res.json();
+                console.log('Datos de reportes recibidos:', items);
+                
+                if(!Array.isArray(items) || items.length===0){ 
+                    tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No hay reportes</td></tr>'; 
+                    return; 
+                }
+                
+                tbody.innerHTML = '';
+                items.forEach(r=>{
+                    const tr=document.createElement('tr');
+                    const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
+                    const sTd=document.createElement('td'); sTd.textContent=r.id_solicitud||'-';
+                    
+                    // State badge for Reporte
+                    const eTd=document.createElement('td'); 
+                    const stateBadge = document.createElement('span');
+                    stateBadge.className = 'badge';
+                    stateBadge.textContent = r.estado || '-';
+                    if (r.estado === 'entregado') {
+                        stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                        stateBadge.style.color = 'var(--success-green)';
+                        stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                    } else if (r.estado === 'completado') {
+                        stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                        stateBadge.style.color = 'var(--accent-gold)';
+                        stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    } else {
+                        stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                        stateBadge.style.color = 'var(--text-muted)';
+                        stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                    eTd.appendChild(stateBadge);
+                    
+                    const fTd=document.createElement('td'); fTd.textContent=r.fecha_entrega||'-';
+                    
+                    // Acciones column: icon button to download PDF
+                    const aTd=document.createElement('td');
+                    aTd.style.textAlign = 'center';
+                    
+                    const dl = document.createElement('button'); 
+                    dl.className='btn-action-icon';
+                    dl.title = 'Descargar PDF';
+                    dl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text" style="vertical-align: middle; color: var(--accent-gold);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+                    dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                    dl.style.border = '1px solid rgba(200, 150, 102, 0.3)';
+                    dl.style.borderRadius = '50%';
+                    dl.style.width = '32px';
+                    dl.style.height = '32px';
+                    dl.style.cursor = 'pointer';
+                    dl.style.display = 'inline-flex';
+                    dl.style.alignItems = 'center';
+                    dl.style.justifyContent = 'center';
+                    dl.style.transition = 'all 0.2s ease';
+                    dl.style.margin = '0 auto';
+                    
+                    dl.addEventListener('mouseenter', () => {
+                        dl.style.background = 'rgba(200, 150, 102, 0.2)';
+                        dl.style.borderColor = 'var(--accent-gold)';
+                        dl.style.transform = 'scale(1.1)';
+                    });
+                    dl.addEventListener('mouseleave', () => {
+                        dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                        dl.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                        dl.style.transform = 'scale(1)';
+                    });
+                    
+                    dl.addEventListener('click', async (e)=>{
+                        e.stopPropagation();
+                        try {
+                            const resp = await fetch(`${API_URL}/reportes/${r.id_reporte}/generar`, { 
+                                method: 'POST', 
+                                headers: token?{ 'Authorization': `Bearer ${token}` }:{} 
+                            });
+                            if(!resp.ok){ alert('Error descargando reporte'); return; }
+                            const blob = await resp.blob(); 
+                            const url = URL.createObjectURL(blob); 
+                            window.open(url,'_blank');
+                        } catch(err) {
+                            console.error(err);
+                            alert('Error de red al intentar descargar el PDF');
+                        }
+                    });
+                    
+                    aTd.appendChild(dl);
+                    tr.appendChild(idTd); 
+                    tr.appendChild(sTd); 
+                    tr.appendChild(eTd); 
+                    tr.appendChild(fTd); 
+                    tr.appendChild(aTd);
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('pageInfo').textContent = `Página ${reportesPage + 1}`;
+                console.log('Tabla de reportes cargada:', items.length, 'items');
+            }catch(e){ 
+                console.error('Error cargando reportes:', e);
+                tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando reportes</td></tr>'; 
+            }
+        }
+
+        // Búsqueda de reporte por ID
+        async function searchReporte(){
+            const id = document.getElementById('searchReporteId').value;
+            if(!id) { loadReportesList(); return; }
+            
+            const token = sessionStorage.getItem('access_token');
+            const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
+            const tbody = document.getElementById('reportesListTbody'); 
+            if(!tbody) return; 
+            
+            tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Buscando...</td></tr>';
+            try{
+                const res = await fetch(`${API_URL}/reportes/${id}`, { headers });
+                if(!res.ok){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Reporte no encontrado</td></tr>'; return; }
+                
+                const r = await res.json();
+                const tr=document.createElement('tr');
+                const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
+                const sTd=document.createElement('td'); sTd.textContent=r.id_solicitud||'-';
+                
+                const eTd=document.createElement('td'); 
+                const stateBadge = document.createElement('span');
+                stateBadge.className = 'badge';
+                stateBadge.textContent = r.estado || '-';
+                if (r.estado === 'entregado') {
+                    stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                    stateBadge.style.color = 'var(--success-green)';
+                    stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                } else if (r.estado === 'completado') {
+                    stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                    stateBadge.style.color = 'var(--accent-gold)';
+                    stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                } else {
+                    stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                    stateBadge.style.color = 'var(--text-muted)';
+                    stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+                eTd.appendChild(stateBadge);
+                
+                const fTd=document.createElement('td'); fTd.textContent=r.fecha_entrega||'-';
+                
+                const aTd=document.createElement('td');
+                aTd.style.textAlign = 'center';
+                
+                const dl = document.createElement('button'); 
+                dl.className='btn-action-icon';
+                dl.title = 'Descargar PDF';
+                dl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text" style="vertical-align: middle; color: var(--accent-gold);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+                dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                dl.style.border = '1px solid rgba(200, 150, 102, 0.3)';
+                dl.style.borderRadius = '50%';
+                dl.style.width = '32px';
+                dl.style.height = '32px';
+                dl.style.cursor = 'pointer';
+                dl.style.display = 'inline-flex';
+                dl.style.alignItems = 'center';
+                dl.style.justifyContent = 'center';
+                dl.style.transition = 'all 0.2s ease';
+                dl.style.margin = '0 auto';
+                
+                dl.addEventListener('mouseenter', () => {
+                    dl.style.background = 'rgba(200, 150, 102, 0.2)';
+                    dl.style.borderColor = 'var(--accent-gold)';
+                    dl.style.transform = 'scale(1.1)';
+                });
+                dl.addEventListener('mouseleave', () => {
+                    dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                    dl.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    dl.style.transform = 'scale(1)';
+                });
+                
+                dl.addEventListener('click', async (e)=>{
+                    e.stopPropagation();
+                    try {
+                        const resp = await fetch(`${API_URL}/reportes/${r.id_reporte}/generar`, { 
+                            method: 'POST', 
+                            headers: token?{ 'Authorization': `Bearer ${token}` }:{} 
+                        });
+                        if(!resp.ok){ alert('Error descargando reporte'); return; }
+                        const blob = await resp.blob(); 
+                        const url = URL.createObjectURL(blob); 
+                        window.open(url,'_blank');
+                    } catch(err) {
+                        console.error(err);
+                        alert('Error de red al intentar descargar el PDF');
+                    }
+                });
+                
+                aTd.appendChild(dl);
+                tbody.innerHTML='';
+                tr.appendChild(idTd); 
+                tr.appendChild(sTd); 
+                tr.appendChild(eTd); 
+                tr.appendChild(fTd); 
+                tr.appendChild(aTd);
+                tbody.appendChild(tr);
+            }catch(e){ console.error(e); tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error buscando reporte</td></tr>'; }
+        }
+
+        // Popup functions for Resultado Details and Report Saving
+        let isEditingReport = false;
+
+        async function openResultadoDetailsModal(id_resultado) {
+            console.log("Opening details modal for resultado ID:", id_resultado);
+            const token = sessionStorage.getItem('access_token');
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            
+            const modal = document.getElementById('resultadoDetalleModal');
+            if (!modal) {
+                console.error("Modal element 'resultadoDetalleModal' not found.");
+                return;
+            }
+
+            try {
+                // Show modal first in loading state
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10);
+
+                const res = await fetch(`${API_URL}/resultados/${id_resultado}/completo`, { headers });
+                if (!res.ok) {
+                    throw new Error(`Error al obtener detalles completos (${res.status})`);
+                }
+                const r = await res.json();
+                console.log("Detalles completos obtenidos:", r);
+
+                // Populate Patient, Doctor, Laboratorist
+                const pacEl = document.getElementById('modalPacInfo');
+                if (pacEl) {
+                    const pac = r.paciente;
+                    pacEl.innerHTML = pac 
+                        ? `<strong>ID:</strong> ${pac.id_paciente || '-'}<br><strong>Nombre:</strong> ${pac.nombre || ''} ${pac.apellido_paterno || ''} ${pac.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos</span>';
+                }
+
+                const medEl = document.getElementById('modalMedInfo');
+                if (medEl) {
+                    const med = r.medico;
+                    medEl.innerHTML = med 
+                        ? `<strong>ID:</strong> ${med.id_medico || '-'}<br><strong>Nombre:</strong> ${med.nombre || ''} ${med.apellido_paterno || ''} ${med.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos / Automedicación</span>';
+                }
+
+                const labEl = document.getElementById('modalLabInfo');
+                if (labEl) {
+                    const lab = r.laboratorista;
+                    labEl.innerHTML = lab 
+                        ? `<strong>ID:</strong> ${lab.id_laboratorista || '-'}<br><strong>Nombre:</strong> ${lab.nombre || ''} ${lab.apellido_paterno || ''} ${lab.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos</span>';
+                }
+
+                // Populate Resultado
+                const resIdEl = document.getElementById('modalResId');
+                if (resIdEl) resIdEl.textContent = r.id_resultado || '-';
+
+                const detIdEl = document.getElementById('modalDetId');
+                if (detIdEl) detIdEl.textContent = r.id_detalle || '-';
+
+                const pruebaEl = document.getElementById('modalPruebaInfo');
+                if (pruebaEl) pruebaEl.textContent = r.prueba ? r.prueba.nombre : '-';
+
+                const valRefEl = document.getElementById('modalValRef');
+                if (valRefEl) valRefEl.textContent = r.prueba ? `${r.prueba.valor_referencia || '-'} ${r.prueba.unidad || ''}` : '-';
+
+                const valResEl = document.getElementById('modalValRes');
+                if (valResEl) valResEl.textContent = r.resultado || '-';
+                
+                // Cargar valores en los campos editables
+                const resultadoEdit = document.getElementById('modalValResEdit');
+                if (resultadoEdit) {
+                    resultadoEdit.value = r.resultado || '';
+                }
+
+                const observacionEdit = document.getElementById('modalObservacionEdit');
+                if (observacionEdit) {
+                    observacionEdit.value = r.observacion || '';
+                }
+                
+                const estSpan = document.getElementById('modalResEstado');
+                if (estSpan) {
+                    estSpan.textContent = r.estado || '-';
+                    estSpan.style.color = r.estado === 'reportado' ? 'var(--success-green)' : (r.estado === 'validado' ? 'var(--accent-gold)' : 'var(--text-cream)');
+                }
+
+                const anormalSpan = document.getElementById('modalResAnormal');
+                if (anormalSpan) {
+                    anormalSpan.textContent = r.es_anormal === 1 ? 'Sí (Fuera de rango)' : 'No (Normal)';
+                    anormalSpan.style.color = r.es_anormal === 1 ? 'var(--error-red)' : 'var(--success-green)';
+                    anormalSpan.style.fontWeight = r.es_anormal === 1 ? '700' : '500';
+                }
+
+                // Cargar observación en display (para modo lectura)
+                const observacionDisplay = document.getElementById('modalObservacionDisplay');
+                if (observacionDisplay) {
+                    observacionDisplay.textContent = r.observacion || '-';
+                }
+
+                // Report form setup
+                const reporteSolicitudId = document.getElementById('reporteSolicitudId');
+                if (reporteSolicitudId) {
+                    reporteSolicitudId.value = r.solicitud ? r.solicitud.id_solicitud : '';
+                }
+
+                const reporteResultadoId = document.getElementById('reporteResultadoId');
+                if (reporteResultadoId) {
+                    reporteResultadoId.value = r.id_resultado || '';
+                }
+
+                // Reset Edit Mode
+                isEditingReport = false;
+                updateReportModalEditState();
+                
+            } catch(e) {
+                console.error("Error al abrir modal:", e);
+                alert("Error al cargar detalles: " + e.message);
+                closeResultadoDetailsModal();
+            }
+        }
+
+        function closeResultadoDetailsModal() {
+            const modal = document.getElementById('resultadoDetalleModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        function toggleReporteEdicion() {
+            isEditingReport = !isEditingReport;
+            updateReportModalEditState();
+        }
+
+        function updateReportModalEditState() {
+            const btnSave = document.getElementById('btnGuardarReporte');
+            const btnToggle = document.getElementById('btnHabilitarEdicion');
+            
+            // Campos de resultado y observación
+            const resultadoEdit = document.getElementById('modalValResEdit');
+            const resultadoDisplay = document.getElementById('modalValRes');
+            const observacionEdit = document.getElementById('modalObservacionEdit');
+            const observacionDisplay = document.getElementById('modalObservacionDisplay');
+
+            if (isEditingReport) {
+                // Enable inputs de resultado
+                if (resultadoEdit) {
+                    resultadoEdit.style.display = 'block';
+                    resultadoEdit.disabled = false;
+                }
+                if (resultadoDisplay) {
+                    resultadoDisplay.style.display = 'none';
+                }
+                if (observacionEdit) {
+                    observacionEdit.style.display = 'block';
+                    observacionEdit.disabled = false;
+                }
+                if (observacionDisplay) {
+                    observacionDisplay.style.display = 'none';
+                }
+
+                // Update Enable Edit Button
+                if (btnToggle) {
+                    btnToggle.textContent = 'Deshabilitar Edición';
+                    btnToggle.style.background = 'rgba(35, 18, 11, 0.2)';
+                    btnToggle.style.color = 'var(--chocolate-dark)';
+                    btnToggle.style.borderColor = 'rgba(35, 18, 11, 0.35)';
+                }
+
+                // Update Save Button
+                if (btnSave) {
+                    btnSave.style.background = 'linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    btnSave.style.color = '#1e0f08';
+                    btnSave.style.opacity = '1';
+                    btnSave.style.cursor = 'pointer';
+                    btnSave.style.borderColor = 'transparent';
+                    
+                    // Save Button Hover effects
+                    btnSave.onmouseover = () => {
+                        btnSave.style.transform = 'translateY(-1px)';
+                        btnSave.style.boxShadow = '0 4px 12px rgba(200, 150, 102, 0.3)';
+                    };
+                    btnSave.onmouseout = () => {
+                        btnSave.style.transform = 'translateY(0)';
+                        btnSave.style.boxShadow = 'none';
+                    };
+                }
+            } else {
+                // Disable inputs de resultado
+                if (resultadoEdit) {
+                    resultadoEdit.style.display = 'none';
+                    resultadoEdit.disabled = true;
+                }
+                if (resultadoDisplay) {
+                    resultadoDisplay.style.display = 'block';
+                }
+                if (observacionEdit) {
+                    observacionEdit.style.display = 'none';
+                    observacionEdit.disabled = true;
+                }
+                if (observacionDisplay) {
+                    observacionDisplay.style.display = 'block';
+                }
+
+                // Update Enable Edit Button
+                if (btnToggle) {
+                    btnToggle.textContent = 'Habilitar Edición';
+                    btnToggle.style.background = 'rgba(35, 18, 11, 0.1)';
+                    btnToggle.style.color = 'var(--chocolate-dark)';
+                    btnToggle.style.borderColor = 'rgba(35, 18, 11, 0.25)';
+                }
+
+                // Update Save Button (keep active styles)
+                if (btnSave) {
+                    btnSave.style.background = 'linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    btnSave.style.color = '#1e0f08';
+                    btnSave.style.opacity = '1';
+                    btnSave.style.cursor = 'pointer';
+                    btnSave.style.borderColor = 'transparent';
+                    btnSave.style.boxShadow = 'none';
+                    btnSave.onmouseover = () => {
+                        btnSave.style.transform = 'translateY(-1px)';
+                        btnSave.style.boxShadow = '0 4px 12px rgba(200,150,102,0.3)';
+                    };
+                    btnSave.onmouseout = () => {
+                        btnSave.style.transform = 'translateY(0)';
+                        btnSave.style.boxShadow = 'none';
+                    };
+                }
+            }
+        }
+
+        async function saveReporteFromResultadoModal() {
+            const token = sessionStorage.getItem('access_token');
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const id_solicitud = document.getElementById('reporteSolicitudId')?.value;
+            const id_resultado = document.getElementById('reporteResultadoId')?.value;
+            const estado = 'finalizado'; // Estado siempre finalizado
+            
+            // Campos del resultado si están siendo editados
+            const resultadoEditField = document.getElementById('modalValResEdit');
+            const observacionEditField = document.getElementById('modalObservacionEdit');
+            const nuevoResultado = resultadoEditField?.value?.trim();
+            const nuevaObservacion = observacionEditField?.value?.trim();
+
+            if (!id_solicitud) {
+                alert("Error: No se encontró un ID de Solicitud asociado.");
+                return;
+            }
+
+            try {
+                // Verificar que el backend está respondiendo antes de intentar guardar
+                console.log("Verificando conectividad con el backend...");
+                try {
+                    const testRes = await fetch(`${API_URL}/test`);
+                    if (!testRes.ok) {
+                        throw new Error(`Backend test failed: ${testRes.status}`);
+                    }
+                    console.log("Backend conectado correctamente");
+                } catch (testError) {
+                    console.error("Error de conectividad con el backend:", testError);
+                    alert("Error: No se puede conectar con el servidor API. Verifica que el backend esté ejecutándose en " + API_URL);
+                    return;
+                }
+
+                // Disable save button to avoid double submits
+                const btnSave = document.getElementById('btnGuardarReporte');
+                if (btnSave) {
+                    btnSave.disabled = true;
+                    btnSave.textContent = 'Guardando...';
+                }
+
+                // 0. Actualizar el resultado si hay cambios
+                if (id_resultado && (nuevoResultado || nuevaObservacion)) {
+                    try {
+                        console.log(`Actualizando resultado ${id_resultado}...`);
+                        const updatePayload = {};
+                        if (nuevoResultado) updatePayload.resultado = nuevoResultado;
+                        if (nuevaObservacion) updatePayload.observacion = nuevaObservacion;
+                        
+                        const updateRes = await fetch(`${API_URL}/resultados/${id_resultado}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify(updatePayload)
+                        });
+                        
+                        if (!updateRes.ok) {
+                            const err = await updateRes.json().catch(() => null);
+                            console.warn('Advertencia al actualizar resultado:', err?.detail || updateRes.status);
+                            // No lanzamos error, continuamos para guardar el reporte
+                        } else {
+                            console.log('Resultado actualizado exitosamente.');
+                        }
+                    } catch (e) {
+                        console.error('Error actualizando resultado:', e);
+                        // Continuamos aunque falle la actualización del resultado
+                    }
+                }
+
+                // 1. Create the Report
+                const reportPayload = {
+                    id_solicitud: parseInt(id_solicitud),
+                    estado: estado
+                };
+                
+                console.log("Submitting new report:", reportPayload);
+                console.log("API URL:", `${API_URL}/reportes/`);
+                console.log("Headers:", headers);
+                
+                const reportRes = await fetch(`${API_URL}/reportes/`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(reportPayload)
+                });
+
+                if (!reportRes.ok) {
+                    let errMsg = `Error ${reportRes.status}`;
+                    try {
+                        const err = await reportRes.json();
+                        errMsg = err?.detail || err?.message || errMsg;
+                    } catch (e) {
+                        const text = await reportRes.text();
+                        console.error("Response text:", text);
+                        errMsg = text || errMsg;
+                    }
+                    console.error("Error response from backend:", errMsg);
+                    throw new Error(`Error al guardar el reporte: ${errMsg}`);
+                }
+
+                const createdReport = await reportRes.json();
+                console.log("Report created successfully:", createdReport);
+
+                // 2. Mark the Resultado as 'reportado'
+                // Attempt to mark the Resultado as 'reportado' (optional)
+                if (id_resultado) {
+                    try {
+                        console.log(`Marking resultado ${id_resultado} as 'reportado'...`);
+                        const reportarRes = await fetch(`${API_URL}/resultados/${id_resultado}/reportar`, {
+                            method: 'POST',
+                            headers
+                        });
+                        if (!reportarRes.ok) {
+                            const err = await reportarRes.json().catch(() => null);
+                            console.warn('Failed to mark resultado as reportado:', err?.detail || reportarRes.status);
+                        } else {
+                            console.log('Resultado marked as reported successfully.');
+                        }
+                    } catch (e) {
+                        console.error('Error marking resultado as reportado:', e);
+                    }
+                }
+
+                alert("Reporte guardado con éxito y resultado actualizado.");
+                closeResultadoDetailsModal();
+                
+                // Refresh both lists
+                loadReportes();
+                loadReportesList();
+                
+            } catch(e) {
+                console.error("Error al guardar reporte:", e);
+                alert("Error al guardar reporte: " + e.message);
+                
+                // Reset save button state
+                const btnSave = document.getElementById('btnGuardarReporte');
+                btnSave.disabled = false;
+                btnSave.textContent = 'Guardar Reporte';
+            }
+        }
+
+        // Paginación
+        function nextReportesPage(){
+            reportesPage++;
+            loadReportesList();
+        }
+
+        function prevReportesPage(){
+            if(reportesPage > 0) reportesPage--;
+            loadReportesList();
         }
     </script>
 </body>

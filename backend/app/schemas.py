@@ -230,6 +230,8 @@ class ResultadoOut(ResultadoBase):
     estado: str
     id_prueba: Optional[int] = None
     prueba_nombre: Optional[str] = None
+    id_solicitud: Optional[int] = None
+    valor_referencia: Optional[str] = None
     id_paciente: Optional[str] = None
     paciente_nombre: Optional[str] = None
     paciente_apellido_paterno: Optional[str] = None

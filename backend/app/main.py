@@ -15,10 +15,21 @@ app = FastAPI(title="Laboratorio Clínico API", version="1.0")
 # Configurar CORS (ajusta los dominios permitidos en producción)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # IMPORTANTE: En producción usar dominios específicos, ej: ["http://localhost:3000"]
+    allow_origins=[
+        "http://127.0.0.1:3000", 
+        "http://localhost:3000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8080",
+        "http://localhost:8080",
+        "http://127.0.0.1:5000",
+        "http://localhost:5000",
+        "*",  # Permitir todos los orígenes en desarrollo
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    max_age=3600,
 )
 
 
@@ -77,7 +88,12 @@ async def health():
     try:
         async with engine.connect() as conn:
             await conn.execute(text('SELECT 1'))
-        return {"status": "ok"}
+        return {"status": "ok", "database": "connected"}
     except Exception as e:
         logger.exception('Health check DB failed')
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "database": "disconnected", "detail": str(e)}
+
+
+@app.get('/test')
+async def test():
+    return {"message": "Test endpoint working", "cors": "enabled"}

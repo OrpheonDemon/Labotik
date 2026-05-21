@@ -8,6 +8,9 @@ from fastapi.responses import StreamingResponse
 import io
 from sqlalchemy import select, update
 from app import models
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/reportes", tags=["Reportes"])
 
@@ -26,27 +29,66 @@ async def get_reporte(id_reporte: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/", response_model=schemas.ReporteOut, status_code=201)
-async def create_reporte(reporte_in: schemas.ReporteCreate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
-    # Establecer fecha_entrega como fecha actual y registrar quien lo genera (en la respuesta)
-    data = reporte_in.dict(exclude_unset=True)
-    data['fecha_entrega'] = datetime.now()
-    nuevo = await crud.reporte_crud.create(db, schemas.ReporteCreate(**data))
+async def create_reporte(reporte_in: schemas.ReporteCreate, db: AsyncSession = Depends(get_db)):
+    try:
+        # Verificar si ya existe un reporte para esta solicitud
+        id_solicitud = reporte_in.id_solicitud
+        stmt = select(models.Reporte).where(
+            models.Reporte.id_solicitud == id_solicitud,
+            models.Reporte.activo == 1
+        )
+        result = await db.execute(stmt)
+        existing_reporte = result.scalar_one_or_none()
+        
+        if existing_reporte:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya existe un reporte para la solicitud {id_solicitud}. Use PUT para actualizar el reporte existente."
+            )
+        
+        # Establecer fecha_entrega como fecha actual
+        data = reporte_in.dict(exclude_unset=True)
+        data['fecha_entrega'] = datetime.now().date()
+        
+        logger.info(f"Creating reporte with data: {data}")
+        
+        try:
+            nuevo = await crud.reporte_crud.create(db, schemas.ReporteCreate(**data))
+            await db.commit()
+        except Exception as e:
+            await db.rollback()
+            logger.error(f"Error creating reporte: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al crear el reporte: {str(e)}"
+            )
+        
+        # Refresh el objeto para obtener los datos completos
+        await db.refresh(nuevo)
+        
+        # info del usuario que generó el reporte (opcional)
+        user = None
+        generado_nombre = None
+        generado_ap = None
+        generado_am = None
+        if user:
+            generado_nombre = getattr(user, 'nombre', None)
+            generado_ap = getattr(user, 'apellido_paterno', None)
+            generado_am = getattr(user, 'apellido_materno', None)
 
-    # info del usuario que generó el reporte
-    user = current_user.get('user') if current_user else None
-    generado_nombre = None
-    generado_ap = None
-    generado_am = None
-    if user:
-        generado_nombre = getattr(user, 'nombre', None)
-        generado_ap = getattr(user, 'apellido_paterno', None)
-        generado_am = getattr(user, 'apellido_materno', None)
-
-    out = nuevo.__dict__.copy()
-    out['generado_nombre'] = generado_nombre
-    out['generado_apellido_paterno'] = generado_ap
-    out['generado_apellido_materno'] = generado_am
-    return out
+        out = nuevo.__dict__.copy()
+        out['generado_nombre'] = generado_nombre
+        out['generado_apellido_paterno'] = generado_ap
+        out['generado_apellido_materno'] = generado_am
+        return out
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in create_reporte: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error inesperado al crear el reporte: {str(e)}"
+        )
 
 
 @router.put("/{id_reporte}", response_model=schemas.ReporteOut)
@@ -87,8 +129,8 @@ async def generar_reporte(id_reporte: int, db: AsyncSession = Depends(get_db), c
         )
         await db.execute(upd)
 
-    # Marcar reporte como entregado
-    upd_rep = update(models.Reporte).where(models.Reporte.id_reporte == id_reporte).values(estado='entregado', fecha_entrega=datetime.now())
+    # Marcar reporte como finalizado
+    upd_rep = update(models.Reporte).where(models.Reporte.id_reporte == id_reporte).values(estado='finalizado', fecha_entrega=datetime.now().date())
     await db.execute(upd_rep)
     await db.commit()
 

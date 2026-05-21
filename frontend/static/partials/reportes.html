@@ -2,86 +2,171 @@
     <div class="profile-panel">
         <div class="profile-panel-header">
             <div>
-                <h1 class="profile-panel-title">Reportes</h1>
-                <p class="profile-panel-subtitle">Listado de reportes y generación rápida.</p>
+                <h1 class="profile-panel-title">Reportes y Resultados</h1>
+                <p class="profile-panel-subtitle">Gestión de resultados registrados y reportes generados</p>
             </div>
         </div>
 
-        <div>
-            <h3>Reportes</h3>
-            <div id="reportesStatus" class="profile-status-message"></div>
+        <!-- TABLA DE RESULTADOS REGISTRADOS (ARRIBA) -->
+        <div style="margin-bottom: 40px;">
+            <div style="margin-bottom: 16px;">
+                <h2 class="profile-panel-title" style="font-size: 18px; margin: 0;">Resultados Registrados</h2>
+                <p class="profile-panel-subtitle" style="margin: 4px 0 0 0;">Resultados listos para generar reportes. Haga clic en una fila para ver detalles y reportar.</p>
+            </div>
+            <div id="reportesStatus" class="profile-status-message" style="margin-bottom: 12px; color: var(--accent-gold); font-weight: 500;">Cargando resultados...</div>
             <div style="overflow:auto; max-width:100%;">
                 <table class="entity-table" id="reportesTable" style="width:100%; table-layout:fixed;">
                     <thead>
                         <tr>
-                            <th>ID Reporte</th>
-                            <th>ID Solicitud</th>
-                            <th>Fecha Entrega</th>
-                            <th>Estado</th>
-                            <th>Observaciones</th>
-                            <th>Generado Por</th>
+                            <th style="width: 100px;">ID Resultado</th>
+                            <th style="width: 90px;">ID Detalle</th>
+                            <th>Paciente</th>
+                            <th>Prueba</th>
+                            <th>Valor Referencia</th>
+                            <th>Resultado</th>
+                            <th style="width: 110px;">Estado</th>
+                            <th style="width: 110px; text-align: center;">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="reportesTbody"></tbody>
+                    <tbody id="reportesTbody">
+                        <tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Cargando resultados...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
 
-        <div style="margin-top:16px;">
-            <h4>Crear Reporte</h4>
-            <form id="crearReporteForm" onsubmit="crearReporte(event)">
-                <label>ID Solicitud: <input type="number" id="re_id_solicitud" required></label>
-                <label>Observaciones: <input type="text" id="re_observaciones"></label>
-                <button type="submit" class="btn">Crear Reporte</button>
-            </form>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 30px 0;">
+
+        <!-- TABLA DE REPORTES GENERADOS (ABAJO) -->
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <div>
+                    <h2 class="profile-panel-title" style="font-size: 18px; margin: 0;">Reportes Generados</h2>
+                    <p class="profile-panel-subtitle" style="margin: 4px 0 0 0;">Buscar y descargar reportes en PDF</p>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input id="searchReporteId" type="number" placeholder="ID reporte" style="width:120px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:30px; color:var(--text-cream); outline:none; font-family:'Inter', sans-serif;" />
+                    <button class="btn btn-primary" onclick="searchReporte()" style="padding: 8px 20px; background: linear-gradient(135deg, var(--accent-gold), var(--chocolate-light)); color: #1e0f08;">Buscar</button>
+                    <button class="btn btn-secondary" onclick="loadReportesList()" style="padding: 8px 20px; background: rgba(255,255,255,0.08); color: var(--text-cream); border: 1px solid rgba(255,255,255,0.2);">Listar Todo</button>
+                </div>
+            </div>
+
+            <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID Reporte</th>
+                            <th>ID Solicitud</th>
+                            <th>Estado</th>
+                            <th>Fecha Entrega</th>
+                            <th style="text-align: center; width: 100px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportesListTbody">
+                        <tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Cargando reportes...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            <div style="margin-top:16px; text-align:center; display: flex; justify-content: center; align-items: center; gap: 16px;">
+                <button class="btn btn-secondary" onclick="prevReportesPage()" style="padding: 8px 20px; background: rgba(255,255,255,0.08); color: var(--text-cream); border: 1px solid rgba(255,255,255,0.2);">Anterior</button>
+                <span id="pageInfo" style="color: var(--text-cream); font-weight: 600; font-family: 'Outfit', sans-serif;">Página 1</span>
+                <button class="btn btn-secondary" onclick="nextReportesPage()" style="padding: 8px 20px; background: rgba(255,255,255,0.08); color: var(--text-cream); border: 1px solid rgba(255,255,255,0.2);">Siguiente</button>
+            </div>
         </div>
     </div>
+
+<!-- Modal de Detalles del Resultado y Generación de Reporte -->
+<div id="resultadoDetalleModal" class="modal-backdrop" style="display: none; justify-content: center; align-items: center;">
+    <div class="modal-card" style="max-width: 750px; width: 95%; max-height: 90vh; overflow-y: auto; padding: 25px 30px; background: #f5deb3; border: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(35, 18, 11, 0.15); padding-bottom: 12px; margin-bottom: 20px;">
+            <h3 class="modal-title" style="margin: 0; font-size: 22px; display: flex; align-items: center; gap: 10px; color: var(--chocolate-dark);">
+                <svg class="modal-title-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--chocolate-dark)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-activity"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                Detalles de Resultado de Laboratorio
+            </h3>
+            <button onclick="closeResultadoDetailsModal()" style="background: none; border: none; color: var(--chocolate-dark); cursor: pointer; padding: 4px; display: flex; align-items: center; justify-content: center; transition: color 0.2s;" onmouseover="this.style.color='var(--chocolate-medium)'" onmouseout="this.style.color='var(--chocolate-dark)'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+
+        <!-- Paciente, Médico y Laboratorista -->
+        <div style="background: var(--chocolate-light); padding: 18px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 14px; color: var(--text-dark);">
+            <h4 style="color: var(--text-dark); font-size: 15px; margin: 0; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; font-family: 'Outfit', sans-serif;">Paciente y Personal</h4>
+
+            <div>
+                <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Paciente</div>
+                <div id="modalPacInfo" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Médico</div>
+                <div id="modalMedInfo" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Laboratorista</div>
+                <div id="modalLabInfo" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+            </div>
+        </div>
+
+        <!-- Datos del Resultado -->
+        <div style="background: var(--chocolate-light); padding: 18px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.2); display: flex; flex-direction: column; gap: 14px; color: var(--text-dark);">
+            <h4 style="color: var(--text-dark); font-size: 15px; margin: 0; border-bottom: 1px solid rgba(0,0,0,0.1); padding-bottom: 6px; font-family: 'Outfit', sans-serif;">Información del Resultado</h4>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">ID Resultado</div>
+                    <div id="modalResId" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">ID Detalle</div>
+                    <div id="modalDetId" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Prueba</div>
+                <div id="modalPruebaInfo" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Valores Referencia</div>
+                    <div id="modalValRef" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                </div>
+                <div id="modalValResDiv" style="display: grid; grid-template-columns: 1fr; gap: 4px;">
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px;">Resultado</div>
+                    <div id="modalValRes" style="font-weight: 600; font-size: 13.5px; color: var(--text-dark);">-</div>
+                    <input type="text" id="modalValResEdit" disabled style="display: none; padding: 8px 10px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; color: var(--text-dark); font-family: 'Inter', sans-serif; font-size: 13.5px; outline: none;" placeholder="Valor del resultado"/>
+                </div>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Estado</div>
+                    <div id="modalResEstado" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                </div>
+                <div>
+                    <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">¿Es Anormal?</div>
+                    <div id="modalResAnormal" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                </div>
+            </div>
+            <div>
+                <div style="font-size: 11px; color: rgba(0,0,0,0.85); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 3px;">Observaciones</div>
+                <div id="modalObservacionDisplay" style="font-weight: 500; font-size: 13.5px; color: var(--text-dark);">-</div>
+                <input type="text" id="modalObservacionEdit" disabled style="display: none; padding: 8px 10px; background: rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.1); border-radius: 6px; color: var(--text-dark); font-family: 'Inter', sans-serif; font-size: 13.5px; outline: none; width: 100%; box-sizing: border-box;" placeholder="Observaciones del resultado"/>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 12px; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(0,0,0,0.1);">
+                <button type="button" id="btnHabilitarEdicion" onclick="toggleReporteEdicion()" style="padding: 10px 18px; background: rgba(35, 18, 11, 0.1); border: 1px solid rgba(35, 18, 11, 0.25); border-radius: 8px; color: var(--chocolate-dark); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; flex: 1;">
+                    Habilitar Edición
+                </button>
+                <button type="button" id="btnGuardarReporte" onclick="saveReporteFromResultadoModal()" style="padding: 10px 18px; background: linear-gradient(135deg, var(--accent-gold), var(--chocolate-light)); border: none; border-radius: 8px; color: #1e0f08; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; flex: 1;">
+                    Guardar Cambios
+                </button>
+            </div>
+        </div>
+
+        <!-- Hidden fields for report form -->
+        <input type="hidden" id="reporteSolicitudId" value="">
+        <input type="hidden" id="reporteResultadoId" value="">
+    </div>
+</div>
 </section>
-
-<script>
-async function loadReportes(){
-    const token = sessionStorage.getItem('access_token');
-    const tbody = document.getElementById('reportesTbody');
-    const status = document.getElementById('reportesStatus');
-    if(!tbody) return;
-    tbody.innerHTML=''; status.innerText='Cargando reportes...';
-    try{
-        const res = await fetch(`${API_URL}/reportes`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
-        if(!res.ok){ status.innerText='Error cargando reportes.'; return; }
-        const items = await res.json();
-        if(!Array.isArray(items) || items.length===0){ status.innerText='No hay reportes.'; return; }
-        status.innerText='';
-        items.forEach(r=>{
-            const tr=document.createElement('tr');
-            const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
-            const solTd=document.createElement('td'); solTd.textContent=r.id_solicitud||'-';
-            const fechaTd=document.createElement('td'); fechaTd.textContent=r.fecha_entrega||'';
-            const estTd=document.createElement('td'); estTd.textContent=r.estado||'';
-            const obsTd=document.createElement('td'); obsTd.textContent=r.observaciones||'';
-            const genByTd=document.createElement('td');
-            const gname = (r.generado_nombre||'') + ' ' + (r.generado_apellido_paterno||'') + ' ' + (r.generado_apellido_materno||'');
-            genByTd.textContent = gname.trim() || '-';
-            tr.appendChild(idTd); tr.appendChild(solTd); tr.appendChild(fechaTd); tr.appendChild(estTd); tr.appendChild(obsTd); tr.appendChild(genByTd);
-            tbody.appendChild(tr);
-        });
-    }catch(e){ console.error(e); status.innerText='Error cargando reportes.' }
-}
-
-async function crearReporte(e){
-    e.preventDefault();
-    const token = sessionStorage.getItem('access_token');
-    const id_s = parseInt(document.getElementById('re_id_solicitud').value,10);
-    const obs = document.getElementById('re_observaciones').value || null;
-    try{
-        const res=await fetch(`${API_URL}/reportes`,{
-            method:'POST', headers: { 'Content-Type':'application/json', ...(token?{ 'Authorization': `Bearer ${token}` }:{}) },
-            body: JSON.stringify({ id_solicitud: id_s, observaciones: obs })
-        });
-        if(!res.ok){ const err=await res.json().catch(()=>null); alert('Error creando reporte: '+(err?.detail||res.statusText)); return; }
-        alert('Reporte creado');
-        loadReportes();
-    }catch(err){ console.error(err); alert('Error creando reporte') }
-}
-
-// cargar al mostrar sección (puede llamarse desde el dashboard loader)
-</script>

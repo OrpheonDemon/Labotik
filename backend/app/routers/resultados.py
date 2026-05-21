@@ -9,6 +9,8 @@ import traceback
 from app import schemas, crud, models
 from app.database import get_db
 from app.dependencies import get_current_active_user, require_laboratorista, optional_current_user
+from fastapi.responses import StreamingResponse
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ async def list_registered_resultados(
 ):
     """Devuelve todos los resultados cuyo estado sea 'registrado'."""
     stmt = (
-        select(models.Resultado, models.Prueba, models.Paciente)
+        select(models.Resultado, models.Prueba, models.Paciente, models.DetalleSolicitud, models.Solicitud)
         .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
         .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba)
         .join(models.Solicitud, models.Solicitud.id_solicitud == models.DetalleSolicitud.id_solicitud)
@@ -35,7 +37,7 @@ async def list_registered_resultados(
     res = await db.execute(stmt)
     rows = res.all()
     out = []
-    for resultado, prueba, paciente in rows:
+    for resultado, prueba, paciente, detalle, solicitud in rows:
         apellido = paciente.apellido_paterno if paciente else None
         am = paciente.apellido_materno if paciente else None
         out.append({
@@ -51,12 +53,77 @@ async def list_registered_resultados(
             'created_at': resultado.created_at,
             'id_prueba': prueba.id_prueba if prueba else None,
             'prueba_nombre': prueba.nombre if prueba else None,
+            'valor_referencia': prueba.valor_referencia if prueba else None,
+            'id_solicitud': detalle.id_solicitud if detalle else None,
             'id_paciente': paciente.id_paciente if paciente else None,
             'paciente_nombre': paciente.nombre if paciente else None,
             'paciente_apellido_paterno': apellido,
             'paciente_apellido_materno': am,
         })
     return out
+
+
+@router.get("/{id_resultado}/completo")
+async def get_resultado_completo(
+    id_resultado: int,
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(models.Resultado, models.DetalleSolicitud, models.Prueba, models.Solicitud, models.Paciente, models.Medico, models.Laboratorista)
+        .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
+        .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba, isouter=True)
+        .join(models.Solicitud, models.Solicitud.id_solicitud == models.DetalleSolicitud.id_solicitud, isouter=True)
+        .join(models.Paciente, models.Paciente.id_paciente == models.Solicitud.id_paciente, isouter=True)
+        .join(models.Medico, models.Medico.id_medico == models.Solicitud.id_medico, isouter=True)
+        .join(models.Laboratorista, models.Laboratorista.id_laboratorista == models.Solicitud.id_laboratorista, isouter=True)
+        .where(models.Resultado.id_resultado == id_resultado, models.Resultado.activo == 1)
+    )
+    res = await db.execute(stmt)
+    row = res.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Resultado no encontrado")
+    
+    resultado, detalle, prueba, solicitud, paciente, medico, laboratorista = row
+    
+    return {
+        'id_resultado': resultado.id_resultado,
+        'id_detalle': resultado.id_detalle,
+        'resultado': resultado.resultado,
+        'observacion': resultado.observacion,
+        'estado': resultado.estado,
+        'es_anormal': resultado.es_anormal,
+        'fecha_validacion': resultado.fecha_validacion,
+        'prueba': {
+            'id_prueba': prueba.id_prueba if prueba else None,
+            'nombre': prueba.nombre if prueba else None,
+            'valor_referencia': prueba.valor_referencia if prueba else None,
+            'unidad': prueba.unidad if prueba else None,
+        } if prueba else None,
+        'solicitud': {
+            'id_solicitud': solicitud.id_solicitud if solicitud else None,
+            'prioridad': solicitud.prioridad if solicitud else None,
+            'estado_pago': solicitud.estado_pago if solicitud else None,
+            'observaciones': solicitud.observaciones if solicitud else None,
+        } if solicitud else None,
+        'paciente': {
+            'id_paciente': paciente.id_paciente if paciente else None,
+            'nombre': paciente.nombre if paciente else None,
+            'apellido_paterno': paciente.apellido_paterno if paciente else None,
+            'apellido_materno': paciente.apellido_materno if paciente else None,
+        } if paciente else None,
+        'medico': {
+            'id_medico': medico.id_medico if medico else None,
+            'nombre': medico.nombre if medico else None,
+            'apellido_paterno': medico.apellido_paterno if medico else None,
+            'apellido_materno': medico.apellido_materno if medico else None,
+        } if medico else None,
+        'laboratorista': {
+            'id_laboratorista': laboratorista.id_laboratorista if laboratorista else None,
+            'nombre': laboratorista.nombre if laboratorista else None,
+            'apellido_paterno': laboratorista.apellido_paterno if laboratorista else None,
+            'apellido_materno': laboratorista.apellido_materno if laboratorista else None,
+        } if laboratorista else None,
+    }
 
 
 @router.get("/", response_model=list[schemas.ResultadoOut])
@@ -68,7 +135,7 @@ async def list_resultados(
 ):
     """Devuelve resultados activos (paginado) incluyendo nombre de la prueba si está disponible."""
     stmt = (
-        select(models.Resultado, models.Prueba, models.Paciente)
+        select(models.Resultado, models.Prueba, models.Paciente, models.DetalleSolicitud, models.Solicitud)
         .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
         .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba, isouter=True)
         .join(models.Solicitud, models.Solicitud.id_solicitud == models.DetalleSolicitud.id_solicitud, isouter=True)
@@ -79,7 +146,7 @@ async def list_resultados(
     res = await db.execute(stmt)
     rows = res.all()
     out = []
-    for resultado, prueba, paciente in rows:
+    for resultado, prueba, paciente, detalle, solicitud in rows:
         apellido = paciente.apellido_paterno if paciente else None
         am = paciente.apellido_materno if paciente else None
         out.append({
@@ -95,6 +162,8 @@ async def list_resultados(
             'created_at': resultado.created_at,
             'id_prueba': prueba.id_prueba if prueba else None,
             'prueba_nombre': prueba.nombre if prueba else None,
+            'valor_referencia': prueba.valor_referencia if prueba else None,
+            'id_solicitud': detalle.id_solicitud if detalle else None,
             'id_paciente': paciente.id_paciente if paciente else None,
             'paciente_nombre': paciente.nombre if paciente else None,
             'paciente_apellido_paterno': apellido,
@@ -114,7 +183,7 @@ async def get_resultado(
         raise HTTPException(status_code=403, detail="No tienes permisos para ver resultados individuales")
 
     stmt = (
-        select(models.Resultado, models.Prueba, models.Paciente)
+        select(models.Resultado, models.Prueba, models.Paciente, models.DetalleSolicitud, models.Solicitud)
         .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
         .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba, isouter=True)
         .join(models.Solicitud, models.Solicitud.id_solicitud == models.DetalleSolicitud.id_solicitud, isouter=True)
@@ -125,7 +194,7 @@ async def get_resultado(
     row = res.first()
     if not row:
         raise HTTPException(status_code=404, detail="Resultado no encontrado")
-    resultado, prueba, paciente = row
+    resultado, prueba, paciente, detalle, solicitud = row
     apellido = paciente.apellido_paterno if paciente else None
     am = paciente.apellido_materno if paciente else None
     return {
@@ -141,6 +210,8 @@ async def get_resultado(
         'created_at': resultado.created_at,
         'id_prueba': prueba.id_prueba if prueba else None,
         'prueba_nombre': prueba.nombre if prueba else None,
+        'valor_referencia': prueba.valor_referencia if prueba else None,
+        'id_solicitud': detalle.id_solicitud if detalle else None,
         'id_paciente': paciente.id_paciente if paciente else None,
         'paciente_nombre': paciente.nombre if paciente else None,
         'paciente_apellido_paterno': apellido,
@@ -345,3 +416,102 @@ async def delete_resultado(
     if not deleted:
         raise HTTPException(status_code=404, detail="Resultado no encontrado")
     return {"message": "Resultado desactivado (borrado lógico)"}
+
+@router.post("/{id_resultado}/reportar")
+async def reportar_resultado(
+    id_resultado: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_laboratorista),
+):
+    """Marca un resultado individual como 'reportado'."""
+    stmt = (
+        update(models.Resultado)
+        .where(models.Resultado.id_resultado == id_resultado, models.Resultado.activo == 1)
+        .values(estado='reportado', fecha_validacion=datetime.now())
+    )
+    res = await db.execute(stmt)
+    await db.commit()
+    return {"message": "Resultado marcado como reportado"}
+
+@router.post("/{id_resultado}/generar_pdf")
+async def generar_pdf_resultado(
+    id_resultado: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_laboratorista),
+):
+    """Genera un PDF para un único resultado y marca el resultado como reportado."""
+    # Consultar resultado y datos relacionados
+    stmt = (
+        select(models.Resultado, models.DetalleSolicitud, models.Prueba, models.Solicitud, models.Paciente, models.Medico, models.Laboratorista)
+        .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
+        .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba, isouter=True)
+        .join(models.Solicitud, models.Solicitud.id_solicitud == models.DetalleSolicitud.id_solicitud, isouter=True)
+        .join(models.Paciente, models.Paciente.id_paciente == models.Solicitud.id_paciente, isouter=True)
+        .join(models.Medico, models.Medico.id_medico == models.Solicitud.id_medico, isouter=True)
+        .join(models.Laboratorista, models.Laboratorista.id_laboratorista == models.Solicitud.id_laboratorista, isouter=True)
+        .where(models.Resultado.id_resultado == id_resultado, models.Resultado.activo == 1)
+    )
+    res = await db.execute(stmt)
+    row = res.first()
+    if not row:
+        raise HTTPException(status_code=404, detail="Resultado no encontrado")
+
+    resultado, detalle, prueba, solicitud, paciente, medico, laboratorista = row
+
+    # Marcar resultado como reportado
+    upd = (
+        update(models.Resultado)
+        .where(models.Resultado.id_resultado == id_resultado)
+        .values(estado='reportado', fecha_validacion=datetime.now())
+    )
+    await db.execute(upd)
+    await db.commit()
+
+    # Generar PDF
+    try:
+        from reportlab.lib.pagesizes import A4
+        from reportlab.pdfgen import canvas
+    except ImportError:
+        raise HTTPException(status_code=500, detail="Dependencia requerida 'reportlab' no instalada. Instale con: pip install reportlab")
+
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    y = height - 50
+
+    # Encabezado
+    c.setFont('Helvetica-Bold', 16)
+    c.drawString(40, y, 'Laboratorio Clínico - Resultado')
+    c.setFont('Helvetica', 10)
+    c.drawString(40, y-20, f'ID Resultado: {resultado.id_resultado}')
+    c.drawString(200, y-20, f'ID Detalle: {resultado.id_detalle}')
+    c.drawString(40, y-35, f'Fecha validación: {resultado.fecha_validacion or "-"}')
+
+    # Datos del paciente / médico / laboratorista
+    c.setFont('Helvetica-Bold', 12)
+    c.drawString(40, y-60, 'Datos del paciente:')
+    c.setFont('Helvetica', 10)
+    pac_name = (f"{paciente.nombre} {paciente.apellido_paterno} {paciente.apellido_materno or ''}".strip()) if paciente else '-'
+    c.drawString(60, y-75, f'Nombre: {pac_name}')
+    c.drawString(300, y-75, f'ID Paciente: {solicitud.id_paciente if solicitud else "-"}')
+
+    c.setFont('Helvetica-Bold', 12)
+    c.drawString(40, y-95, 'Solicitante / Laboratorista:')
+    c.setFont('Helvetica', 10)
+    medico_name = (f"{medico.nombre} {medico.apellido_paterno} {medico.apellido_materno or ''}".strip()) if medico else '-'
+    lab_name = (f"{laboratorista.nombre} {laboratorista.apellido_paterno} {laboratorista.apellido_materno or ''}".strip()) if laboratorista else '-'
+    c.drawString(60, y-110, f'Médico: {medico_name}')
+    c.drawString(60, y-125, f'Laboratorista: {lab_name}')
+
+    # Resultado y observaciones
+    c.setFont('Helvetica-Bold', 12)
+    c.drawString(40, y-150, 'Resultado:')
+    c.setFont('Helvetica', 10)
+    c.drawString(60, y-165, f'Prueba: {prueba.nombre if prueba else "-"}')
+    c.drawString(60, y-180, f'Valor: {resultado.resultado}')
+    c.drawString(60, y-195, f'Observación: {resultado.observacion or ""}')
+
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": f"inline; filename=resultado_{id_resultado}.pdf"})
