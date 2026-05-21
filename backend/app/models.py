@@ -177,3 +177,11 @@ class Pago(Base):
     referencia_pago = Column(String(100))
     estado_pago = Column(Enum('pendiente','completado','fallido','reembolsado'), default='completado')
     activo = Column(Integer, default=1)
+
+class AuditoriaLog(Base):
+    __tablename__ = "auditoria_logs"
+    id_auditoria = Column(Integer, primary_key=True, index=True)
+    id_usuario = Column(String(50), nullable=True, index=True)
+    accion = Column(String(100), nullable=False)
+    detalles = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now(), index=True)

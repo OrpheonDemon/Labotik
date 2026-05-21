@@ -8,6 +8,8 @@ from app.crud import authenticate_user
 from app.utils import create_access_token
 from app.schemas import Token
 from app.config import settings
+from app.audit_logger import log_audit
+from app.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -61,4 +63,28 @@ async def login_access_token(
         expires_delta=access_token_expires
     )
     
+    # Audit log
+    await log_audit(db, user_id, "LOGIN", f"Inicio de sesión exitoso (Rol: {rol})")
+    
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/logout")
+async def logout(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    user = current_user["user"]
+    rol = current_user["rol"]
+    
+    user_id = None
+    if rol == "laboratorista":
+        user_id = user.id_laboratorista
+    elif rol == "medico":
+        user_id = user.id_medico
+    elif rol == "paciente":
+        user_id = user.id_paciente
+    elif rol == "administrador":
+        user_id = user.id_admin
+
+    await log_audit(db, user_id, "LOGOUT", "Cierre de sesión")
+    return {"message": "Logout auditado"}

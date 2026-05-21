@@ -73,6 +73,13 @@
                         <span>Catálogo de Pruebas</span>
                     </a>
                     {% endif %}
+                    
+                    {% if rol == 'administrador' %}
+                    <a href="{% url 'superadmin_auditoria' %}" class="sidebar-link {% if request.resolver_match.url_name == 'superadmin_auditoria' %}active{% endif %}">
+                        <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
+                        <span>Auditoría de Reportes</span>
+                    </a>
+                    {% endif %}
                 </nav>
             </div>
             

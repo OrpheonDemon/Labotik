@@ -134,6 +134,11 @@ def login_view(request):
 
 # Vista de cerrar sesión
 def logout_view(request):
+    token = request.session.get('access_token')
+    if token:
+        # Call backend to audit logout
+        api_request('post', '/auth/logout', token=token)
+    
     request.session.flush()
     messages.info(request, "Has cerrado sesión correctamente.")
     return redirect('login')
@@ -449,6 +454,72 @@ def superadmin_laboratoristas_view(request):
         'is_super_admin': is_super_admin
     }
     return render(request, 'superadmin/laboratoristas.html', context)
+
+
+def superadmin_auditoria_view(request):
+    if not superadmin_guard(request):
+        return redirect('dashboard')
+
+    token = request.session.get('access_token')
+    is_super_admin = request.session.get('rol') == 'administrador' and request.session.get('admin_rol') == 'super_admin'
+
+    # Fetch audit logs
+    auditoria_res = api_request('get', '/auditoria/', token=token)
+    auditoria_data = auditoria_res.json() if auditoria_res and auditoria_res.status_code == 200 else []
+
+    # Fetch reportes and solicitudes for past history
+    reportes_res = api_request('get', '/reportes/', token=token)
+    solicitudes_res = api_request('get', '/solicitudes/', token=token)
+
+    reportes = reportes_res.json() if reportes_res and reportes_res.status_code == 200 else []
+    solicitudes = solicitudes_res.json() if solicitudes_res and solicitudes_res.status_code == 200 else []
+
+    # Map to expected structure
+    auditoria = []
+    
+    # New Audit Logs
+    for a in auditoria_data:
+        auditoria.append({
+            'tipo': a.get('accion'),
+            'id': a.get('id_auditoria'),
+            'referencia': a.get('id_usuario', 'Sistema'),
+            'estado': 'Registrado',
+            'fecha': a.get('created_at'),
+            'detalles': a.get('detalles', '')
+        })
+
+    # Restore old Reportes history
+    for r in reportes:
+        auditoria.append({
+            'tipo': 'Reporte',
+            'id': r.get('id_reporte'),
+            'referencia': f"Solicitud #{r.get('id_solicitud')}",
+            'estado': r.get('estado'),
+            'fecha': r.get('created_at'),
+            'detalles': r.get('observaciones', 'Generación de reporte (Histórico)')
+        })
+
+    # Restore old Solicitudes history
+    for s in solicitudes:
+        auditoria.append({
+            'tipo': 'Solicitud',
+            'id': s.get('id_solicitud'),
+            'referencia': f"Paciente {s.get('id_paciente')}",
+            'estado': s.get('estado'),
+            'fecha': s.get('created_at'),
+            'detalles': f"Prioridad: {s.get('prioridad')} (Histórico)"
+        })
+        
+    # Sort by date descending
+    auditoria.sort(key=lambda x: x['fecha'] if x['fecha'] else '', reverse=True)
+
+    context = {
+        'auditoria': auditoria,
+        'nombre_real': request.session.get('nombre_real'),
+        'rol': request.session.get('rol'),
+        'is_super_admin': is_super_admin
+    }
+    return render(request, 'superadmin/auditoria.html', context)
 
 # Crear Solicitud (Médico o Laboratorista)
 def crear_solicitud_view(request):

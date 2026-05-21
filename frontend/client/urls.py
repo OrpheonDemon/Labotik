@@ -21,6 +21,7 @@ urlpatterns = [
     path('superadmin/pacientes/', views.superadmin_pacientes_view, name='superadmin_pacientes'),
     path('superadmin/medicos/', views.superadmin_medicos_view, name='superadmin_medicos'),
     path('superadmin/laboratoristas/', views.superadmin_laboratoristas_view, name='superadmin_laboratoristas'),
+    path('superadmin/auditoria/', views.superadmin_auditoria_view, name='superadmin_auditoria'),
     
     # Impresión / Descargas
     path('imprimir/resultado/<int:id_solicitud>/', views.imprimir_resultado_view, name='imprimir_resultado'),

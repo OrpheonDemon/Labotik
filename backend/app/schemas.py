@@ -349,3 +349,16 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     rol: Optional[str] = None
     admin_rol: Optional[str] = None
+
+# ---------- Auditoría ----------
+class AuditoriaLogBase(BaseModel):
+    id_usuario: Optional[str] = None
+    accion: str
+    detalles: Optional[str] = None
+
+class AuditoriaLogCreate(AuditoriaLogBase):
+    pass
+
+class AuditoriaLogOut(AuditoriaLogBase):
+    id_auditoria: int
+    created_at: datetime

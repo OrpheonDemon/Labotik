@@ -1,0 +1,128 @@
+{% extends 'base.html' %}
+
+{% block title %}Auditoría de Reportes | Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Auditoría de Reportes y Sistema</h1>
+            <p>Revisa la generación de reportes y las solicitudes creadas en el sistema.</p>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        <div class="card">
+            <div class="card-header" style="flex-wrap: wrap; gap: 1rem; align-items: center;">
+                <div class="card-title">
+                    <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+                    <span>Registro de Auditoría</span>
+                </div>
+                
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-left: auto;">
+                    <div style="position: relative;">
+                        <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: hsl(var(--text-muted));"></i>
+                        <input type="text" id="searchInput" placeholder="Buscar registros..." class="form-input" style="padding-left: 2.2rem; min-width: 250px;">
+                    </div>
+                    <select id="typeFilter" class="form-input" style="min-width: 150px;">
+                        <option value="">Todas las acciones</option>
+                        <option value="LOGIN">Logins</option>
+                        <option value="LOGOUT">Logouts</option>
+                        <option value="CREACION">Creaciones</option>
+                        <option value="ACTUALIZACION">Actualizaciones</option>
+                        <option value="ELIMINACION">Eliminaciones</option>
+                        <option value="Reporte">Reportes (Hist.)</option>
+                        <option value="Solicitud">Solicitudes (Hist.)</option>
+                    </select>
+                </div>
+            </div>
+            {% if auditoria %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Acción</th>
+                            <th>ID Log</th>
+                            <th>Usuario (ID)</th>
+                            <th>Fecha</th>
+                            <th>Detalles</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in auditoria %}
+                        <tr>
+                            <td>
+                                {% if item.tipo == 'LOGIN' %}
+                                <span class="badge badge-completado" style="font-size: 0.75rem;">LOGIN</span>
+                                {% elif item.tipo == 'LOGOUT' %}
+                                <span class="badge" style="background-color: hsl(var(--text-muted)); color: #fff; font-size: 0.75rem;">LOGOUT</span>
+                                {% elif item.tipo == 'CREACION' %}
+                                <span class="badge" style="background-color: hsl(var(--accent) / 0.1); color: hsl(var(--accent)); font-size: 0.75rem;">CREACIÓN</span>
+                                {% elif item.tipo == 'ACTUALIZACION' %}
+                                <span class="badge badge-en_proceso" style="font-size: 0.75rem;">ACTUALIZACIÓN</span>
+                                {% elif item.tipo == 'ELIMINACION' %}
+                                <span class="badge badge-inactivo" style="font-size: 0.75rem;">ELIMINACIÓN</span>
+                                {% else %}
+                                <span class="badge" style="font-size: 0.75rem;">{{ item.tipo }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.id }}</td>
+                            <td>{{ item.referencia }}</td>
+                            <td>{{ item.fecha|slice:":10" }} {{ item.fecha|slice:"11:16" }}</td>
+                            <td style="color: hsl(var(--text-muted)); font-size: 0.85rem;">{{ item.detalles }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: hsl(var(--text-muted));">
+                No hay registros de auditoría disponibles en este momento.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const typeFilter = document.getElementById('typeFilter');
+        const tableRows = document.querySelectorAll('.table tbody tr');
+
+        function filterTable() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const typeTerm = typeFilter.value.toLowerCase();
+
+            tableRows.forEach(row => {
+                const tipoAction = row.cells[0].textContent.trim().toLowerCase();
+                const textContent = row.textContent.toLowerCase();
+                
+                // Normalizar tildes para comparación (CREACIÓN -> creacion)
+                const normalizedTipo = tipoAction.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const normalizedFilter = typeTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+                const matchesSearch = textContent.includes(searchTerm);
+                const matchesType = typeTerm === "" || normalizedTipo.includes(normalizedFilter);
+
+                if (matchesSearch && matchesType) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        if (searchInput) searchInput.addEventListener('input', filterTable);
+        if (typeFilter) typeFilter.addEventListener('change', filterTable);
+    });
+</script>
+{% endblock %}

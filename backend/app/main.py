@@ -3,7 +3,7 @@ from app.database import engine, Base
 from app.routers import (
     areas, pruebas, pacientes, medicos, laboratoristas,
     solicitudes, resultados, reportes, facturas, pagos, auth,
-    ai_diagnostico
+    ai_diagnostico, auditoria
 )
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -37,6 +37,7 @@ app.include_router(reportes.router)
 app.include_router(facturas.router)
 app.include_router(pagos.router)
 app.include_router(ai_diagnostico.router)
+app.include_router(auditoria.router)
 
 @app.get("/")
 async def root():

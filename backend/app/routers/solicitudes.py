@@ -4,6 +4,8 @@ from sqlalchemy import select
 from app import schemas, crud, models
 from app.database import get_db
 from app.id_generator import get_next_int_id
+from app.audit_logger import log_audit
+from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/solicitudes", tags=["Solicitudes"])
 
@@ -24,7 +26,11 @@ async def get_solicitud(id_solicitud: int, db: AsyncSession = Depends(get_db)):
     return solicitud
 
 @router.post("/", response_model=schemas.SolicitudOut, status_code=201)
-async def create_solicitud(solicitud_in: schemas.SolicitudCreate, db: AsyncSession = Depends(get_db)):
+async def create_solicitud(
+    solicitud_in: schemas.SolicitudCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     # Generar ID de solicitud
     new_id = await get_next_int_id(db, models.Solicitud, 'id_solicitud')
     # Crear solicitud
@@ -46,18 +52,40 @@ async def create_solicitud(solicitud_in: schemas.SolicitudCreate, db: AsyncSessi
         db.add(detalle)
     await db.commit()
     await db.refresh(nueva_solicitud)
+    
+    # Audit log
+    user_id = current_user.get("user").id_paciente if current_user.get("rol") == "paciente" else current_user.get("user").id_medico if current_user.get("rol") == "medico" else getattr(current_user.get("user"), "id_admin", None) or getattr(current_user.get("user"), "id_laboratorista", None)
+    await log_audit(db, user_id, "CREACION", f"Creó la solicitud #{new_id} para el paciente {solicitud_in.id_paciente}")
+    
     return nueva_solicitud
 
 @router.put("/{id_solicitud}", response_model=schemas.SolicitudOut)
-async def update_solicitud(id_solicitud: int, solicitud_in: schemas.SolicitudUpdate, db: AsyncSession = Depends(get_db)):
+async def update_solicitud(
+    id_solicitud: int,
+    solicitud_in: schemas.SolicitudUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     updated = await crud.solicitud_crud.update(db, id_solicitud, solicitud_in)
     if not updated:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+        
+    user_id = getattr(current_user.get("user"), f"id_{current_user.get('rol')}", getattr(current_user.get("user"), "id_admin", None))
+    await log_audit(db, user_id, "ACTUALIZACION", f"Actualizó la solicitud #{id_solicitud}")
+    
     return updated
 
 @router.delete("/{id_solicitud}")
-async def delete_solicitud(id_solicitud: int, db: AsyncSession = Depends(get_db)):
+async def delete_solicitud(
+    id_solicitud: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     deleted = await crud.solicitud_crud.soft_delete(db, id_solicitud)
     if not deleted:
         raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+        
+    user_id = getattr(current_user.get("user"), f"id_{current_user.get('rol')}", getattr(current_user.get("user"), "id_admin", None))
+    await log_audit(db, user_id, "ELIMINACION", f"Eliminó lógicamente la solicitud #{id_solicitud}")
+    
     return {"message": "Solicitud desactivada (borrado lógico)"}
