@@ -72,6 +72,21 @@ class Laboratorista(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
+class Administrador(Base):
+    __tablename__ = "administradores"
+    id_admin = Column("id_administrador", String(20), primary_key=True)
+    nombre = Column(String(80), nullable=False)
+    apellido_paterno = Column(String(80), nullable=False)
+    apellido_materno = Column(String(80))
+    fecha_nacimiento = Column(Date, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    password = Column(String(255), nullable=False)
+    telefono = Column(String(20))
+    rol = Column("rol_administrador", Enum('super_admin', 'admin_general', 'admin_financiero', 'admin_lab', name='admin_roles'), nullable=False, default='admin_general')
+    activo = Column(Integer, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
 class Solicitud(Base):
     __tablename__ = "solicitudes"
     id_solicitud = Column(Integer, primary_key=True)

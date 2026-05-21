@@ -14,6 +14,7 @@ class AreaCreate(AreaBase):
 class AreaUpdate(BaseModel):
     nombre: Optional[str] = None
     descripcion: Optional[str] = None
+    activo: Optional[int] = None
 
 class AreaOut(AreaBase):
     activo: int
@@ -42,6 +43,7 @@ class PruebaUpdate(BaseModel):
     unidad: Optional[str] = None
     precio: Optional[float] = None
     tiempo_estimado_minutos: Optional[int] = None
+    activo: Optional[int] = None
 
 class PruebaOut(PruebaBase):
     activo: int
@@ -77,6 +79,7 @@ class PacienteUpdate(BaseModel):
     tipo_sangre: Optional[str] = None
     alergias: Optional[str] = None
     password: Optional[str] = None
+    activo: Optional[int] = None
 
 class PacienteOut(PacienteBase):
     activo: int
@@ -106,6 +109,7 @@ class MedicoUpdate(BaseModel):
     telefono: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
+    activo: Optional[int] = None
 
 class MedicoOut(MedicoBase):
     activo: int
@@ -135,8 +139,30 @@ class LaboratoristaUpdate(BaseModel):
     telefono: Optional[str] = None
     id_area: Optional[str] = None
     password: Optional[str] = None
+    activo: Optional[int] = None
 
 class LaboratoristaOut(LaboratoristaBase):
+    activo: int
+    created_at: datetime
+    updated_at: datetime
+
+# ---------- Administradores ----------
+class AdministradorBase(BaseModel):
+    id_admin: Optional[str] = None
+    nombre: str
+    email: EmailStr
+    rol: str = "admin_general"
+
+class AdministradorCreate(AdministradorBase):
+    password: str
+
+class AdministradorUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[EmailStr] = None
+    rol: Optional[str] = None
+    password: Optional[str] = None
+
+class AdministradorOut(AdministradorBase):
     activo: int
     created_at: datetime
     updated_at: datetime
@@ -322,3 +348,4 @@ class TokenData(BaseModel):
     id_usuario: Optional[str] = None
     email: Optional[str] = None
     rol: Optional[str] = None
+    admin_rol: Optional[str] = None

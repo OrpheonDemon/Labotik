@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestionar Pacientes | Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Gestión de Pacientes</h1>
+            <p>Registra nuevos pacientes y revisa el listado activo de personas en el sistema.</p>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        <div class="card">
+            <div class="card-title" style="margin-bottom: 1.5rem;">
+                <i data-lucide="user-plus" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                <span>Registrar nuevo paciente</span>
+            </div>
+
+            <form method="POST" action="{% url 'superadmin_pacientes' %}">
+                {% csrf_token %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="apellido_paterno">Apellido Paterno</label>
+                        <input type="text" id="apellido_paterno" name="apellido_paterno" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="apellido_materno">Apellido Materno</label>
+                        <input type="text" id="apellido_materno" name="apellido_materno" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="genero">Género</label>
+                        <select id="genero" name="genero" class="form-input">
+                            <option value="">No especificado</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Femenino</option>
+                            <option value="O">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Correo electrónico</label>
+                        <input type="email" id="email" name="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="telefono">Teléfono</label>
+                        <input type="text" id="telefono" name="telefono" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="tipo_sangre">Tipo de sangre</label>
+                        <input type="text" id="tipo_sangre" name="tipo_sangre" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña inicial</label>
+                        <input type="password" id="password" name="password" class="form-input" required>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="direccion">Dirección</label>
+                    <textarea id="direccion" name="direccion" class="form-input" rows="2"></textarea>
+                </div>
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label" for="alergias">Alergias</label>
+                    <textarea id="alergias" name="alergias" class="form-input" rows="2"></textarea>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="submit" class="btn-premium" style="padding: 0.9rem 2rem;">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Crear Paciente</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="database" style="width: 22px; height: 22px;"></i>
+                    <span>Pacientes registrados</span>
+                </div>
+                <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ pacientes|length }} pacientes</span>
+            </div>
+            {% if pacientes %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Activo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes %}
+                        <tr>
+                            <td>{{ paciente.id_paciente }}</td>
+                            <td>{{ paciente.nombre }} {{ paciente.apellido_paterno }}</td>
+                            <td>{{ paciente.email }}</td>
+                            <td>{{ paciente.telefono|default:'-' }}</td>
+                            <td>
+                                {% if is_super_admin %}
+                                <form method="POST" style="display:inline;" onsubmit="return showConfirmDialog(this, '¿Deseas cambiar el estado de este paciente?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="toggle_paciente_id" value="{{ paciente.id_paciente }}">
+                                    {% if paciente.activo == 1 %}
+                                    <input type="hidden" name="toggle_activo" value="0">
+                                    {% else %}
+                                    <input type="hidden" name="toggle_activo" value="1">
+                                    {% endif %}
+                                    <button type="submit" class="badge badge-toggle {% if paciente.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                        {% if paciente.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="badge {% if paciente.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                    {% if paciente.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: hsl(var(--text-muted));">
+                No hay pacientes registrados.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

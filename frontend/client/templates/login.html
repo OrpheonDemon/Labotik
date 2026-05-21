@@ -1,0 +1,127 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Labotik - Iniciar Sesión</title>
+    
+    <!-- Hojas de estilo y tipografías -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body style="overflow-y: hidden;">
+
+    <!-- Contenedor para Notificaciones Toast Dinámicas -->
+    {% if messages %}
+    <div class="messages-container" id="toast-container">
+        {% for message in messages %}
+        <div class="message-toast {{ message.tags }}" role="alert">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                {% if message.tags == 'success' %}
+                    <i data-lucide="check-circle" style="color: #10b981; width: 20px; height: 20px;"></i>
+                {% elif message.tags == 'error' %}
+                    <i data-lucide="alert-octagon" style="color: #f43f5e; width: 20px; height: 20px;"></i>
+                {% else %}
+                    <i data-lucide="info" style="color: #38bdf8; width: 20px; height: 20px;"></i>
+                {% endif %}
+                <span style="font-size: 0.9rem; font-weight: 500;">{{ message }}</span>
+            </div>
+            <button class="message-toast-close" onclick="this.parentElement.remove()">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="login-container">
+        <!-- Panel Izquierdo: Ilustración abstracta y mensaje premium -->
+        <aside class="login-aside animate-fade-in">
+            <div class="login-aside-brand">
+                <i data-lucide="activity" style="color: hsl(var(--accent)); width: 28px; height: 28px;"></i>
+                <span>Labo<span>tik</span></span>
+            </div>
+            
+            <div class="login-aside-content">
+                <h1>Tu salud digital,<br>en manos expertas.</h1>
+                <p>Bienvenido al portal inteligente de Labotik. Consulta resultados de análisis clínicos, gestiona solicitudes médicas y administra procesos en tiempo real con la máxima precisión y velocidad.</p>
+            </div>
+            
+            <div style="color: hsl(var(--text-muted)); font-size: 0.85rem; font-weight: 500;">
+                © 2026 Labotik Inc. Portal de Análisis Clínicos Automatizados.
+            </div>
+        </aside>
+
+        <!-- Panel Derecho: Formulario de inicio de sesión -->
+        <main style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 1.5rem;">
+            <div class="login-main animate-fade-in" style="animation-delay: 0.15s;">
+                <div class="login-header">
+                    <h2>Ingresar al Portal</h2>
+                    <p>Introduce tus credenciales autorizadas del laboratorio</p>
+                </div>
+                
+                
+                <form method="POST" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    
+                    <!-- Campo de Correo Electrónico -->
+                    <div class="form-group">
+                        <label class="form-label" for="email">Correo Electrónico</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="mail" class="form-input-icon"></i>
+                            <input type="email" id="email" name="email" class="form-input" placeholder="ejemplo@labotik.com" required autocomplete="email">
+                        </div>
+                    </div>
+                    
+                    <!-- Campo de Contraseña -->
+                    <div class="form-group" style="margin-bottom: 2rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label class="form-label" for="password" style="margin-bottom: 0;">Contraseña</label>
+                        </div>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="lock" class="form-input-icon"></i>
+                            <input type="password" id="password" name="password" class="form-input" placeholder="••••••••••••" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    
+                    <!-- Botón de Envío -->
+                    <button type="submit" class="btn-premium">
+                        <span>Iniciar Sesión</span>
+                        <i data-lucide="arrow-right-circle" style="width: 20px; height: 20px;"></i>
+                    </button>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Script de comportamiento interactivo -->
+    <script>
+        lucide.createIcons();
+
+        // Pre-completar credenciales de ejemplo al cargar
+        window.addEventListener('DOMContentLoaded', () => {
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            if (emailInput && !emailInput.value) {
+                emailInput.value = 'paciente@labotik.com';
+            }
+            if (passwordInput && !passwordInput.value) {
+                passwordInput.value = 'password';
+            }
+        });
+
+        // Auto desvanecimiento de Toast
+        setTimeout(() => {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                container.style.transition = 'opacity 0.5s ease';
+                container.style.opacity = '0';
+                setTimeout(() => container.remove(), 500);
+            }
+        }, 5000);
+    </script>
+</body>
+</html>

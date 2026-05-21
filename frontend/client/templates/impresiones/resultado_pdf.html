@@ -1,0 +1,173 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informe Clínico - Orden #{{ solicitud.id_solicitud }}</title>
+    
+    <!-- Hoja de estilos premium principal -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .floating-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: hsl(var(--bg-surface));
+            border-bottom: 1px solid hsl(var(--border-color));
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado flotante interactivo (No se imprime) -->
+    <header class="floating-header no-print">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #fff; font-size: 1.1rem;">
+            <i data-lucide="activity" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+            <span>Labotik - Informe de Resultados</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="window.close()" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                <span>Cerrar Ventana</span>
+            </button>
+            <button onclick="window.print()" class="btn-premium" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; width: auto;">
+                <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                <span>Imprimir Reporte</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Contenedor Impresible Real -->
+    <div class="print-page animate-fade-in" style="margin-top: 5.5rem;">
+        <!-- Cabecera Oficial del Reporte -->
+        <div class="print-header">
+            <div>
+                <div class="print-logo">
+                    <i data-lucide="activity" style="display: inline-block; vertical-align: middle; width: 32px; height: 32px; margin-right: 4px;"></i>
+                    <span>LABOTIK</span>
+                </div>
+                <div style="color: #64748b; font-size: 0.8rem; margin-top: 0.25rem; font-weight: 500;">
+                    Laboratorio de Análisis Clínicos Automatizados S.A.
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: #0f766e;">INFORME DE ANÁLISIS CLÍNICO</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #475569; margin-top: 0.25rem;">Orden Médica Nro: #{{ solicitud.id_solicitud }}</div>
+            </div>
+        </div>
+
+        <!-- Ficha de Datos del Paciente y Médico -->
+        <div class="print-metadata">
+            <div class="print-meta-item">
+                <strong>Paciente</strong>
+                <p>{{ paciente.nombre }} {{ paciente.apellido_paterno }} {{ paciente.apellido_materno|default:"" }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>ID de Registro / RUN</strong>
+                <p>{{ paciente.id_paciente }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Fecha Nacimiento / Género</strong>
+                <p>{{ paciente.fecha_nacimiento }} / {{ paciente.genero|default:"No especificado" }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Médico Solicitante</strong>
+                <p>
+                    {% if medico.nombre %}
+                        Dr(a). {{ medico.nombre }} {{ medico.apellido_paterno }}
+                    {% else %}
+                        Clínica General / Sin Médico Asociado
+                    {% endif %}
+                </p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Fecha de Solicitud</strong>
+                <p>{{ solicitud.fecha_solicitud|slice:":16" }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Grupo Sanguíneo</strong>
+                <p>{{ paciente.tipo_sangre|default:"-" }}</p>
+            </div>
+        </div>
+
+        <!-- Tabla Principal de Resultados Clínicos -->
+        <h3 style="color: #0f766e; font-size: 1.1rem; border-bottom: 2px solid #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 1rem; font-weight: 700;">
+            RESULTADOS OBTENIDOS
+        </h3>
+        
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>Análisis Clínico Realizado</th>
+                    <th>Resultado Obtenido</th>
+                    <th style="width: 140px;">Rango de Referencia</th>
+                    <th>Observación del Analista</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for det in detalles %}
+                <tr class="{% if det.es_anormal == 1 %}anormal{% endif %}">
+                    <td>
+                        <strong style="color: #1e293b; display: block;">{{ det.nombre_prueba }}</strong>
+                        <span style="color: #64748b; font-size: 0.75rem; font-weight: normal;">{{ det.descripcion|default:"" }}</span>
+                    </td>
+                    <td>
+                        <span style="font-size: 1.05rem;">{{ det.resultado }}</span> 
+                        <strong style="font-size: 0.85rem; color: #475569;">{{ det.unidad }}</strong>
+                        {% if det.es_anormal == 1 %}
+                            <span style="font-size: 0.7rem; font-weight: 800; background-color: #fda4af; color: #9f1239; padding: 2px 6px; border-radius: 4px; margin-left: 6px; text-transform: uppercase;">
+                                Fuera de Rango
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: 600; color: #334155;">{{ det.valor_referencia }} {{ det.unidad }}</td>
+                    <td style="font-size: 0.85rem; color: #475569; font-style: italic;">{{ det.observacion|default:"-" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Firmas y Validaciones Autorizadas -->
+        <div style="margin-top: 6rem; display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; text-align: center;">
+            <div>
+                <!-- Espacio firma paciente / recepcionista si aplica -->
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="width: 200px; border-top: 1px solid #94a3b8; margin-bottom: 0.5rem;"></div>
+                <strong style="color: #1e293b; font-size: 0.9rem;">Firma y Sello del Validador</strong>
+                <span style="color: #64748b; font-size: 0.8rem;">Personal Clínico Autorizado</span>
+                <span style="color: #94a3b8; font-size: 0.7rem; margin-top: 0.25rem;">Validado electrónicamente</span>
+            </div>
+        </div>
+
+        <!-- Pie de página impreso -->
+        <div style="border-top: 1px solid #cbd5e1; margin-top: 4rem; padding-top: 1rem; color: #94a3b8; font-size: 0.75rem; text-align: center;">
+            Este informe de análisis clínico representa los valores obtenidos a partir de la muestra biológica provista y fue validado conforme a los estándares de control de calidad del laboratorio.
+        </div>
+    </div>
+
+    <!-- Inicializar Iconos -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

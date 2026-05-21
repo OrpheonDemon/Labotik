@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel de Laboratorio - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Cabecera del Panel -->
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Cola de Trabajo del Laboratorio</h1>
+            <p>Bienvenido, {{ perfil.nombre }} {{ perfil.apellido_paterno }}. Gestiona la cola de muestras, ingresa resultados y valida análisis.</p>
+        </div>
+        <div class="no-print" style="display: flex; gap: 0.5rem;">
+            <a href="{% url 'crear_solicitud' %}" class="btn-premium" style="text-decoration: none; background: linear-gradient(135deg, #10b981, #059669);">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                <span>Generar Solicitud</span>
+            </a>
+            <a href="{% url 'areas_catalog' %}" class="btn-secondary">
+                <i data-lucide="layers" style="width: 16px; height: 16px;"></i>
+                <span>Gestionar Áreas</span>
+            </a>
+            <a href="{% url 'pruebas_catalog' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="binary" style="width: 16px; height: 16px;"></i>
+                <span>Catálogo de Pruebas</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="card-grid card-grid-3">
+        <div class="card-stat primary">
+            <div class="card-stat-info">
+                <h3>Solicitudes Recibidas</h3>
+                <p>{{ solicitudes|length }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="folder-archive" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+
+        <div class="card-stat accent">
+            <div class="card-stat-info">
+                <h3>Pruebas en Catálogo</h3>
+                <p>{{ pruebas|length }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="binary" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+
+        <div class="card-stat warning">
+            <div class="card-stat-info">
+                <h3>Área Asignada</h3>
+                <p style="font-size: 1.15rem; font-weight: 700; margin-top: 1rem;">
+                    {% if perfil.id_area %}
+                        {{ perfil.id_area }}
+                    {% else %}
+                        Área General
+                    {% endif %}
+                </p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="shapes" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cola de Trabajo (Solicitudes y Detalles de Exámenes) -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="flask" style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                <span>Cola de Análisis y Procesamiento de Muestras</span>
+            </div>
+            <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">Lista general de muestras activas</span>
+        </div>
+
+        {% if solicitudes %}
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+            {% for sol in solicitudes %}
+            <div style="background-color: hsl(var(--bg-surface)); border: 1px solid hsl(var(--border-color)); border-radius: var(--radius-md); overflow: hidden; box-shadow: var(--shadow-sm);">
+                <!-- Cabecera de cada solicitud (Paciente y Estado de Muestra) -->
+                <div style="background-color: hsl(var(--bg-base) / 0.5); padding: 1rem 1.25rem; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; border-bottom: 1px solid hsl(var(--border-color));">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span style="font-weight: 700; color: #fff; font-size: 1rem;">Orden #{{ sol.id_solicitud }}</span>
+                        <span class="badge badge-prioridad-{{ sol.prioridad }}" style="font-size: 0.7rem;">
+                            {{ sol.prioridad }}
+                        </span>
+                        <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">
+                            Paciente ID: <strong style="color: hsl(var(--accent));">{{ sol.id_paciente }}</strong>
+                        </span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-size: 0.8rem; color: hsl(var(--text-muted));">
+                            Registrada: {{ sol.fecha_solicitud|slice:":16" }}
+                        </span>
+                        <span class="badge badge-{{ sol.estado }}" style="font-size: 0.75rem;">
+                            {{ sol.estado }}
+                        </span>
+                        {% if sol.estado == 'completado' %}
+                        <a href="{% url 'imprimir_resultado' sol.id_solicitud %}" class="btn-premium" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; border-radius: var(--radius-sm); text-decoration: none;" target="_blank">
+                            <i data-lucide="file-text" style="width: 12px; height: 12px;"></i>
+                            Generar Reporte
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Tabla de detalles clínicos internos de la solicitud -->
+                <div class="table-responsive" style="border: none; border-radius: 0;">
+                    <table class="table" style="border: none;">
+                        <thead>
+                            <tr>
+                                <th>Item ID</th>
+                                <th>Análisis Clínico</th>
+                                <th>Valor Referencial</th>
+                                <th>Resultado</th>
+                                <th>Observación</th>
+                                <th style="text-align: right;">Estado / Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for det in sol.detalles %}
+                            <tr>
+                                <td style="font-weight: 500; color: hsl(var(--text-muted));">#{{ det.id_detalle }}</td>
+                                <td style="font-weight: 600; color: #fff;">{{ det.prueba_nombre }}</td>
+                                <td style="font-size: 0.85rem; color: hsl(var(--text-muted));">
+                                    {{ det.prueba_valor_ref }} <span style="font-size: 0.75rem;">{{ det.prueba_unidad }}</span>
+                                </td>
+                                <td>
+                                    {% if det.resultado_obj %}
+                                        {% if det.resultado_obj.es_anormal == 1 %}
+                                            <span style="color: hsl(var(--danger)); font-weight: 700; background-color: hsl(var(--danger) / 0.15); border: 1px solid hsl(var(--danger) / 0.3); padding: 0.25rem 0.5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                                <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i>
+                                                {{ det.resultado_obj.resultado }} (Anormal)
+                                            </span>
+                                        {% else %}
+                                            <span style="color: hsl(var(--success)); font-weight: 700; background-color: hsl(var(--success) / 0.15); border: 1px solid hsl(var(--success) / 0.3); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                                {{ det.resultado_obj.resultado }}
+                                            </span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span style="color: hsl(var(--text-muted)); font-style: italic;">Pendiente de Ingreso</span>
+                                    {% endif %}
+                                </td>
+                                <td style="font-size: 0.85rem; color: hsl(var(--text-muted)); max-width: 200px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="{{ det.resultado_obj.observacion }}">
+                                    {{ det.resultado_obj.observacion|default:"-" }}
+                                </td>
+                                <td style="text-align: right;">
+                                    {% if det.resultado_obj %}
+                                        <span class="badge badge-completado" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
+                                            <i data-lucide="check" style="width: 10px; height: 10px; margin-right: 2px;"></i>
+                                            Validado
+                                        </span>
+                                    {% else %}
+                                        <a href="{% url 'ingresar_resultado' det.id_detalle %}" class="btn-premium" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-sm); text-decoration: none;">
+                                            <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
+                                            Registrar
+                                        </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+            <i data-lucide="inbox" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+            <p style="font-size: 1rem; font-weight: 500;">No hay solicitudes registradas en la cola de trabajo.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

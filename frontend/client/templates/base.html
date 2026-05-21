@@ -1,0 +1,169 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Labotik - Laboratorio Clínico{% endblock %}</title>
+    
+    <!-- Hojas de estilo y tipografías -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Lucide Icons via CDN para iconografía clínica interactiva -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Contenedor para Notificaciones Toast Dinámicas -->
+    {% if messages %}
+    <div class="messages-container" id="toast-container">
+        {% for message in messages %}
+        <div class="message-toast {{ message.tags }}" role="alert">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                {% if message.tags == 'success' %}
+                    <i data-lucide="check-circle" style="color: #10b981; width: 20px; height: 20px;"></i>
+                {% elif message.tags == 'error' %}
+                    <i data-lucide="alert-octagon" style="color: #f43f5e; width: 20px; height: 20px;"></i>
+                {% elif message.tags == 'warning' %}
+                    <i data-lucide="alert-triangle" style="color: #fbbf24; width: 20px; height: 20px;"></i>
+                {% else %}
+                    <i data-lucide="info" style="color: #38bdf8; width: 20px; height: 20px;"></i>
+                {% endif %}
+                <span style="font-size: 0.9rem; font-weight: 500;">{{ message }}</span>
+            </div>
+            <button class="message-toast-close" onclick="this.parentElement.remove()">
+                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+            </button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="app-layout">
+        <!-- Barra de Navegación Lateral (Sidebar) -->
+        <aside class="sidebar no-print" id="app-sidebar">
+            <div>
+                <div class="sidebar-header">
+                    <div class="sidebar-logo-dot"></div>
+                    <span>Labo<span>tik</span></span>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    
+                    {% if rol == 'medico' %}
+                    <a href="{% url 'crear_solicitud' %}" class="sidebar-link {% if request.resolver_match.url_name == 'crear_solicitud' %}active{% endif %}">
+                        <i data-lucide="file-signature" style="width: 18px; height: 18px;"></i>
+                        <span>Nueva Solicitud</span>
+                    </a>
+                    {% endif %}
+                    
+                    {% if rol == 'laboratorista' %}
+                    <a href="{% url 'areas_catalog' %}" class="sidebar-link {% if request.resolver_match.url_name == 'areas_catalog' %}active{% endif %}">
+                        <i data-lucide="layers" style="width: 18px; height: 18px;"></i>
+                        <span>Áreas Clínicas</span>
+                    </a>
+                    <a href="{% url 'pruebas_catalog' %}" class="sidebar-link {% if request.resolver_match.url_name == 'pruebas_catalog' %}active{% endif %}">
+                        <i data-lucide="binary" style="width: 18px; height: 18px;"></i>
+                        <span>Catálogo de Pruebas</span>
+                    </a>
+                    {% endif %}
+                </nav>
+            </div>
+            
+            <div class="sidebar-footer">
+                <div class="sidebar-user">
+                    <div class="sidebar-user-avatar">
+                        {{ nombre_real|slice:":1"|upper }}
+                    </div>
+                    <div class="sidebar-user-info">
+                        <div class="sidebar-user-name" title="{{ nombre_real }}">{{ nombre_real }}</div>
+                        <div class="sidebar-user-role">{{ rol }}</div>
+                    </div>
+                </div>
+                
+                <a href="{% url 'logout' %}" class="sidebar-link" style="color: hsl(var(--danger));">
+                    <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+                    <span>Cerrar Sesión</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Contenedor Principal de Contenido -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- Inicializar Lucide Icons y autodesvanecer Toasts -->
+    <script>
+        // Inicializar iconos vectoriales
+        lucide.createIcons();
+
+        // Desvanecer Toasts automáticamente tras 5 segundos
+        setTimeout(() => {
+            const container = document.getElementById('toast-container');
+            if (container) {
+                container.style.transition = 'opacity 0.5s ease';
+                container.style.opacity = '0';
+                setTimeout(() => container.remove(), 500);
+            }
+        }, 5000);
+
+        let confirmForm = null;
+
+        function showConfirmDialog(form, message) {
+            confirmForm = form;
+            const modal = document.getElementById('confirm-modal');
+            const messageNode = document.getElementById('confirm-modal-message');
+            if (!modal || !messageNode) {
+                return confirm(message);
+            }
+            messageNode.textContent = message;
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+            return false;
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            if (!modal) return;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            confirmForm = null;
+        }
+
+        function acceptConfirmModal() {
+            if (confirmForm) {
+                confirmForm.submit();
+            }
+            closeConfirmModal();
+        }
+    </script>
+
+    <div id="confirm-modal" class="modal-overlay" aria-hidden="true" style="display:none;">
+        <div class="modal-panel confirm-modal-panel">
+            <div class="modal-header">
+                <div>
+                    <h2>Confirmar acción</h2>
+                    <p id="confirm-modal-message">¿Estás seguro?</p>
+                </div>
+                <button type="button" class="modal-close" onclick="closeConfirmModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="confirm-modal-footer">
+                <button type="button" class="btn-secondary" onclick="closeConfirmModal()">Cancelar</button>
+                <button type="button" class="btn-premium" onclick="acceptConfirmModal()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, crud
 from app.database import get_db
-from app.dependencies import require_laboratorista, require_medico, get_current_active_user
+from app.dependencies import require_laboratorista, require_medico, require_super_admin, get_current_active_user
 from app.models import Paciente
 
 router = APIRouter(prefix="/pacientes", tags=["Pacientes"])
@@ -11,12 +11,13 @@ router = APIRouter(prefix="/pacientes", tags=["Pacientes"])
 async def list_pacientes(
     skip: int = 0, 
     limit: int = 100, 
+    include_inactive: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para listar pacientes")
-    return await crud.paciente_crud.get_multi(db, skip, limit)
+    return await crud.paciente_crud.get_multi(db, skip, limit, include_inactive=include_inactive)
 
 @router.get("/search", response_model=list[schemas.PacienteOut])
 async def search_pacientes(
@@ -26,7 +27,7 @@ async def search_pacientes(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para buscar pacientes")
     return await crud.paciente_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
@@ -47,7 +48,7 @@ async def get_paciente(
     return paciente
 
 @router.post("/", response_model=schemas.PacienteOut, status_code=201)
-async def create_paciente(paciente_in: schemas.PacienteCreate, db: AsyncSession = Depends(get_db)):
+async def create_paciente(paciente_in: schemas.PacienteCreate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_super_admin)):
     return await crud.paciente_crud.create(db, paciente_in)
 
 @router.put("/{id_paciente}", response_model=schemas.PacienteOut)
@@ -72,7 +73,7 @@ async def update_paciente(
 async def delete_paciente(
     id_paciente: str, 
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_laboratorista)
+    current_user: dict = Depends(require_super_admin)
 ):
     deleted = await crud.paciente_crud.soft_delete(db, id_paciente)
     if not deleted:

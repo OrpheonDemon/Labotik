@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitar Análisis de Laboratorio - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" style="max-width: 900px; margin: 0 auto;">
+    <!-- Cabecera de Página -->
+    <div class="content-header" style="margin-bottom: 2rem;">
+        <div class="content-header-title">
+            <h1>Solicitar Nuevo Análisis</h1>
+            <p>Selecciona los exámenes de laboratorio que deseas realizarte. Se generará una orden en la cola del
+                laboratorio.</p>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Formulario Principal -->
+    <form method="POST" action="{% url 'solicitar_analisis' %}" id="solicitud-form">
+        {% csrf_token %}
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; align-items: start;">
+
+            <!-- Columna Izquierda: Configuración y Exámenes -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+                <!-- Información General -->
+                <div class="card">
+                    <div class="card-title" style="margin-bottom: 1.5rem;">
+                        <i data-lucide="user" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                        <span>Detalles de la Solicitud</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <!-- Paciente (Lectura) -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label">Paciente Solicitante</label>
+                            <div class="form-input-wrapper" style="opacity: 0.85;">
+                                <i data-lucide="user-check" class="form-input-icon"
+                                    style="color: hsl(var(--primary-light));"></i>
+                                <input type="text" class="form-input"
+                                    style="padding-left: 2.8rem; background-color: hsl(var(--bg-base) / 0.4); cursor: not-allowed; font-weight: 600;"
+                                    value="{{ nombre_real }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                        <!-- Selección de Prioridad -->
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label class="form-label" for="prioridad">Prioridad Recomendada</label>
+                            <div class="form-input-wrapper">
+                                <i data-lucide="zap" class="form-input-icon"></i>
+                                <select name="prioridad" id="prioridad" class="form-input"
+                                    style="padding-left: 2.8rem; appearance: none; background-color: hsl(var(--bg-card));"
+                                    required>
+                                    <option value="baja">Baja - Control rutinario / Preventivo</option>
+                                    <option value="media" selected>Media - Chequeo general o sospecha común</option>
+                                    <option value="alta">Alta - Sintomatología aguda / Urgente</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Observaciones / Síntomas -->
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label class="form-label" for="observaciones">Síntomas / Observaciones adicionales</label>
+                        <textarea name="observaciones" id="observaciones" rows="3" class="form-input"
+                            style="padding-left: 1rem; resize: none;"
+                            placeholder="Escribe aquí si tienes síntomas específicos, sospechas o indicaciones que el laboratorista deba considerar..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Selección de Pruebas Dinámicas -->
+                <div class="card">
+                    <div class="card-header" style="padding-bottom: 0.75rem; margin-bottom: 1.25rem;">
+                        <div class="card-title">
+                            <i data-lucide="flask"
+                                style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                            <span>Exámenes de Laboratorio a Solicitar</span>
+                        </div>
+                        <button type="button" class="btn-premium"
+                            style="padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: var(--radius-sm);"
+                            onclick="addRow()">
+                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                            Añadir Examen
+                        </button>
+                    </div>
+
+                    <!-- Contenedor de filas -->
+                    <div id="tests-container" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <!-- Fila inicial por defecto -->
+                        <div class="test-row animate-fade-in" style="display: flex; gap: 1rem; align-items: flex-end;">
+                            <div style="flex: 2;">
+                                <label class="form-label">Examen / Análisis</label>
+                                <select name="pruebas[]" class="form-input test-select"
+                                    style="padding-left: 1rem; background-color: hsl(var(--bg-card));"
+                                    onchange="calculateTotal()" required>
+                                    <option value="" disabled selected>Selecciona un análisis...</option>
+                                    {% for prueba in pruebas %}
+                                    <option value="{{ prueba.id_prueba }}" data-price="{{ prueba.precio }}">
+                                        {{ prueba.nombre }} (${{ prueba.precio|floatformat:0 }})
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <input type="hidden" name="cantidades[]" class="quantity-input" value="1">
+                            <div style="flex-shrink: 0;">
+                                <button type="button" class="btn-remove-row"
+                                    style="background-color: hsl(var(--danger) / 0.1); color: hsl(var(--danger)); border: 1px solid hsl(var(--danger) / 0.2); padding: 0.6rem; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;"
+                                    onclick="removeRow(this)" title="Quitar examen">
+                                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Columna Derecha: Resumen de Costos Estimados (Premium Web Design) -->
+            <div style="display: flex; flex-direction: column; gap: 1.5rem; position: sticky; top: 1.5rem;">
+                <div class="card"
+                    style="background: linear-gradient(135deg, hsl(var(--bg-card)) 0%, hsl(var(--bg-surface) / 0.9) 100%); border: 1px solid hsl(var(--primary) / 0.25); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
+                    <div class="card-title"
+                        style="margin-bottom: 1.5rem; border-bottom: 1px solid hsl(var(--border-color)); padding-bottom: 0.75rem;">
+                        <i data-lucide="shopping-bag"
+                            style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                        <span>Resumen de Cobros</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.9rem; color: hsl(var(--text-muted));">
+                            <span>Subtotal</span>
+                            <span id="subtotal-val">$0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 0.9rem; color: hsl(var(--text-muted));">
+                            <span>Impuestos (19% IVA)</span>
+                            <span id="iva-val">$0</span>
+                        </div>
+                        <div style="border-top: 1px dashed hsl(var(--border-color)); margin: 0.5rem 0;"></div>
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 1.2rem; font-weight: 800; color: #fff;">
+                            <span>Total Estimado</span>
+                            <span id="total-val" style="color: hsl(var(--accent));">$0</span>
+                        </div>
+                    </div>
+
+                    <div
+                        style="background-color: hsl(var(--primary) / 0.08); border: 1px solid hsl(var(--primary) / 0.15); border-radius: var(--radius-sm); padding: 0.85rem; font-size: 0.8rem; color: hsl(var(--text-muted)); line-height: 1.4; display: flex; gap: 0.5rem; align-items: start; margin-bottom: 1.5rem;">
+                        <i data-lucide="info"
+                            style="width: 16px; height: 16px; color: hsl(var(--primary-light)); flex-shrink: 0; margin-top: 0.1rem;"></i>
+                        <span>Este es un presupuesto preliminar. La orden se facturará en el laboratorio al ingresar el
+                            pago o muestra médica.</span>
+                    </div>
+
+                    <button type="submit" class="btn-premium"
+                        style="width: 100%; padding: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i data-lucide="check-square" style="width: 18px; height: 18px;"></i>
+                        <span>Confirmar Solicitud</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<!-- Plantilla oculta para filas agregadas dinámicamente -->
+<template id="row-template">
+    <div class="test-row animate-fade-in" style="display: flex; gap: 1rem; align-items: flex-end; margin-top: 1rem;">
+        <div style="flex: 2;">
+            <label class="form-label">Examen / Análisis</label>
+            <select name="pruebas[]" class="form-input test-select"
+                style="padding-left: 1rem; background-color: hsl(var(--bg-card));" onchange="calculateTotal()" required>
+                <option value="" disabled selected>Selecciona un análisis...</option>
+                {% for prueba in pruebas %}
+                <option value="{{ prueba.id_prueba }}" data-price="{{ prueba.precio }}">
+                    {{ prueba.nombre }} (${{ prueba.precio|floatformat:0 }})
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <input type="hidden" name="cantidades[]" class="quantity-input" value="1">
+        <div style="flex-shrink: 0;">
+            <button type="button" class="btn-remove-row"
+                style="background-color: hsl(var(--danger) / 0.1); color: hsl(var(--danger)); border: 1px solid hsl(var(--danger) / 0.2); padding: 0.6rem; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;"
+                onclick="removeRow(this)" title="Quitar examen">
+                <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+            </button>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Agregar nueva fila
+    function addRow() {
+        const container = document.getElementById('tests-container');
+        const template = document.getElementById('row-template');
+        const clone = template.content.cloneNode(true);
+
+        container.appendChild(clone);
+        lucide.createIcons(); // Recargar iconos Lucide
+        calculateTotal();
+    }
+
+    // Quitar fila
+    function removeRow(button) {
+        const container = document.getElementById('tests-container');
+        if (container.querySelectorAll('.test-row').length > 1) {
+            button.closest('.test-row').remove();
+            calculateTotal();
+        } else {
+            alert('Debes solicitar al menos un examen clínico.');
+        }
+    }
+
+    // Calcular costos en tiempo real
+    function calculateTotal() {
+        let subtotal = 0;
+        const selects = document.querySelectorAll('.test-select');
+        const quantities = document.querySelectorAll('.quantity-input');
+
+        selects.forEach((select, idx) => {
+            const selectedOpt = select.options[select.selectedIndex];
+            const qty = parseInt(quantities[idx].value) || 0;
+
+            if (selectedOpt && selectedOpt.value) {
+                const price = parseFloat(selectedOpt.getAttribute('data-price')) || 0;
+                subtotal += price * qty;
+            }
+        });
+
+        const iva = subtotal * 0.19;
+        const total = subtotal + iva;
+
+        // Formatear a moneda CLP
+        document.getElementById('subtotal-val').innerText = '$' + subtotal.toLocaleString('es-CL');
+        document.getElementById('iva-val').innerText = '$' + Math.round(iva).toLocaleString('es-CL');
+        document.getElementById('total-val').innerText = '$' + Math.round(total).toLocaleString('es-CL');
+    }
+
+    // Ejecutar cálculo al iniciar
+    document.addEventListener("DOMContentLoaded", function () {
+        calculateTotal();
+    });
+</script>
+{% endblock %}

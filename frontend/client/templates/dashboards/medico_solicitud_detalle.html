@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}Detalle de Solicitud - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Detalle de Solicitud #{{ solicitud.id_solicitud }}</h1>
+            <p>Revisión clínica para {{ paciente.nombre }} {{ paciente.apellido_paterno }}. Utiliza el soporte IA para diagnóstico preventivo cuando los resultados estén listos.</p>
+        </div>
+        <div class="no-print" style="display: flex; gap: 0.75rem; align-items: center;">
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="chevrons-left" style="width: 18px; height: 18px;"></i>
+                Volver al Panel
+            </a>
+            {% if solicitud.estado == 'completado' %}
+            <button onclick="solicitarIA({{ solicitud.id_solicitud }})" class="btn-premium" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                <i data-lucide="brain-circuit" style="width: 18px; height: 18px;"></i>
+                Generar Diagnóstico IA
+            </button>
+            <a href="{% url 'imprimir_resultado' solicitud.id_solicitud %}" target="_blank" class="btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
+                Descargar Informe
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-grid" style="margin-bottom: 1rem;">
+        <div class="card-stat primary">
+            <div class="card-stat-info">
+                <h3>Estado</h3>
+                <p>{{ solicitud.estado|title }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="activity" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+        <div class="card-stat accent">
+            <div class="card-stat-info">
+                <h3>Pruebas Totales</h3>
+                <p>{{ total_pruebas }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+        <div class="card-stat success">
+            <div class="card-stat-info">
+                <h3>Resultados Completos</h3>
+                <p>{{ resultados_completos }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="check-circle" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+        <div class="card-stat danger">
+            <div class="card-stat-info">
+                <h3>Anomalías</h3>
+                <p>{{ anomalías }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="alert-triangle" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 1rem;">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="user-check" style="color: hsl(var(--primary)); width: 22px; height: 22px;"></i>
+                <span>Resumen de Paciente y Solicitud</span>
+            </div>
+        </div>
+        <div class="card-body" style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <div>
+                <strong>Paciente</strong>
+                <p>{{ paciente.nombre }} {{ paciente.apellido_paterno }} {{ paciente.apellido_materno|default:'' }}</p>
+                <small>{{ paciente.email }} · {{ paciente.telefono|default:'Sin contacto' }}</small>
+            </div>
+            <div>
+                <strong>Doctor Referente</strong>
+                <p>{{ medico.nombre }} {{ medico.apellido_paterno }}</p>
+                <small>{{ medico.especialidad|default:'Clínica General' }}</small>
+            </div>
+            <div>
+                <strong>Fecha Solicitud</strong>
+                <p>{{ solicitud.fecha_solicitud|slice:':16' }}</p>
+                <strong>Prioridad</strong>
+                <p>{{ solicitud.prioridad|title }}</p>
+            </div>
+            <div>
+                <strong>Observaciones</strong>
+                <p style="color: hsl(var(--text-muted));">{{ solicitud.observaciones|default:'Sin observaciones' }}</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="clipboard-list" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                <span>Resultados Clínicos por Prueba</span>
+            </div>
+            <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">Revisa cada prueba y sus observaciones</span>
+        </div>
+
+        {% if detalles %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Prueba</th>
+                        <th>Referencia</th>
+                        <th>Cantidad</th>
+                        <th>Resultado</th>
+                        <th>Observación</th>
+                        <th style="text-align: right;">Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for det in detalles %}
+                    <tr>
+                        <td style="font-weight: 600; color: #fff;">{{ det.nombre_prueba }}</td>
+                        <td>{{ det.valor_referencia }} {{ det.unidad }}</td>
+                        <td>{{ det.cantidad }}</td>
+                        <td>
+                            {% if det.resultado == 'Pendiente' %}
+                                <span class="badge badge-pendiente">Pendiente</span>
+                            {% else %}
+                                {{ det.resultado }}
+                            {% endif %}
+                        </td>
+                        <td style="color: hsl(var(--text-muted));">{{ det.observacion|default:'-' }}</td>
+                        <td style="text-align: right;">
+                            {% if det.es_anormal == 1 %}
+                                <span class="badge badge-danger">Anormal</span>
+                            {% elif det.resultado == 'Pendiente' %}
+                                <span class="badge badge-pendiente">Pendiente</span>
+                            {% else %}
+                                <span class="badge badge-completado">Normal</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem; color: hsl(var(--text-muted));">
+            <p>No se encontraron pruebas asociadas a esta solicitud.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div id="aiModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.55); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: var(--bg-card); padding: 2rem; border-radius: var(--radius-lg); width: 90%; max-width: 650px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); margin:0;">
+                <i data-lucide="brain-circuit"></i>
+                Diagnóstico Preventivo IA
+            </h3>
+            <button onclick="document.getElementById('aiModal').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-light);">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div id="aiContent">
+            <div style="text-align: center; padding: 2rem;">
+                <i data-lucide="loader-2" class="animate-spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p>Analizando marcadores clínicos...</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function solicitarIA(idSolicitud) {
+        const modal = document.getElementById('aiModal');
+        const content = document.getElementById('aiContent');
+        modal.style.display = 'flex';
+        content.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i data-lucide="loader-2" class="animate-spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p>La Inteligencia Artificial está analizando los resultados médicos...</p>
+            </div>`;
+
+        fetch(`/ai/diagnostico/${idSolicitud}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.error) {
+                content.innerHTML = `<div style="color: var(--danger); padding: 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.1);">${data.error}</div>`;
+                return;
+            }
+
+            let html = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--text); margin-bottom: 0.5rem;">Resumen Clínico</h4>
+                    <p style="color: var(--text-light); line-height: 1.6;">${data.resumen}</p>
+                </div>`;
+
+            if(data.posibles_riesgos && data.posibles_riesgos.length > 0) {
+                html += `<div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--danger); margin-bottom: 0.5rem;"><i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: text-bottom;"></i> Posibles Riesgos</h4>
+                    <ul style="list-style-position: inside; color: var(--text-light);">
+                        ${data.posibles_riesgos.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            if(data.recomendaciones_preventivas && data.recomendaciones_preventivas.length > 0) {
+                html += `<div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem;"><i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: text-bottom;"></i> Recomendaciones Preventivas</h4>
+                    <ul style="list-style-position: inside; color: var(--text-light);">
+                        ${data.recomendaciones_preventivas.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+
+            html += `<div style="font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 1rem; font-style: italic;">${data.nota_legal}</div>`;
+            content.innerHTML = html;
+            lucide.createIcons();
+        })
+        .catch(err => {
+            content.innerHTML = `<div style="color: var(--danger);">Ocurrió un error al contactar al motor de IA.</div>`;
+        });
+    }
+</script>
+{% endblock %}

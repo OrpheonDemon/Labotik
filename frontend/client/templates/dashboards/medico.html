@@ -1,0 +1,376 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel Médico - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Cabecera del Panel -->
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Panel Médico</h1>
+            <p>Bienvenido, Dr(a). {{ perfil.nombre }} {{ perfil.apellido_paterno }}. Gestiona tus pacientes y sus análisis clínicos.</p>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'crear_solicitud' %}" class="btn-premium" style="text-decoration: none;">
+                <i data-lucide="plus-circle" style="width: 20px; height: 20px;"></i>
+                <span>Crear Nueva Solicitud</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Tarjetas de Estadísticas -->
+    <div class="card-grid">
+        <div class="card-stat primary">
+            <div class="card-stat-info">
+                <h3>Pacientes Totales</h3>
+                <p>{{ pacientes|length }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="users" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+
+        <div class="card-stat accent">
+            <div class="card-stat-info">
+                <h3>Solicitudes Emitidas</h3>
+                <p>{{ solicitudes|length }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="file-signature" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+
+        <div class="card-stat warning">
+            <div class="card-stat-info">
+                <h3>Solicitudes Completadas</h3>
+                <p>{{ solicitudes_completadas|default:0 }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="check-circle" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+
+        <div class="card-stat danger">
+            <div class="card-stat-info">
+                <h3>Alertas Clínicas</h3>
+                <p>{{ solicitudes_alerta|default:0 }}</p>
+            </div>
+            <div class="card-stat-icon">
+                <i data-lucide="alert-triangle" style="width: 24px; height: 24px;"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de Búsqueda de Pacientes / Directorio -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="search" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                <span>Directorio Clínico de Pacientes</span>
+            </div>
+            <div style="position: relative; width: 250px;">
+                <input type="text" id="patient-search" class="form-input" style="padding: 0.5rem 1rem 0.5rem 2.2rem; font-size: 0.85rem;" placeholder="Buscar paciente..." onkeyup="filterPatients()">
+                <i data-lucide="search" style="position: absolute; left: 0.8rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: hsl(var(--text-muted)); pointer-events: none;"></i>
+            </div>
+        </div>
+
+        {% if pacientes %}
+        <div class="table-responsive" style="max-height: 350px;">
+            <table class="table" id="patients-table">
+                <thead>
+                    <tr>
+                        <th>Cédula/ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Fecha Nacimiento</th>
+                        <th>Tipo Sangre</th>
+                        <th>Contacto</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pac in pacientes %}
+                    <tr class="patient-row">
+                        <td class="pac-id" style="font-weight: 600; color: hsl(var(--accent));">{{ pac.id_paciente }}</td>
+                        <td class="pac-name" style="font-weight: 600; color: #fff;">{{ pac.nombre }} {{ pac.apellido_paterno }} {{ pac.apellido_materno|default:"" }}</td>
+                        <td>{{ pac.fecha_nacimiento }}</td>
+                        <td>
+                            <span class="badge badge-pendiente" style="background-color: hsl(var(--bg-base)); border-color: hsl(var(--border-color)); color: #fff;">
+                                {{ pac.tipo_sangre|default:"-" }}
+                            </span>
+                        </td>
+                        <td style="color: hsl(var(--text-muted));">{{ pac.email }} / {{ pac.telefono|default:"-" }}</td>
+                        <td style="text-align: right;">
+                            <form action="{% url 'crear_solicitud' %}" method="GET" style="display: inline;">
+                                <input type="hidden" name="preselect_paciente" value="{{ pac.id_paciente }}">
+                                <button type="submit" class="btn-premium" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-sm);">
+                                    <i data-lucide="plus" style="width: 12px; height: 12px;"></i>
+                                    Ordenar Examen
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 2rem; color: hsl(var(--text-muted));">
+            <i data-lucide="users-round" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+            <p>No se encontraron pacientes registrados.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Historial de Órdenes e Informes Clínicos -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header" style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+            <div class="card-title">
+                <i data-lucide="history" style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                <span>Historial de Solicitudes Emitidas</span>
+            </div>
+            <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ solicitudes|length }} solicitudes registradas</span>
+        </div>
+
+        <div class="card-body" style="padding: 1rem 1.25rem 0;">
+            <div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 1rem;">
+                <div>
+                    <label class="form-label" for="order-search">Buscar Paciente / Orden</label>
+                    <input id="order-search" type="text" class="form-input" placeholder="Paciente, ID o palabra clave" oninput="filterOrders()">
+                </div>
+                <div>
+                    <label class="form-label" for="order-status">Estado</label>
+                    <select id="order-status" class="form-input" onchange="filterOrders()">
+                        <option value="">Todos</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En Análisis</option>
+                        <option value="completado">Completado</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="form-label" for="order-priority">Prioridad</label>
+                    <select id="order-priority" class="form-input" onchange="filterOrders()">
+                        <option value="">Todas</option>
+                        <option value="baja">Baja</option>
+                        <option value="media">Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+                <div style="display: grid; gap: 0.75rem;">
+                    <div>
+                        <label class="form-label" for="order-date-from">Desde</label>
+                        <input id="order-date-from" type="date" class="form-input" onchange="filterOrders()">
+                    </div>
+                    <div>
+                        <label class="form-label" for="order-date-to">Hasta</label>
+                        <input id="order-date-to" type="date" class="form-input" onchange="filterOrders()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if solicitudes %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nro. Orden</th>
+                        <th>Paciente</th>
+                        <th>Fecha de Solicitud</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Detalle Clínico</th>
+                        <th style="text-align: right;">Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sol in solicitudes %}
+                    <tr>
+                        <td style="font-weight: 600; color: #fff;">#{{ sol.id_solicitud }}</td>
+                        <td style="font-weight: 600;">
+                            {% for pac in pacientes %}
+                                {% if pac.id_paciente == sol.id_paciente %}
+                                    {{ pac.nombre }} {{ pac.apellido_paterno }}
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>{{ sol.fecha_solicitud|slice:":16" }}</td>
+                        <td>
+                            <div class="tracking-timeline" title="Estado: {{ sol.estado|title }}">
+                                <!-- Solicitado -->
+                                <div class="tracking-step {% if sol.estado == 'pendiente' %}active{% else %}completed{% endif %}">
+                                    <span class="tracking-label">Solicitado</span>
+                                </div>
+                                <!-- En Proceso -->
+                                <div class="tracking-step {% if sol.estado == 'pendiente' %}pending{% elif sol.estado == 'en_proceso' %}active{% else %}completed{% endif %}">
+                                    <span class="tracking-label">En Análisis</span>
+                                </div>
+                                <!-- Completado -->
+                                <div class="tracking-step {% if sol.estado == 'completado' %}completed{% else %}pending{% endif %}">
+                                    <span class="tracking-label">Resultados Listos</span>
+                                </div>
+                            </div>
+                            <div class="tracking-text">
+                                {% if sol.estado == 'pendiente' %}Esperando Muestra
+                                {% elif sol.estado == 'en_proceso' %}Analizando
+                                {% elif sol.estado == 'completado' %}Resultados Validados
+                                {% else %}{{ sol.estado|title }}{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad-{{ sol.prioridad }}">
+                                {{ sol.prioridad }}
+                            </span>
+                        </td>
+                        <td style="color: hsl(var(--text-muted)); max-width: 200px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="{{ sol.observaciones }}">
+                            {{ sol.observaciones|default:"Sin observaciones" }}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if sol.estado == 'completado' %}
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                                <a href="{% url 'medico_solicitud_detalle' sol.id_solicitud %}" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-sm); text-decoration: none;">
+                                    <i data-lucide="eye" style="width: 12px; height: 12px;"></i>
+                                    Ver Detalle
+                                </a>
+                                <button onclick="solicitarIA({{ sol.id_solicitud }})" class="btn-premium" style="background: linear-gradient(135deg, #7c3aed, #4f46e5); padding: 0.35rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-sm); text-decoration: none;">
+                                    <i data-lucide="brain-circuit" style="width: 12px; height: 12px;"></i>
+                                    IA
+                                </button>
+                                <a href="{% url 'imprimir_resultado' sol.id_solicitud %}" class="btn-premium" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-sm); text-decoration: none;" target="_blank" title="Ver Informe PDF">
+                                    <i data-lucide="printer" style="width: 12px; height: 12px;"></i>
+                                    PDF
+                                </a>
+                            </div>
+                            {% else %}
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
+                                <a href="{% url 'medico_solicitud_detalle' sol.id_solicitud %}" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-sm); text-decoration: none;">
+                                    <i data-lucide="eye" style="width: 12px; height: 12px;"></i>
+                                    Ver Detalle
+                                </a>
+                                <button class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem; border-radius: var(--radius-sm); cursor: not-allowed; opacity: 0.65;">
+                                    <i data-lucide="loader-2" class="animate-spin" style="width: 12px; height: 12px;"></i>
+                                    En Muestra
+                                </button>
+                            </div>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+            <i data-lucide="folder-kanban" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+            <p style="font-size: 1rem; font-weight: 500;">No has registrado solicitudes médicas aún.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal IA -->
+<div id="aiModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px);">
+    <div style="background: var(--bg-card); padding: 2rem; border-radius: var(--radius-lg); width: 90%; max-width: 600px; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
+                <i data-lucide="brain-circuit"></i>
+                Diagnóstico Preventivo IA
+            </h3>
+            <button onclick="document.getElementById('aiModal').style.display='none'" style="background: none; border: none; cursor: pointer; color: var(--text-light);">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div id="aiContent">
+            <!-- Loading -->
+            <div style="text-align: center; padding: 2rem;">
+                <i data-lucide="loader-2" class="animate-spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p>Analizando marcadores clínicos...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Filtrador interactivo en tiempo real para pacientes
+    function filterPatients() {
+        const query = document.getElementById('patient-search').value.toLowerCase();
+        const rows = document.querySelectorAll('.patient-row');
+        
+        rows.forEach(row => {
+            const id = row.querySelector('.pac-id').textContent.toLowerCase();
+            const name = row.querySelector('.pac-name').textContent.toLowerCase();
+            
+            if (id.includes(query) || name.includes(query)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function solicitarIA(idSolicitud) {
+        const modal = document.getElementById('aiModal');
+        const content = document.getElementById('aiContent');
+        
+        modal.style.display = 'flex';
+        content.innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <i data-lucide="loader-2" class="animate-spin" style="width: 32px; height: 32px; color: var(--primary); margin-bottom: 1rem;"></i>
+                <p>La Inteligencia Artificial está analizando los resultados médicos...</p>
+            </div>`;
+            
+        fetch(`/ai/diagnostico/${idSolicitud}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.error) {
+                content.innerHTML = `<div style="color: var(--danger); padding: 1rem; border-left: 4px solid var(--danger); background: rgba(239, 68, 68, 0.1);">${data.error}</div>`;
+                return;
+            }
+            
+            // Renderizar la respuesta de la IA
+            let html = `
+                <div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--text); margin-bottom: 0.5rem;">Resumen Clínico</h4>
+                    <p style="color: var(--text-light); line-height: 1.6;">${data.resumen}</p>
+                </div>
+            `;
+            
+            if(data.posibles_riesgos && data.posibles_riesgos.length > 0) {
+                html += `<div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--danger); margin-bottom: 0.5rem;"><i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: text-bottom;"></i> Posibles Riesgos</h4>
+                    <ul style="list-style-position: inside; color: var(--text-light);">
+                        ${data.posibles_riesgos.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+            
+            if(data.recomendaciones_preventivas && data.recomendaciones_preventivas.length > 0) {
+                html += `<div style="margin-bottom: 1.5rem;">
+                    <h4 style="color: var(--success); margin-bottom: 0.5rem;"><i data-lucide="check-circle" style="width: 16px; height: 16px; vertical-align: text-bottom;"></i> Recomendaciones Preventivas</h4>
+                    <ul style="list-style-position: inside; color: var(--text-light);">
+                        ${data.recomendaciones_preventivas.map(r => `<li>${r}</li>`).join('')}
+                    </ul>
+                </div>`;
+            }
+            
+            html += `<div style="font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color); padding-top: 1rem; font-style: italic;">
+                ${data.nota_legal}
+            </div>`;
+            
+            content.innerHTML = html;
+            lucide.createIcons();
+        })
+        .catch(err => {
+            content.innerHTML = `<div style="color: var(--danger);">Ocurrió un error al contactar al motor de IA.</div>`;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+
+{% block title %}Gestionar Laboratoristas | Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Gestión de Laboratoristas</h1>
+            <p>Registra nuevos laboratoristas y gestiona el personal técnico del laboratorio.</p>
+        </div>
+        <div class="no-print">
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        <div class="card">
+            <div class="card-title" style="margin-bottom: 1.5rem;">
+                <i data-lucide="flask-conical" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                <span>Registrar nuevo laboratorista</span>
+            </div>
+
+            <form method="POST" action="{% url 'superadmin_laboratoristas' %}">
+                {% csrf_token %}
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre</label>
+                        <input type="text" id="nombre" name="nombre" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="apellido_paterno">Apellido Paterno</label>
+                        <input type="text" id="apellido_paterno" name="apellido_paterno" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="apellido_materno">Apellido Materno</label>
+                        <input type="text" id="apellido_materno" name="apellido_materno" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="email">Correo electrónico</label>
+                        <input type="email" id="email" name="email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="telefono">Teléfono</label>
+                        <input type="text" id="telefono" name="telefono" class="form-input">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="id_area">Área asignada</label>
+                        <input type="text" id="id_area" name="id_area" class="form-input" placeholder="Ej: HEM">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="password">Contraseña inicial</label>
+                        <input type="password" id="password" name="password" class="form-input" required>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                    <button type="submit" class="btn-premium" style="padding: 0.9rem 2rem;">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Crear Laboratorista</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="database" style="width: 22px; height: 22px;"></i>
+                    <span>Laboratoristas registrados</span>
+                </div>
+                <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ laboratoristas|length }} laboratoristas</span>
+            </div>
+            {% if laboratoristas %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Área</th>
+                            <th>Activo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for lab in laboratoristas %}
+                        <tr>
+                            <td>{{ lab.id_laboratorista }}</td>
+                            <td>{{ lab.nombre }} {{ lab.apellido_paterno }}</td>
+                            <td>{{ lab.email }}</td>
+                            <td>{{ lab.id_area|default:'-' }}</td>
+                            <td>
+                                {% if is_super_admin %}
+                                <form method="POST" style="display:inline;" onsubmit="return showConfirmDialog(this, '¿Deseas cambiar el estado de este laboratorista?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="toggle_laboratorista_id" value="{{ lab.id_laboratorista }}">
+                                    {% if lab.activo == 1 %}
+                                    <input type="hidden" name="toggle_activo" value="0">
+                                    {% else %}
+                                    <input type="hidden" name="toggle_activo" value="1">
+                                    {% endif %}
+                                    <button type="submit" class="badge badge-toggle {% if lab.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                        {% if lab.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="badge {% if lab.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                    {% if lab.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="padding: 2rem; text-align: center; color: hsl(var(--text-muted));">
+                No hay laboratoristas registrados.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

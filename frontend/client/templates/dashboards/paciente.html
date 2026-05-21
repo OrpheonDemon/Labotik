@@ -1,0 +1,195 @@
+{% extends 'base.html' %}
+
+{% block title %}Mi Portal de Salud - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Cabecera del Panel -->
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Hola, {{ perfil.nombre }} {{ perfil.apellido_paterno }}</h1>
+            <p>Aquí tienes un resumen de tu historial clínico, tus exámenes médicos y tus facturas pendientes.</p>
+        </div>
+        <div class="no-print">
+            <span class="badge badge-pendiente" style="padding: 0.5rem 1rem; font-weight: 500; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i>
+                Portal de Paciente Seguro
+            </span>
+        </div>
+    </div>
+
+    <!-- Perfil Clínico Rápido -->
+    <div class="card" style="background: linear-gradient(135deg, hsl(var(--bg-surface)) 0%, hsl(var(--bg-card) / 0.5) 100%); margin-bottom: 2rem;">
+        <div class="card-title" style="margin-bottom: 1.25rem;">
+            <i data-lucide="heart-pulse" style="color: hsl(var(--danger)); width: 22px; height: 22px;"></i>
+            <span>Ficha de Perfil Clínico</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+            <div style="background-color: hsl(var(--bg-base) / 0.4); border: 1px solid hsl(var(--border-color)); padding: 1rem; border-radius: var(--radius-sm);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: hsl(var(--text-muted)); font-weight: 600;">Grupo Sanguíneo</div>
+                <div style="font-size: 1.4rem; font-weight: 800; color: #fff; margin-top: 0.25rem;">{{ perfil.tipo_sangre|default:"Sin Registrar" }}</div>
+            </div>
+            <div style="background-color: hsl(var(--bg-base) / 0.4); border: 1px solid hsl(var(--border-color)); padding: 1rem; border-radius: var(--radius-sm);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: hsl(var(--text-muted)); font-weight: 600;">Alergias Conocidas</div>
+                <div style="font-size: 1.1rem; font-weight: 600; color: hsl(var(--danger)); margin-top: 0.25rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" title="{{ perfil.alergias|default:'Ninguna registrada' }}">
+                    {{ perfil.alergias|default:"Ninguna registrada" }}
+                </div>
+            </div>
+            <div style="background-color: hsl(var(--bg-base) / 0.4); border: 1px solid hsl(var(--border-color)); padding: 1rem; border-radius: var(--radius-sm);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: hsl(var(--text-muted)); font-weight: 600;">Género / Edad</div>
+                <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-top: 0.25rem;">
+                    {{ perfil.genero|default:"No especificado" }} / {{ perfil.fecha_nacimiento }}
+                </div>
+            </div>
+            <div style="background-color: hsl(var(--bg-base) / 0.4); border: 1px solid hsl(var(--border-color)); padding: 1rem; border-radius: var(--radius-sm);">
+                <div style="font-size: 0.75rem; text-transform: uppercase; color: hsl(var(--text-muted)); font-weight: 600;">Contacto Registrado</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #fff; margin-top: 0.25rem;">{{ perfil.telefono|default:"-" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Solicitudes y Exámenes -->
+    <div class="card">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+            <div class="card-title">
+                <i data-lucide="clipboard-list" style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                <span>Historial de Análisis Clínicos</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <span class="no-print" style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ solicitudes|length }} órdenes médicas registradas</span>
+                <a href="{% url 'solicitar_analisis' %}" class="btn-premium" style="padding: 0.5rem 1rem; border-radius: var(--radius-sm); text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem;">
+                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                    Solicitar Nuevo Análisis
+                </a>
+            </div>
+        </div>
+
+        {% if solicitudes %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nro. Orden</th>
+                        <th>Fecha de Solicitud</th>
+                        <th>Estado</th>
+                        <th>Prioridad</th>
+                        <th>Observaciones</th>
+                        <th style="text-align: right;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for sol in solicitudes %}
+                    <tr>
+                        <td style="font-weight: 600; color: #fff;">#{{ sol.id_solicitud }}</td>
+                        <td>{{ sol.fecha_solicitud|slice:":19" }}</td>
+                        <td>
+                            <div class="tracking-timeline" title="Estado: {{ sol.estado|title }}">
+                                <!-- Solicitado -->
+                                <div class="tracking-step {% if sol.estado == 'pendiente' %}active{% else %}completed{% endif %}">
+                                    <span class="tracking-label">Solicitado</span>
+                                </div>
+                                <!-- En Proceso -->
+                                <div class="tracking-step {% if sol.estado == 'pendiente' %}pending{% elif sol.estado == 'en_proceso' %}active{% else %}completed{% endif %}">
+                                    <span class="tracking-label">En Análisis</span>
+                                </div>
+                                <!-- Completado -->
+                                <div class="tracking-step {% if sol.estado == 'completado' %}completed{% else %}pending{% endif %}">
+                                    <span class="tracking-label">Resultados Listos</span>
+                                </div>
+                            </div>
+                            <div class="tracking-text">
+                                {% if sol.estado == 'pendiente' %}Esperando Muestra
+                                {% elif sol.estado == 'en_proceso' %}Analizando
+                                {% elif sol.estado == 'completado' %}Resultados Validados
+                                {% else %}{{ sol.estado|title }}{% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-prioridad-{{ sol.prioridad }}">
+                                {{ sol.prioridad }}
+                            </span>
+                        </td>
+                        <td style="color: hsl(var(--text-muted)); max-width: 250px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;">
+                            {{ sol.observaciones|default:"Sin observaciones" }}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if sol.estado == 'completado' %}
+                            <a href="{% url 'imprimir_resultado' sol.id_solicitud %}" class="btn-premium" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: var(--radius-sm); text-decoration: none;" target="_blank">
+                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                                Ver Resultados
+                            </a>
+                            {% else %}
+                            <button class="btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: var(--radius-sm); cursor: not-allowed; opacity: 0.5;" disabled>
+                                <i data-lucide="loader-2" class="animate-spin" style="width: 14px; height: 14px;"></i>
+                                En Procesamiento
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+            <i data-lucide="inbox" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+            <p style="font-size: 1rem; font-weight: 500;">No tienes análisis de laboratorio registrados aún.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Sección de Facturación y Pagos -->
+    <div class="card" style="margin-bottom: 0;">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="receipt" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                <span>Historial de Facturación y Recibos</span>
+            </div>
+            <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ facturas|length }} comprobantes emitidos</span>
+        </div>
+
+        {% if facturas %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nro. Comprobante</th>
+                        <th>Fecha de Emisión</th>
+                        <th>Tipo</th>
+                        <th>Total</th>
+                        <th>Estado de Pago</th>
+                        <th style="text-align: right;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fac in facturas %}
+                    <tr>
+                        <td style="font-weight: 600; color: #fff;">{{ fac.nro_comprobante }}</td>
+                        <td>{{ fac.fecha_emision|slice:":10" }}</td>
+                        <td style="text-transform: capitalize;">{{ fac.tipo_comprobante }}</td>
+                        <td style="font-weight: 700; color: #fff;">${{ fac.total|floatformat:2 }}</td>
+                        <td>
+                            <span class="badge badge-{{ fac.estado_factura }}">
+                                {{ fac.estado_factura }}
+                            </span>
+                        </td>
+                        <td style="text-align: right;">
+                            <a href="{% url 'imprimir_factura' fac.id_factura %}" class="btn-secondary" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; border-radius: var(--radius-sm); text-decoration: none;" target="_blank">
+                                <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
+                                Ver Factura
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+            <i data-lucide="credit-card" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+            <p style="font-size: 1rem; font-weight: 500;">No tienes facturas emitidas en tu cuenta.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Panel Superadmin | Labotik{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid animate-fade-in">
+    <section class="superadmin-hero card">
+        <div class="hero-top">
+            <div class="hero-copy">
+                <span class="badge badge-superadmin">Super Admin</span>
+                <h1>Control centralizado del laboratorio</h1>
+                <p>Gestiona usuarios, áreas y catálogos desde una vista rápida, sin perder tiempo en navegación extensa.</p>
+                <div class="hero-metrics">
+                    <div>
+                        <strong>{{ stats.pacientes }}</strong>
+                        <span>Pacientes</span>
+                    </div>
+                    <div>
+                        <strong>{{ stats.medicos }}</strong>
+                        <span>Médicos</span>
+                    </div>
+                    <div>
+                        <strong>{{ stats.laboratoristas }}</strong>
+                        <span>Laboratoristas</span>
+                    </div>
+                </div>
+            </div>
+            <div class="hero-visual-card">
+                <div class="hero-visual-icon">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <div class="hero-visual-body">
+                    <p>Supervisión total.</p>
+                    <p class="hero-visual-note">Todo cambio se realiza con control administrativo y acceso inmediato a recursos críticos.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-actions">
+            <a href="{% url 'superadmin_pacientes' %}" class="hero-action-card">
+                <strong>Pacientes</strong>
+                <span>Ingresar, editar y revisar registros</span>
+            </a>
+            <a href="{% url 'superadmin_medicos' %}" class="hero-action-card">
+                <strong>Médicos</strong>
+                <span>Alta rápida de perfiles profesionales</span>
+            </a>
+            <a href="{% url 'superadmin_laboratoristas' %}" class="hero-action-card">
+                <strong>Laboratoristas</strong>
+                <span>Administrar equipos técnicos</span>
+            </a>
+            <a href="{% url 'areas_catalog' %}" class="hero-action-card">
+                <strong>Áreas clínicas</strong>
+                <span>Configurar departamentos del laboratorio</span>
+            </a>
+            <a href="{% url 'pruebas_catalog' %}" class="hero-action-card">
+                <strong>Catálogo de pruebas</strong>
+                <span>Registrar nuevos exámenes clínicos</span>
+            </a>
+        </div>
+    </section>
+
+    <aside class="summary-panel card">
+        <div class="panel-header">
+            <div>
+                <h2>Resumen rápido</h2>
+                <p>Todo lo clave en una sola sección para no perder tiempo buscando información.</p>
+            </div>
+            <span class="badge badge-superadmin">Vista compacta</span>
+        </div>
+
+        <div class="summary-list">
+            <article>
+                <h3>Gestión inmediata</h3>
+                <p>Accede directamente a los módulos de pacientes, médicos, laboratoristas, áreas y pruebas.</p>
+            </article>
+            <article>
+                <h3>Accesos directos</h3>
+                <p>Desde este panel puedes navegar entre las funciones más usadas del Super Admin sin desplazarte.</p>
+            </article>
+            <article>
+                <h3>Control seguro</h3>
+                <p>Los cambios se aplican con permisos estrictos y se almacenan con historial para auditoría.</p>
+            </article>
+        </div>
+    </aside>
+</div>
+{% endblock %}

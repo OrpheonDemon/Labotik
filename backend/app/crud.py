@@ -23,8 +23,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         result = await db.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100) -> List[ModelType]:
-        stmt = select(self.model).where(self.model.activo == 1).offset(skip).limit(limit)
+    async def get_multi(self, db: AsyncSession, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[ModelType]:
+        if include_inactive:
+            stmt = select(self.model).offset(skip).limit(limit)
+        else:
+            stmt = select(self.model).where(self.model.activo == 1).offset(skip).limit(limit)
         result = await db.execute(stmt)
         return result.scalars().all()
 
@@ -47,14 +50,14 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
             data['id_detalle_factura'] = await get_next_int_id(db, DetalleFactura, 'id_detalle_factura')
         elif self.model == Pago:
             data['id_pago'] = await get_next_int_id(db, Pago, 'id_pago')
-        elif self.model in [Paciente, Medico, Laboratorista]:
+        elif self.model in [Paciente, Medico, Laboratorista, Administrador]:
             # Validación de email único en todo el sistema
             if 'email' in data:
                 if await check_email_exists(db, data['email']):
                     from fastapi import HTTPException
                     raise HTTPException(
                         status_code=400, 
-                        detail="El correo ya está registrado en el sistema (Laboratorista, Médico o Paciente)"
+                        detail="El correo ya está registrado en el sistema (Admin, Laboratorista, Médico o Paciente)"
                     )
             
             if self.model == Paciente:
@@ -78,6 +81,11 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
                 )
                 if 'password' in data:
                     data['password'] = hash_password(data.pop('password'))
+            elif self.model == Administrador:
+                import uuid
+                data['id_admin'] = f"ADM-{uuid.uuid4().hex[:6].upper()}"
+                if 'password' in data:
+                    data['password'] = hash_password(data.pop('password'))
         # Para áreas, el ID lo envía el usuario (VARCHAR)
         db_obj = self.model(**data)
         db.add(db_obj)
@@ -86,10 +94,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         return db_obj
 
     async def update(self, db: AsyncSession, id: Any, obj_in: UpdateSchemaType) -> Optional[ModelType]:
-        stmt = select(self.model).where(
-            getattr(self.model, self.pk_name) == id,
-            self.model.activo == 1
-        )
+        stmt = select(self.model).where(getattr(self.model, self.pk_name) == id)
         result = await db.execute(stmt)
         db_obj = result.scalar_one_or_none()
         if not db_obj:
@@ -155,12 +160,16 @@ class CRUDLaboratorista(CRUDBase[Laboratorista, LaboratoristaCreate, Laboratoris
         result = await db.execute(stmt)
         return result.scalars().all()
 
+class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, AdministradorUpdate]):
+    pass
+
 # Instancias
 area_crud = CRUDBase(AreaLaboratorio, "id_area")
 prueba_crud = CRUDBase(Prueba, "id_prueba")
 paciente_crud = CRUDPaciente(Paciente, "id_paciente")
 medico_crud = CRUDMedico(Medico, "id_medico")
 laboratorista_crud = CRUDLaboratorista(Laboratorista, "id_laboratorista")
+administrador_crud = CRUDAdministrador(Administrador, "id_admin")
 solicitud_crud = CRUDBase(Solicitud, "id_solicitud")
 detalle_solicitud_crud = CRUDBase(DetalleSolicitud, "id_detalle")
 resultado_crud = CRUDBase(Resultado, "id_resultado")
@@ -171,26 +180,43 @@ pago_crud = CRUDBase(Pago, "id_pago")
 
 # Función de Autenticación
 async def authenticate_user(db: AsyncSession, email: str, password: str):
-    # 1. Buscar en Laboratoristas (Suelen ser los de acceso más frecuente)
+    # Buscar todos los usuarios activos con el mismo email
+    candidates = []
+    stmt = select(Administrador).where(Administrador.email == email, Administrador.activo == 1)
+    result = await db.execute(stmt)
+    admin = result.scalar_one_or_none()
+    if admin:
+        candidates.append({"user": admin, "rol": "administrador"})
+
     stmt = select(Laboratorista).where(Laboratorista.email == email, Laboratorista.activo == 1)
     result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    if user and verify_password(password, user.password):
-        return {"user": user, "rol": "laboratorista"}
+    lab = result.scalar_one_or_none()
+    if lab:
+        candidates.append({"user": lab, "rol": "laboratorista"})
 
-    # 2. Buscar en Médicos
     stmt = select(Medico).where(Medico.email == email, Medico.activo == 1)
     result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    if user and verify_password(password, user.password):
-        return {"user": user, "rol": "medico"}
+    medico = result.scalar_one_or_none()
+    if medico:
+        candidates.append({"user": medico, "rol": "medico"})
 
-    # 3. Buscar en Pacientes
     stmt = select(Paciente).where(Paciente.email == email, Paciente.activo == 1)
     result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-    if user and verify_password(password, user.password):
-        return {"user": user, "rol": "paciente"}
+    paciente = result.scalar_one_or_none()
+    if paciente:
+        candidates.append({"user": paciente, "rol": "paciente"})
+
+    if len(candidates) == 0:
+        return None
+
+    if len(candidates) > 1:
+        # El mismo correo existe en más de una tabla activa: no se puede determinar rol único
+        return {"error": "duplicated_email", "candidates": [c["rol"] for c in candidates]}
+
+    candidate = candidates[0]
+    user = candidate["user"]
+    if verify_password(password, user.password):
+        return candidate
 
     return None
 
@@ -213,6 +239,12 @@ async def check_email_exists(db: AsyncSession, email: str):
         
     # Buscar en Pacientes
     stmt = select(Paciente).where(Paciente.email == email, Paciente.activo == 1)
+    result = await db.execute(stmt)
+    if result.scalar_one_or_none():
+        return True
+        
+    # Buscar en Administradores
+    stmt = select(Administrador).where(Administrador.email == email, Administrador.activo == 1)
     result = await db.execute(stmt)
     if result.scalar_one_or_none():
         return True

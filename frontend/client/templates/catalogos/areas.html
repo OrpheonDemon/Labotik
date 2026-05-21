@@ -1,0 +1,177 @@
+{% extends 'base.html' %}
+
+{% block title %}Áreas Clínicas - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Cabecera de Página -->
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Estructura de Áreas Clínicas</h1>
+            <p>Define los departamentos del laboratorio clínico para clasificar los análisis.</p>
+        </div>
+        <div class="no-print" style="display: flex; gap: 0.75rem; align-items: center;">
+            {% if is_super_admin %}
+            <button type="button" class="btn-premium" onclick="openAreaModal()" style="width: auto; padding: 0.75rem 1.5rem;">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                <span>Registrar nueva área</span>
+            </button>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Layout Dividido (Listado principal) -->
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            {% if not is_super_admin %}
+            <div class="card" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="shield" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                        <span>Creación de Áreas reservada</span>
+                    </div>
+                </div>
+                <div class="card-body" style="color: var(--text-muted); font-size: 0.95rem;">
+                    Solo el superadministrador puede registrar nuevas áreas clínicas en el sistema.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Listado de Áreas Existentes -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="database" style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                        <span>Departamentos Clínicos Registrados</span>
+                    </div>
+                    <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ areas|length }} áreas catalogadas</span>
+                </div>
+
+                {% if areas %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">Código</th>
+                                <th>Nombre del Área</th>
+                                <th>Descripción Operativa</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for area in areas %}
+                            <tr>
+                                <td style="font-weight: 700; color: hsl(var(--accent));">{{ area.id_area }}</td>
+                                <td style="font-weight: 600; color: #fff;">{{ area.nombre }}</td>
+                                <td style="color: hsl(var(--text-muted));">{{ area.descripcion|default:"Sin descripción" }}</td>
+                                <td>
+                                    {% if is_super_admin %}
+                                    <form method="POST" style="display:inline;" onsubmit="return showConfirmDialog(this, '¿Deseas cambiar el estado de esta área?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="toggle_area_id" value="{{ area.id_area }}">
+                                        {% if area.activo == 1 %}
+                                        <input type="hidden" name="toggle_activo" value="0">
+                                        {% else %}
+                                        <input type="hidden" name="toggle_activo" value="1">
+                                        {% endif %}
+                                        <button type="submit" class="badge badge-toggle {% if area.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                            {% if area.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge {% if area.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                        {% if area.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+                    <i data-lucide="info" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+                    <p style="font-size: 1rem; font-weight: 500;">No hay departamentos registrados en el sistema.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Registro de Área -->
+    {% if is_super_admin %}
+    <div id="area-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <div>
+                    <h2>Registrar nueva área clínica</h2>
+                    <p>Agrega un departamento nuevo y mantén ordenados los análisis por especialidad.</p>
+                </div>
+                <button type="button" class="modal-close" onclick="closeAreaModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'areas_catalog' %}">
+                {% csrf_token %}
+                <div class="modal-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="id_area">Código de Área (ID)</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="key" class="form-input-icon"></i>
+                            <input type="text" id="id_area" name="id_area" class="form-input" placeholder="Ej: HEM" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre del Área</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="layers" class="form-input-icon"></i>
+                            <input type="text" id="nombre" name="nombre" class="form-input" placeholder="Ej: Hematología" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label" for="descripcion">Descripción del Área</label>
+                        <textarea name="descripcion" id="descripcion" rows="3" class="form-input" placeholder="Describe a qué se dedica esta área clínica..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closeAreaModal()">Cancelar</button>
+                    <button type="submit" class="btn-premium">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Crear Área</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openAreaModal() {
+    const modal = document.getElementById('area-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closeAreaModal() {
+    const modal = document.getElementById('area-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+</script>
+{% endblock %}

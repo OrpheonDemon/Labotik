@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de Pago - Factura {{ factura.nro_comprobante }}</title>
+    
+    <!-- Hoja de estilos premium principal -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    
+    <!-- Lucide Icons via CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        body {
+            background-color: #f1f5f9;
+            color: #1e293b;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .floating-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background-color: hsl(var(--bg-surface));
+            border-bottom: 1px solid hsl(var(--border-color));
+            padding: 0.75rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Encabezado flotante interactivo (No se imprime) -->
+    <header class="floating-header no-print">
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 700; color: #fff; font-size: 1.1rem;">
+            <i data-lucide="receipt" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+            <span>Labotik - Comprobante de Facturación</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+            <button onclick="window.close()" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                <span>Cerrar Ventana</span>
+            </button>
+            <button onclick="window.print()" class="btn-premium" style="padding: 0.5rem 1.25rem; font-size: 0.85rem; width: auto;">
+                <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+                <span>Imprimir Factura</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Contenedor Impresible Real -->
+    <div class="print-page animate-fade-in" style="margin-top: 5.5rem;">
+        <!-- Cabecera Oficial de la Factura -->
+        <div class="print-header">
+            <div>
+                <div class="print-logo">
+                    <i data-lucide="activity" style="display: inline-block; vertical-align: middle; width: 32px; height: 32px; margin-right: 4px;"></i>
+                    <span>LABOTIK</span>
+                </div>
+                <div style="color: #64748b; font-size: 0.8rem; margin-top: 0.25rem; font-weight: 500;">
+                    Laboratorio de Análisis Clínicos Automatizados S.A.
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 1.2rem; font-weight: 700; color: #0f766e; text-transform: uppercase;">Boleta de Servicios Clínicos</div>
+                <div style="font-size: 0.95rem; font-weight: 600; color: #475569; margin-top: 0.25rem;">Nro. Comprobante: {{ factura.nro_comprobante }}</div>
+            </div>
+        </div>
+
+        <!-- Ficha de Datos del Paciente y Emisión -->
+        <div class="print-metadata">
+            <div class="print-meta-item">
+                <strong>Paciente Destinatario</strong>
+                <p>{{ paciente.nombre }} {{ paciente.apellido_paterno }} {{ paciente.apellido_materno|default:"" }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>RUN / Identificación Paciente</strong>
+                <p>{{ paciente.id_paciente }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Fecha de Emisión</strong>
+                <p>{{ factura.fecha_emision|slice:":10" }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Tipo de Comprobante</strong>
+                <p style="text-transform: capitalize;">{{ factura.tipo_comprobante }}</p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Estado de Factura</strong>
+                <p style="text-transform: uppercase; font-weight: 700; color: {% if factura.estado_factura == 'pagado' %}#0f766e{% else %}#e11d48{% endif %};">
+                    {{ factura.estado_factura }}
+                </p>
+            </div>
+            <div class="print-meta-item">
+                <strong>Medio de Facturación</strong>
+                <p>Portal Web Electrónico</p>
+            </div>
+        </div>
+
+        <!-- Tabla Principal de Exámenes Adquiridos -->
+        <h3 style="color: #0f766e; font-size: 1.1rem; border-bottom: 2px solid #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 1rem; font-weight: 700;">
+            DETALLE DE ARANCELES Y PRESTACIONES
+        </h3>
+        
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th>Código / Descripción de Prestación</th>
+                    <th style="width: 80px; text-align: center;">Cantidad</th>
+                    <th style="width: 120px; text-align: right;">Arancel Unitario</th>
+                    <th style="width: 100px; text-align: right;">Descuentos</th>
+                    <th style="width: 120px; text-align: right;">Total Item</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for det in detalles %}
+                <tr>
+                    <td>
+                        <strong style="color: #1e293b; display: block;">{{ det.nombre }}</strong>
+                        <span style="color: #64748b; font-size: 0.75rem;">Servicio de Análisis Clínico del Laboratorio</span>
+                    </td>
+                    <td style="text-align: center;">{{ det.cantidad }}</td>
+                    <td style="text-align: right;">${{ det.precio_unitario|floatformat:2 }}</td>
+                    <td style="text-align: right; color: #64748b;">${{ det.descuento|floatformat:2 }}</td>
+                    <td style="text-align: right; font-weight: 600; color: #1e293b;">${{ det.total|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Resúmenes Financieros (Subtotal, Descuentos, IVA, Total) -->
+        <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 2rem; align-items: start;">
+            <!-- Notas y Términos de pago -->
+            <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 1rem; border-radius: var(--radius-sm); font-size: 0.8rem; color: #64748b;">
+                <strong>Términos y Observaciones:</strong>
+                <p style="margin-top: 0.25rem;">- Toda prestación de laboratorio clínico debe estar debidamente cancelada antes del procesamiento final de las muestras biológicas.</p>
+                <p>- Este documento representa un comprobante válido de facturación de servicios clínicos del laboratorio.</p>
+            </div>
+            
+            <!-- Tabla de Cuentas de Cobro -->
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #64748b;">Subtotal Neto:</td>
+                    <td style="padding: 0.5rem 0; text-align: right; font-weight: 500;">${{ factura.subtotal|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #64748b;">Descuentos Totales:</td>
+                    <td style="padding: 0.5rem 0; text-align: right; font-weight: 500; color: #e11d48;">-${{ factura.descuento|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 0.5rem 0; color: #64748b; border-bottom: 2px solid #e2e8f0;">Impuestos (IVA 19%):</td>
+                    <td style="padding: 0.5rem 0; text-align: right; font-weight: 500; border-bottom: 2px solid #e2e8f0;">${{ factura.iva|floatformat:2 }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 1rem 0; font-weight: 700; color: #0f766e; font-size: 1.15rem;">TOTAL GENERAL:</td>
+                    <td style="padding: 1rem 0; text-align: right; font-weight: 800; color: #0f766e; font-size: 1.2rem;">
+                        ${{ factura.total|floatformat:2 }}
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <!-- Registro de Transacciones / Historial de Pagos Aplicados -->
+        <h3 style="color: #0f766e; font-size: 1.1rem; border-bottom: 2px solid #cbd5e1; padding-bottom: 0.5rem; margin-bottom: 1rem; font-weight: 700; margin-top: 3.5rem;">
+            HISTORIAL DE TRANSACCIONES APLICADAS
+        </h3>
+        
+        {% if pagos %}
+        <table class="print-table" style="margin-bottom: 1rem;">
+            <thead>
+                <tr>
+                    <th>Código de Pago</th>
+                    <th>Fecha de Pago</th>
+                    <th>Método de Pago</th>
+                    <th>Nro. Referencia Transacción</th>
+                    <th style="text-align: right;">Monto Cancelado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pago in pagos %}
+                <tr>
+                    <td style="font-weight: 600; color: #334155;">#{{ pago.id_pago }}</td>
+                    <td>{{ pago.fecha_pago|slice:":10" }}</td>
+                    <td style="text-transform: capitalize;">{{ pago.metodo_pago }}</td>
+                    <td>{{ pago.nro_referencia|default:"-" }}</td>
+                    <td style="text-align: right; font-weight: 700; color: #0f766e;">${{ pago.monto|floatformat:2 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div style="background-color: #fef2f2; border: 1px solid #fca5a5; padding: 0.75rem 1rem; border-radius: var(--radius-sm); color: #991b1b; font-size: 0.85rem; font-weight: 500; margin-bottom: 1rem;">
+            <i data-lucide="alert-circle" style="display: inline-block; vertical-align: middle; width: 16px; height: 16px; margin-right: 4px;"></i>
+            Este comprobante no registra transacciones ni pagos aplicados aún.
+        </div>
+        {% endif %}
+
+        <!-- Pie de página impreso -->
+        <div style="border-top: 1px solid #cbd5e1; margin-top: 4rem; padding-top: 1rem; color: #94a3b8; font-size: 0.75rem; text-align: center;">
+            Gracias por elegir Labotik. Documento emitido de forma automatizada por el Sistema Clínico Integrado.
+        </div>
+    </div>
+
+    <!-- Inicializar Iconos -->
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

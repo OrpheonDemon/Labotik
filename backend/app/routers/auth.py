@@ -23,10 +23,13 @@ async def login_access_token(
     En form_data.username se espera el email.
     """
     auth_result = await authenticate_user(db, form_data.username, form_data.password)
-    if not auth_result:
+    if not auth_result or auth_result.get("error") == "duplicated_email":
+        detail = "Correo o contraseña incorrectos"
+        if auth_result and auth_result.get("error") == "duplicated_email":
+            detail = "El correo está asociado a más de un tipo de usuario. Contacta al administrador para resolver el acceso."
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo o contraseña incorrectos",
+            detail=detail,
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -35,18 +38,26 @@ async def login_access_token(
     
     # Determinar el ID del usuario según el rol
     user_id = None
+    admin_rol = None
     if rol == "laboratorista":
         user_id = user.id_laboratorista
     elif rol == "medico":
         user_id = user.id_medico
     elif rol == "paciente":
         user_id = user.id_paciente
+    elif rol == "administrador":
+        user_id = user.id_admin
+        admin_rol = user.rol
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # Agregar 'sub' (subject -> email), 'rol' y el ID específico al token
+    # Agregar 'sub' (subject -> email), 'rol', 'id_usuario' y rol específico de administrador al token
+    token_payload = {"sub": user.email, "rol": rol, "id_usuario": user_id}
+    if admin_rol:
+        token_payload["admin_rol"] = admin_rol
+
     access_token = create_access_token(
-        data={"sub": user.email, "rol": rol, "id_usuario": user_id},
+        data=token_payload,
         expires_delta=access_token_expires
     )
     

@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, crud
 from app.database import get_db
+from app.dependencies import require_super_admin
 
 router = APIRouter(prefix="/medicos", tags=["Médicos"])
 
 @router.get("/", response_model=list[schemas.MedicoOut])
-async def list_medicos(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
-    return await crud.medico_crud.get_multi(db, skip, limit)
+async def list_medicos(skip: int = 0, limit: int = 100, include_inactive: bool = False, db: AsyncSession = Depends(get_db)):
+    return await crud.medico_crud.get_multi(db, skip, limit, include_inactive=include_inactive)
 
 @router.get("/search", response_model=list[schemas.MedicoOut])
 async def search_medicos(
@@ -26,18 +27,18 @@ async def get_medico(id_medico: str, db: AsyncSession = Depends(get_db)):
     return medico
 
 @router.post("/", response_model=schemas.MedicoOut, status_code=201)
-async def create_medico(medico_in: schemas.MedicoCreate, db: AsyncSession = Depends(get_db)):
+async def create_medico(medico_in: schemas.MedicoCreate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_super_admin)):
     return await crud.medico_crud.create(db, medico_in)
 
 @router.put("/{id_medico}", response_model=schemas.MedicoOut)
-async def update_medico(id_medico: str, medico_in: schemas.MedicoUpdate, db: AsyncSession = Depends(get_db)):
+async def update_medico(id_medico: str, medico_in: schemas.MedicoUpdate, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_super_admin)):
     updated = await crud.medico_crud.update(db, id_medico, medico_in)
     if not updated:
         raise HTTPException(status_code=404, detail="Médico no encontrado")
     return updated
 
 @router.delete("/{id_medico}")
-async def delete_medico(id_medico: str, db: AsyncSession = Depends(get_db)):
+async def delete_medico(id_medico: str, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_super_admin)):
     deleted = await crud.medico_crud.soft_delete(db, id_medico)
     if not deleted:
         raise HTTPException(status_code=404, detail="Médico no encontrado")

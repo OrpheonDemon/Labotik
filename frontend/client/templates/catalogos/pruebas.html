@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Catálogo de Pruebas - Labotik{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in">
+    <!-- Cabecera de Página -->
+    <div class="content-header">
+        <div class="content-header-title">
+            <h1>Catálogo de Exámenes Clínicos</h1>
+            <p>Administra los análisis y pruebas clínicas disponibles en el laboratorio.</p>
+        </div>
+        <div class="no-print" style="display: flex; gap: 0.75rem; align-items: center;">
+            {% if is_super_admin %}
+            <button type="button" class="btn-premium" onclick="openPruebaModal()" style="width: auto; padding: 0.75rem 1.5rem;">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                <span>Registrar nueva prueba</span>
+            </button>
+            {% endif %}
+            <a href="{% url 'dashboard' %}" class="btn-secondary" style="text-decoration: none;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+                <span>Volver al Panel</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Layout Dividido (Listado principal) -->
+    <div style="display: grid; grid-template-columns: 1fr; gap: 2rem; align-items: start;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 2rem;">
+            {% if not is_super_admin %}
+            <div class="card" style="background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="shield" style="color: hsl(var(--accent)); width: 22px; height: 22px;"></i>
+                        <span>Registro de pruebas reservado</span>
+                    </div>
+                </div>
+                <div class="card-body" style="color: var(--text-muted); font-size: 0.95rem;">
+                    Solo el superadministrador puede registrar nuevos exámenes en el catálogo clínico.
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Listado de Pruebas Existentes -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="database" style="color: hsl(var(--primary-light)); width: 22px; height: 22px;"></i>
+                        <span>Análisis Clínicos Disponibles</span>
+                    </div>
+                    <span style="font-size: 0.85rem; color: hsl(var(--text-muted));">{{ pruebas|length }} exámenes catalogados</span>
+                </div>
+
+                {% if pruebas %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th style="width: 80px;">ID</th>
+                                <th>Nombre del Examen</th>
+                                <th>Área</th>
+                                <th>Rangos Referenciales</th>
+                                <th>Demora Estimada</th>
+                                <th>Arancel Clínico</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for prueba in pruebas %}
+                            <tr>
+                                <td style="font-weight: 700; color: hsl(var(--accent));">#{{ prueba.id_prueba }}</td>
+                                <td style="font-weight: 600; color: #fff;">
+                                    <div style="font-size: 0.95rem;">{{ prueba.nombre }}</div>
+                                    <div style="font-size: 0.75rem; color: hsl(var(--text-muted)); font-weight: normal;">{{ prueba.descripcion|default:"" }}</div>
+                                </td>
+                                <td style="font-weight: 500;">
+                                    <span class="badge badge-pendiente" style="background-color: hsl(var(--bg-base)); border-color: hsl(var(--border-color)); color: #fff;">
+                                        {{ prueba.id_area }}
+                                    </span>
+                                </td>
+                                <td style="font-weight: 600;">
+                                    {{ prueba.valor_referencia }} <span style="font-size: 0.75rem; color: hsl(var(--text-muted));">{{ prueba.unidad }}</span>
+                                </td>
+                                <td>{{ prueba.tiempo_estimado_minutos }} min</td>
+                                <td style="font-weight: 700; color: #fff;">${{ prueba.precio|floatformat:2 }}</td>
+                                <td>
+                                    {% if is_super_admin %}
+                                    <form method="POST" style="display:inline;" onsubmit="return showConfirmDialog(this, '¿Deseas cambiar el estado de esta prueba clínica?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="toggle_prueba_id" value="{{ prueba.id_prueba }}">
+                                        {% if prueba.activo == 1 %}
+                                        <input type="hidden" name="toggle_activo" value="0">
+                                        {% else %}
+                                        <input type="hidden" name="toggle_activo" value="1">
+                                        {% endif %}
+                                        <button type="submit" class="badge badge-toggle {% if prueba.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                            {% if prueba.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge {% if prueba.activo == 1 %}badge-completado{% else %}badge-inactivo{% endif %}" style="font-size: 0.7rem;">
+                                        {% if prueba.activo == 1 %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 3rem 1.5rem; color: hsl(var(--text-muted));">
+                    <i data-lucide="info" style="width: 48px; height: 48px; color: hsl(var(--border-color)); margin-bottom: 1rem;"></i>
+                    <p style="font-size: 1rem; font-weight: 500;">No hay exámenes clínicos registrados en el catálogo.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {% if is_super_admin %}
+    <div id="prueba-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-panel">
+            <div class="modal-header">
+                <div>
+                    <h2>Registrar nueva prueba clínica</h2>
+                    <p>Agrega un examen al catálogo con su área, referencia y precio.</p>
+                </div>
+                <button type="button" class="modal-close" onclick="closePruebaModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <form method="POST" action="{% url 'pruebas_catalog' %}">
+                {% csrf_token %}
+                <div class="modal-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="id_area">Área / Sección Clínica</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="layers" class="form-input-icon"></i>
+                            <select name="id_area" id="id_area" class="form-input" required>
+                                <option value="" disabled selected>Selecciona un departamento</option>
+                                {% for area in areas %}
+                                <option value="{{ area.id_area }}">{{ area.nombre }} ({{ area.id_area }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="nombre">Nombre de la Prueba</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="binary" class="form-input-icon"></i>
+                            <input type="text" id="nombre" name="nombre" class="form-input" placeholder="Ej: Glucemia" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="valor_referencia">Valores de Referencia</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="activity" class="form-input-icon"></i>
+                            <input type="text" id="valor_referencia" name="valor_referencia" class="form-input" placeholder="Ej: 70 - 100" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="unidad">Unidad de Medida</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="scale" class="form-input-icon"></i>
+                            <input type="text" id="unidad" name="unidad" class="form-input" placeholder="Ej: mg/dL">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="precio">Precio de Examen</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="dollar-sign" class="form-input-icon"></i>
+                            <input type="number" id="precio" name="precio" class="form-input" min="0" step="0.01" placeholder="Ej: 4500.00" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="tiempo_estimado_minutos">Tiempo Estimado (min)</label>
+                        <div class="form-input-wrapper">
+                            <i data-lucide="clock" class="form-input-icon"></i>
+                            <input type="number" id="tiempo_estimado_minutos" name="tiempo_estimado_minutos" class="form-input" min="5" value="60" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label class="form-label" for="descripcion">Descripción Técnica</label>
+                        <textarea name="descripcion" id="descripcion" rows="3" class="form-input" placeholder="Describe la metodología o tipo de análisis..."></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="closePruebaModal()">Cancelar</button>
+                    <button type="submit" class="btn-premium">
+                        <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                        <span>Crear Prueba</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openPruebaModal() {
+    const modal = document.getElementById('prueba-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function closePruebaModal() {
+    const modal = document.getElementById('prueba-modal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+</script>
+{% endblock %}
