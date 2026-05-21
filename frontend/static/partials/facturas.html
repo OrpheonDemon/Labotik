@@ -1,0 +1,116 @@
+<section id="facturas" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Facturas</h1>
+                <p class="profile-panel-subtitle">Listado de facturas registradas y pagadas. Generar PDF para facturas pagadas.</p>
+            </div>
+        </div>
+
+        <div>
+            <h3>Todas las Facturas</h3>
+            <div id="facturasStatus" class="profile-status-message"></div>
+            <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="facturasTable" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID Factura</th>
+                            <th>ID Solicitud</th>
+                            <th>Paciente</th>
+                            <th>Fecha Emisión</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facturasTbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;">
+            <h3>Facturas Pagadas</h3>
+            <div id="facturasPagadasStatus" class="profile-status-message"></div>
+            <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="facturasPagadasTable" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID Factura</th>
+                            <th>ID Solicitud</th>
+                            <th>Paciente</th>
+                            <th>Fecha Emisión</th>
+                            <th>Total</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="facturasPagadasTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+async function loadFacturas(){
+    const token = sessionStorage.getItem('access_token');
+    const tbody = document.getElementById('facturasTbody');
+    const status = document.getElementById('facturasStatus');
+    if(!tbody) return; tbody.innerHTML=''; status.innerText='Cargando facturas...';
+    try{
+        const res = await fetch(`${API_URL}/facturas`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+        if(!res.ok){ status.innerText='Error cargando facturas.'; return; }
+        const items = await res.json();
+        if(!Array.isArray(items) || items.length===0){ status.innerText='No hay facturas.'; return; }
+        status.innerText='';
+        items.forEach(f=>{
+            const tr=document.createElement('tr');
+            const idTd=document.createElement('td'); idTd.textContent=f.id_factura||'-';
+            const solTd=document.createElement('td'); solTd.textContent=f.id_solicitud||'-';
+            const pacTd=document.createElement('td'); pacTd.textContent=f.id_paciente||'-';
+            const fechaTd=document.createElement('td'); fechaTd.textContent=f.fecha_emision||'';
+            const totalTd=document.createElement('td'); totalTd.textContent=f.total||'';
+            const estTd=document.createElement('td'); estTd.textContent=f.estado_factura||'';
+            const actionTd=document.createElement('td');
+            const viewBtn=document.createElement('button'); viewBtn.className='btn'; viewBtn.textContent='Ver PDF';
+            viewBtn.addEventListener('click', ()=>{
+                const url = `${API_URL}/facturas/${f.id_factura}/pdf`;
+                window.open(url, '_blank');
+            });
+            actionTd.appendChild(viewBtn);
+            tr.appendChild(idTd); tr.appendChild(solTd); tr.appendChild(pacTd); tr.appendChild(fechaTd); tr.appendChild(totalTd); tr.appendChild(estTd); tr.appendChild(actionTd);
+            tbody.appendChild(tr);
+        });
+    }catch(e){ console.error(e); status.innerText='Error cargando facturas.' }
+}
+
+async function loadFacturasPagadas(){
+    const token = sessionStorage.getItem('access_token');
+    const tbody = document.getElementById('facturasPagadasTbody');
+    const status = document.getElementById('facturasPagadasStatus');
+    if(!tbody) return; tbody.innerHTML=''; status.innerText='Cargando facturas pagadas...';
+    try{
+        const res = await fetch(`${API_URL}/facturas/pagadas`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+        if(!res.ok){ status.innerText='Error cargando facturas pagadas.'; return; }
+        const items = await res.json();
+        if(!Array.isArray(items) || items.length===0){ status.innerText='No hay facturas pagadas.'; return; }
+        status.innerText='';
+        items.forEach(f=>{
+            const tr=document.createElement('tr');
+            const idTd=document.createElement('td'); idTd.textContent=f.id_factura||'-';
+            const solTd=document.createElement('td'); solTd.textContent=f.id_solicitud||'-';
+            const pacTd=document.createElement('td'); pacTd.textContent=f.id_paciente||'-';
+            const fechaTd=document.createElement('td'); fechaTd.textContent=f.fecha_emision||'';
+            const totalTd=document.createElement('td'); totalTd.textContent=f.total||'';
+            const actionTd=document.createElement('td');
+            const genBtn=document.createElement('button'); genBtn.className='btn'; genBtn.textContent='Generar PDF';
+            genBtn.addEventListener('click', ()=>{
+                const url = `${API_URL}/facturas/${f.id_factura}/pdf`;
+                window.open(url, '_blank');
+            });
+            actionTd.appendChild(genBtn);
+            tr.appendChild(idTd); tr.appendChild(solTd); tr.appendChild(pacTd); tr.appendChild(fechaTd); tr.appendChild(totalTd); tr.appendChild(actionTd);
+            tbody.appendChild(tr);
+        });
+    }catch(e){ console.error(e); status.innerText='Error cargando facturas pagadas.' }
+}
+</script>

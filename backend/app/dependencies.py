@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,12 +11,34 @@ from app.crud import paciente_crud, medico_crud, laboratorista_crud
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login/access-token")
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
+async def get_current_user(request: Request, db: AsyncSession = Depends(get_db)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    # Try to obtain token from multiple possible locations to be more robust
+    token = None
+    # 1) Authorization header: 'Bearer <token>'
+    auth_header = request.headers.get('authorization')
+    if auth_header:
+        if auth_header.lower().startswith('bearer '):
+            token = auth_header.split(' ', 1)[1].strip()
+        else:
+            token = auth_header.strip()
+    # 2) X-Access-Token header
+    if not token:
+        token = request.headers.get('x-access-token')
+    # 3) Query parameter 'access_token'
+    if not token:
+        token = request.query_params.get('access_token')
+    # 4) Cookie 'access_token'
+    if not token:
+        token = request.cookies.get('access_token')
+
+    if not token:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
@@ -67,6 +89,15 @@ async def get_current_active_user(current_user: dict = Depends(get_current_user)
     if not hasattr(user, 'activo') or user.activo != 1:
         raise HTTPException(status_code=400, detail="Usuario inactivo")
     return current_user
+
+
+async def optional_current_user(request: Request, db: AsyncSession = Depends(get_db)):
+    """Devuelve el usuario actual si el token es válido, o None si no hay token o es inválido.
+    Útil para endpoints que aceptan solicitudes anónimas pero registran la acción si hay usuario."""
+    try:
+        return await get_current_user(request, db)
+    except HTTPException:
+        return None
 
 async def require_laboratorista(current_user: dict = Depends(get_current_active_user)):
     if current_user.get("rol") not in ["laboratorista", "administrador"]:

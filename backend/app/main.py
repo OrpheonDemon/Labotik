@@ -5,6 +5,10 @@ from app.routers import (
     solicitudes, resultados, reportes, facturas, pagos, auth
 )
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Laboratorio Clínico API", version="1.0")
 
@@ -17,11 +21,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def init_db():
     async with engine.begin() as conn:
         # Crea las tablas si no existen (opcional, ya deberían existir por el SQL)
         await conn.run_sync(Base.metadata.create_all)
+
+        # Asegurar que la tabla `resultados` existe con la estructura esperada.
+        # Usamos CREATE TABLE IF NOT EXISTS para no romper esquemas existentes.
+        try:
+            await conn.execute(text(
+                """
+                CREATE TABLE IF NOT EXISTS resultados (
+                    id_resultado INT PRIMARY KEY,
+                    id_detalle INT NOT NULL,
+                    resultado VARCHAR(100) NOT NULL,
+                    observacion TEXT,
+                    estado ENUM('pendiente','registrado','reportado') NOT NULL DEFAULT 'pendiente',
+                    validado_por VARCHAR(20),
+                    fecha_validacion DATETIME,
+                    es_anormal INT DEFAULT 0,
+                    activo INT DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB;
+                """
+            ))
+            logger.info("Tabla 'resultados' asegurada en la base de datos.")
+        except Exception:
+            logger.exception("No se pudo crear/verificar la tabla 'resultados'.")
 
 # Incluir routers
 app.include_router(auth.router)
@@ -40,3 +68,16 @@ app.include_router(pagos.router)
 @app.get("/")
 async def root():
     return {"message": "API Laboratorio Clínico funcionando correctamente"}
+
+
+@app.get('/health')
+async def health():
+    # Simple health check endpoint — intenta un SELECT 1
+    from sqlalchemy import text
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text('SELECT 1'))
+        return {"status": "ok"}
+    except Exception as e:
+        logger.exception('Health check DB failed')
+        return {"status": "error", "detail": str(e)}

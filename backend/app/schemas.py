@@ -180,6 +180,8 @@ class SolicitudCreate(BaseModel):
     detalles: List[DetalleSolicitudCreate]
 
 class SolicitudUpdate(BaseModel):
+    id_paciente: Optional[str] = None
+    id_medico: Optional[str] = None
     fecha_toma_muestra: Optional[datetime] = None
     id_laboratorista: Optional[str] = None
     estado: Optional[str] = None
@@ -188,12 +190,17 @@ class SolicitudUpdate(BaseModel):
     estado_pago: Optional[str] = None
     fecha_inicio_procesamiento: Optional[datetime] = None
     fecha_fin_procesamiento: Optional[datetime] = None
+    detalles: Optional[List[DetalleSolicitudCreate]] = None
 
 class SolicitudOut(SolicitudBase):
     activo: int
     created_at: datetime
     updated_at: datetime
     detalles: List[DetalleSolicitudOut] = []
+    paciente_nombre: Optional[str] = None
+    paciente_nombre_nombre: Optional[str] = None
+    paciente_apellido_paterno: Optional[str] = None
+    paciente_apellido_materno: Optional[str] = None
 
 # ---------- Resultados ----------
 class ResultadoBase(BaseModel):
@@ -203,6 +210,7 @@ class ResultadoBase(BaseModel):
     observacion: Optional[str] = None
     validado_por: Optional[str] = None
     fecha_validacion: Optional[datetime] = None
+    estado: Optional[str] = 'pendiente'
     es_anormal: int = 0
 
 class ResultadoCreate(ResultadoBase):
@@ -214,10 +222,22 @@ class ResultadoUpdate(BaseModel):
     validado_por: Optional[str] = None
     fecha_validacion: Optional[datetime] = None
     es_anormal: Optional[int] = None
+    estado: Optional[str] = None
 
 class ResultadoOut(ResultadoBase):
     activo: int
     created_at: datetime
+    estado: str
+    id_prueba: Optional[int] = None
+    prueba_nombre: Optional[str] = None
+    id_paciente: Optional[str] = None
+    paciente_nombre: Optional[str] = None
+    paciente_apellido_paterno: Optional[str] = None
+    paciente_apellido_materno: Optional[str] = None
+    validado_por: Optional[str] = None
+    validado_nombre: Optional[str] = None
+    validado_apellido_paterno: Optional[str] = None
+    validado_apellido_materno: Optional[str] = None
 
 # ---------- Reportes ----------
 class ReporteBase(BaseModel):
@@ -239,6 +259,9 @@ class ReporteOut(ReporteBase):
     activo: int
     created_at: datetime
     updated_at: datetime
+    generado_nombre: Optional[str] = None
+    generado_apellido_paterno: Optional[str] = None
+    generado_apellido_materno: Optional[str] = None
 
 # ---------- Detalle Factura ----------
 class DetalleFacturaBase(BaseModel):

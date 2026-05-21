@@ -1,0 +1,70 @@
+<section id="resultados" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Resultados de Laboratorio</h1>
+                <p class="profile-panel-subtitle">Registra resultados para solicitudes pagadas y gestiona resultados existentes.</p>
+            </div>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            <div>
+                <h3>Solicitudes Pagadas (para registrar resultados)</h3>
+                <div id="paidSolicitudesStatus" class="profile-status-message"></div>
+                <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="paidSolicitudesTable" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Paciente</th>
+                            <th>Pruebas</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="paidSolicitudesTbody"></tbody>
+                </table>
+                </div>
+            </div>
+
+            <div>
+                <h3>Resultados Registrados</h3>
+                <div id="resultadosStatus" class="profile-status-message"></div>
+                <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="resultadosTable" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Solicitud</th>
+                            <th>Paciente</th>
+                            <th>Prueba (detalle)</th>
+                            <th>Resultado</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultadosTbody"></tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar/crear resultado (popup) -->
+    <div id="resultadoBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-inner">
+                <button class="modal-close" style="float:right; background:none; border:none; color:var(--text-cream); font-size:20px;" onclick="closeResultadoModal()">&times;</button>
+                <div class="modal-title" id="resultadoModalTitle">Editar Resultado</div>
+                <form id="resultadoForm" onsubmit="handleResultadoSubmit(event)">
+                    <input type="hidden" id="resultadoIdField" value="">
+                    <input type="hidden" id="resultadoSolicitudId" value="">
+                    <div id="resultadoFields"></div>
+                    <div class="modal-actions" style="margin-top:12px;">
+                        <button type="button" class="modal-btn modal-btn-cancel" onclick="closeResultadoModal()">Cancelar</button>
+                        <button type="submit" class="modal-btn modal-btn-confirm">Guardar Resultado</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>

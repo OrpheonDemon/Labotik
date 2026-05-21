@@ -1,0 +1,87 @@
+<section id="reportes" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Reportes</h1>
+                <p class="profile-panel-subtitle">Listado de reportes y generación rápida.</p>
+            </div>
+        </div>
+
+        <div>
+            <h3>Reportes</h3>
+            <div id="reportesStatus" class="profile-status-message"></div>
+            <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="reportesTable" style="width:100%; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th>ID Reporte</th>
+                            <th>ID Solicitud</th>
+                            <th>Fecha Entrega</th>
+                            <th>Estado</th>
+                            <th>Observaciones</th>
+                            <th>Generado Por</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportesTbody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;">
+            <h4>Crear Reporte</h4>
+            <form id="crearReporteForm" onsubmit="crearReporte(event)">
+                <label>ID Solicitud: <input type="number" id="re_id_solicitud" required></label>
+                <label>Observaciones: <input type="text" id="re_observaciones"></label>
+                <button type="submit" class="btn">Crear Reporte</button>
+            </form>
+        </div>
+    </div>
+</section>
+
+<script>
+async function loadReportes(){
+    const token = sessionStorage.getItem('access_token');
+    const tbody = document.getElementById('reportesTbody');
+    const status = document.getElementById('reportesStatus');
+    if(!tbody) return;
+    tbody.innerHTML=''; status.innerText='Cargando reportes...';
+    try{
+        const res = await fetch(`${API_URL}/reportes`, { headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+        if(!res.ok){ status.innerText='Error cargando reportes.'; return; }
+        const items = await res.json();
+        if(!Array.isArray(items) || items.length===0){ status.innerText='No hay reportes.'; return; }
+        status.innerText='';
+        items.forEach(r=>{
+            const tr=document.createElement('tr');
+            const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
+            const solTd=document.createElement('td'); solTd.textContent=r.id_solicitud||'-';
+            const fechaTd=document.createElement('td'); fechaTd.textContent=r.fecha_entrega||'';
+            const estTd=document.createElement('td'); estTd.textContent=r.estado||'';
+            const obsTd=document.createElement('td'); obsTd.textContent=r.observaciones||'';
+            const genByTd=document.createElement('td');
+            const gname = (r.generado_nombre||'') + ' ' + (r.generado_apellido_paterno||'') + ' ' + (r.generado_apellido_materno||'');
+            genByTd.textContent = gname.trim() || '-';
+            tr.appendChild(idTd); tr.appendChild(solTd); tr.appendChild(fechaTd); tr.appendChild(estTd); tr.appendChild(obsTd); tr.appendChild(genByTd);
+            tbody.appendChild(tr);
+        });
+    }catch(e){ console.error(e); status.innerText='Error cargando reportes.' }
+}
+
+async function crearReporte(e){
+    e.preventDefault();
+    const token = sessionStorage.getItem('access_token');
+    const id_s = parseInt(document.getElementById('re_id_solicitud').value,10);
+    const obs = document.getElementById('re_observaciones').value || null;
+    try{
+        const res=await fetch(`${API_URL}/reportes`,{
+            method:'POST', headers: { 'Content-Type':'application/json', ...(token?{ 'Authorization': `Bearer ${token}` }:{}) },
+            body: JSON.stringify({ id_solicitud: id_s, observaciones: obs })
+        });
+        if(!res.ok){ const err=await res.json().catch(()=>null); alert('Error creando reporte: '+(err?.detail||res.statusText)); return; }
+        alert('Reporte creado');
+        loadReportes();
+    }catch(err){ console.error(err); alert('Error creando reporte') }
+}
+
+// cargar al mostrar sección (puede llamarse desde el dashboard loader)
+</script>
