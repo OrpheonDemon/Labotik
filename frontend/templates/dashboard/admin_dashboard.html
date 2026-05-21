@@ -785,6 +785,7 @@
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
+        const DEFAULT_PAGE_SIZE = 5;
 
         function decodeJwt(token) {
             try {
@@ -1034,7 +1035,7 @@
             if (!sectionId) return;
             // use paginated fetch for common sections
             if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas','solicitudes'].includes(sectionId)) {
-                fetchAndRender(sectionId, 0, 10);
+                fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
             }
             // Custom load for Resultados: listar solicitudes pagadas y resultados registrados
             if (sectionId === 'Resultados' || sectionId === 'resultados') {
@@ -1113,7 +1114,7 @@
         }
 
         function searchSection(sectionKey) {
-            fetchAndRender(sectionKey, 0, 10);
+            fetchAndRender(sectionKey, 0, DEFAULT_PAGE_SIZE);
         }
 
         function clearSearch(sectionKey) {
@@ -1125,7 +1126,7 @@
                 const areaId = document.getElementById('laboratoristasSearchAreaId');
                 if (areaId) areaId.value = '';
             }
-            fetchAndRender(sectionKey, 0, 10);
+            fetchAndRender(sectionKey, 0, DEFAULT_PAGE_SIZE);
         }
 
         let areaSearchTimeout = null;
@@ -1204,7 +1205,7 @@
             }, 300);
         }
 
-        async function fetchAndRender(sectionKey, page = 0, pageSize = 10) {
+        async function fetchAndRender(sectionKey, page = 0, pageSize = DEFAULT_PAGE_SIZE) {
             const cfg = sectionConfig[sectionKey];
             if (!cfg) return;
             
@@ -1627,42 +1628,52 @@
         }
 
         // Resultados UI helpers
-        async function loadPaidSolicitudes() {
+        async function loadPaidSolicitudes(page = 0, pageSize = paidSolicitudesPageSize) {
             const token = sessionStorage.getItem('access_token');
             const tbody = document.getElementById('paidSolicitudesTbody');
             const status = document.getElementById('paidSolicitudesStatus');
+            const pagination = document.getElementById('paidSolicitudesPagination');
+            paidSolicitudesPage = page;
             if (!tbody) return;
             tbody.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
             status.innerText = 'Cargando...';
             try {
-                // First try the /solicitudes/paid endpoint which should return pagado_total
-                let res = await fetch(`${API_URL}/solicitudes/paid?limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } });
+                const skip = page * pageSize;
+                const requestLimit = pageSize + 1;
+                let res = await fetch(`${API_URL}/solicitudes/paid?skip=${skip}&limit=${requestLimit}`, { headers: { 'Authorization': `Bearer ${token}` } });
                 let items = [];
+                let totalItems = [];
                 if (res.ok) {
                     items = await res.json();
+                    totalItems = items;
                 } else {
-                    // fallback: fetch all and filter for pagado_total
                     console.warn('/solicitudes/paid failed, falling back to /solicitudes');
                     res = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } });
                     if (!res.ok) {
                         status.innerText = 'Error cargando solicitudes.';
                         return;
                     }
-                    items = await res.json();
-                    if (!Array.isArray(items)) {
+                    totalItems = await res.json();
+                    if (!Array.isArray(totalItems)) {
                         status.innerText = 'Respuesta inesperada del servidor.';
                         return;
                     }
-                    items = items.filter(s => (s.estado_pago || 'no_pagado') === 'pagado_total');
+                    items = totalItems.filter(s => (s.estado_pago || 'no_pagado') === 'pagado_total');
+                    items = items.filter(s => (s.estado || '') !== 'completado');
+                    totalItems = items;
+                    items = items.slice(skip, skip + pageSize);
                 }
-                // Excluir solicitudes que ya estén completadas
                 items = items.filter(s => (s.estado || '') !== 'completado');
-                if (!Array.isArray(items) || items.length === 0) {
-                    status.innerText = 'No hay solicitudes pagadas (pagado_total) disponibles.';
+                const hasNext = items.length > pageSize || (Array.isArray(totalItems) && totalItems.length > (page + 1) * pageSize);
+                const pagedItems = items.slice(0, pageSize);
+                if (!Array.isArray(pagedItems) || pagedItems.length === 0) {
+                    status.innerText = totalItems.length === 0 ? 'No hay solicitudes pagadas (pagado_total) disponibles.' : 'No hay más solicitudes pagadas en esta página.';
+                    renderPaginationControls('paidSolicitudesPagination', page, page > 0, hasNext, () => loadPaidSolicitudes(page - 1, pageSize), () => loadPaidSolicitudes(page + 1, pageSize));
                     return;
                 }
                 status.innerText = '';
-                items.forEach(s => {
+                pagedItems.forEach(s => {
                     const tr = document.createElement('tr');
                     const idTd = document.createElement('td'); idTd.textContent = s.id_solicitud || s.id || '';
                     const pacTd = document.createElement('td');
@@ -1689,18 +1700,22 @@
                     tr.appendChild(actionTd);
                     tbody.appendChild(tr);
                 });
+                renderPaginationControls('paidSolicitudesPagination', page, page > 0, hasNext, () => loadPaidSolicitudes(page - 1, pageSize), () => loadPaidSolicitudes(page + 1, pageSize));
             } catch (e) {
                 console.error(e);
                 status.innerText = 'Error cargando solicitudes.';
             }
         }
 
-        async function loadResultados() {
+        async function loadResultados(page = 0, pageSize = resultadosPageSize) {
             const token = sessionStorage.getItem('access_token');
             const tbody = document.getElementById('resultadosTbody');
             const status = document.getElementById('resultadosStatus');
+            const pagination = document.getElementById('resultadosPagination');
+            resultadosPage = page;
             if (!tbody) return;
             tbody.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
             status.innerText = 'Cargando resultados...';
             try {
                 const res = await fetch(`${API_URL}/resultados?limit=1000`, {
@@ -1711,14 +1726,20 @@
                     return;
                 }
                 const items = await res.json();
-                // Mostrar solo resultados con estado 'registrado'
-                const registered = items.filter(r => (r.estado || '') === 'registrado');
+                const registered = Array.isArray(items) ? items.filter(r => (r.estado || '') === 'registrado') : [];
                 if (!Array.isArray(registered) || registered.length === 0) {
                     status.innerText = 'No hay resultados registrados.';
                     return;
                 }
+                const start = page * pageSize;
+                const pagedResults = registered.slice(start, start + pageSize);
+                if (!pagedResults.length) {
+                    status.innerText = 'No hay más resultados registrados en esta página.';
+                    renderPaginationControls('resultadosPagination', page, page > 0, false, () => loadResultados(page - 1, pageSize), () => loadResultados(page + 1, pageSize));
+                    return;
+                }
                 status.innerText = '';
-                registered.forEach(r => {
+                pagedResults.forEach(r => {
                     const tr = document.createElement('tr');
                     const idTd = document.createElement('td');
                     idTd.textContent = r.id_resultado || '-';
@@ -1760,7 +1781,6 @@
                                 alert('Error borrando resultado: ' + (err?.detail || res.statusText || res.status));
                                 return;
                             }
-                            // remover fila
                             tr.remove();
                         } catch (err) {
                             console.error(err);
@@ -1778,6 +1798,8 @@
                     tr.appendChild(actionTd);
                     tbody.appendChild(tr);
                 });
+                const hasNext = (page + 1) * pageSize < registered.length;
+                renderPaginationControls('resultadosPagination', page, page > 0, hasNext, () => loadResultados(page - 1, pageSize), () => loadResultados(page + 1, pageSize));
             } catch (e) {
                 console.error(e);
                 status.innerText = 'Error cargando resultados.';
@@ -2226,19 +2248,49 @@
 
         // ---------- Reportes Section Logic ----------
         let reportesPage = 0;
-        const reportesPageSize = 10;
+        const reportesPageSize = 5;
+        let reportesResultsPage = 0;
+        const reportesResultsPageSize = 5;
+        let paidSolicitudesPage = 0;
+        const paidSolicitudesPageSize = DEFAULT_PAGE_SIZE;
+        let resultadosPage = 0;
+        const resultadosPageSize = 5;
+
+        function renderPaginationControls(containerId, page, hasPrev, hasNext, onPrev, onNext) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            container.style.display = hasPrev || hasNext ? 'flex' : 'none';
+            if (!hasPrev && !hasNext) return;
+            const prev = document.createElement('button');
+            prev.className = 'btn';
+            prev.textContent = 'Anterior';
+            prev.disabled = !hasPrev;
+            prev.addEventListener('click', onPrev);
+            const next = document.createElement('button');
+            next.className = 'btn';
+            next.textContent = 'Siguiente';
+            next.disabled = !hasNext;
+            next.addEventListener('click', onNext);
+            container.appendChild(prev);
+            container.appendChild(document.createTextNode(` Página ${page + 1} `));
+            container.appendChild(next);
+        }
 
         // Cargar tabla de resultados registrados
-        async function loadReportes(){
+        async function loadReportes(page = 0, pageSize = reportesResultsPageSize){
             const token = sessionStorage.getItem('access_token');
             const tbody = document.getElementById('reportesTbody');
             const status = document.getElementById('reportesStatus');
+            const pagination = document.getElementById('reportesResultsPagination');
+            reportesResultsPage = page;
             if(!tbody) { console.error('No se encontró tabla de resultados'); return; }
+            if (pagination) pagination.innerHTML = '';
             
             try{
-                console.log('Iniciando carga de resultados desde:', `${API_URL}/resultados/registered`);
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
-                const res = await fetch(`${API_URL}/resultados/registered?limit=1000`, { headers });
+                console.log('Iniciando carga de resultados desde:', `${API_URL}/resultados?limit=1000`);
+                const res = await fetch(`${API_URL}/resultados?limit=1000`, { headers });
                 
                 console.log('Respuesta del servidor - Status:', res.status);
                 
@@ -2249,16 +2301,21 @@
                 }
                 const items = await res.json();
                 console.log('Datos recibidos:', items);
+                const filteredItems = Array.isArray(items) ? items.filter(r => (r.estado || '').toLowerCase() === 'registrado') : [];
                 
-                if(!Array.isArray(items) || items.length===0){ 
+                if(filteredItems.length === 0){ 
                     status.innerText='No hay resultados registrados.';
                     tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">No hay resultados registrados</td></tr>`;
+                    renderPaginationControls('reportesResultsPagination', page, page > 0, false, () => loadReportes(page - 1, pageSize), () => loadReportes(page + 1, pageSize));
                     return; 
                 }
+                const start = page * pageSize;
+                const pagedResults = filteredItems.slice(start, start + pageSize);
+                const hasNext = (page + 1) * pageSize < filteredItems.length;
                 status.innerText='';
                 tbody.innerHTML='';
                 
-                items.forEach(r=>{
+                pagedResults.forEach(r=>{
                     const tr=document.createElement('tr');
                     tr.style.cursor = 'pointer';
                     tr.addEventListener('click', () => {
@@ -2323,6 +2380,7 @@
                     tr.appendChild(aTd);
                     tbody.appendChild(tr);
                 });
+                renderPaginationControls('reportesResultsPagination', page, page > 0, hasNext, () => loadReportes(page - 1, pageSize), () => loadReportes(page + 1, pageSize));
                 console.log('Tabla de resultados cargada:', items.length, 'items');
             }catch(e){ 
                 console.error('Error cargando resultados:', e); 
@@ -2332,7 +2390,8 @@
         }
 
         // Cargar lista de reportes generados
-        async function loadReportesList(){
+        async function loadReportesList(resetPage = false){
+            if (resetPage) reportesPage = 0;
             const token = sessionStorage.getItem('access_token');
             const tbody = document.getElementById('reportesListTbody');
             const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
@@ -2428,6 +2487,7 @@
                             const blob = await resp.blob(); 
                             const url = URL.createObjectURL(blob); 
                             window.open(url,'_blank');
+                            loadReportesList();
                         } catch(err) {
                             console.error(err);
                             alert('Error de red al intentar descargar el PDF');
@@ -2454,7 +2514,8 @@
         // Búsqueda de reporte por ID
         async function searchReporte(){
             const id = document.getElementById('searchReporteId').value;
-            if(!id) { loadReportesList(); return; }
+            if(!id) { loadReportesList(true); return; }
+            reportesPage = 0;
             
             const token = sessionStorage.getItem('access_token');
             const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
@@ -2533,6 +2594,7 @@
                         const blob = await resp.blob(); 
                         const url = URL.createObjectURL(blob); 
                         window.open(url,'_blank');
+                        loadReportesList();
                     } catch(err) {
                         console.error(err);
                         alert('Error de red al intentar descargar el PDF');
@@ -2547,7 +2609,14 @@
                 tr.appendChild(fTd); 
                 tr.appendChild(aTd);
                 tbody.appendChild(tr);
-            }catch(e){ console.error(e); tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error buscando reporte</td></tr>'; }
+                const pageInfo = document.getElementById('pageInfo');
+                if (pageInfo) pageInfo.textContent = 'Página 1';
+            }catch(e){
+                console.error(e);
+                tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error buscando reporte</td></tr>';
+                const pageInfo = document.getElementById('pageInfo');
+                if (pageInfo) pageInfo.textContent = 'Página 1';
+            }
         }
 
         // Popup functions for Resultado Details and Report Saving
@@ -2714,9 +2783,9 @@
                 // Update Enable Edit Button
                 if (btnToggle) {
                     btnToggle.textContent = 'Deshabilitar Edición';
-                    btnToggle.style.background = 'rgba(35, 18, 11, 0.2)';
-                    btnToggle.style.color = 'var(--chocolate-dark)';
-                    btnToggle.style.borderColor = 'rgba(35, 18, 11, 0.35)';
+                    btnToggle.style.background = 'linear-gradient(135deg, #fff4de 0%, #f1d3a5 100%)';
+                    btnToggle.style.color = '#4a2f1b';
+                    btnToggle.style.borderColor = 'rgba(255,255,255,0.95)';
                 }
 
                 // Update Save Button
@@ -2757,9 +2826,9 @@
                 // Update Enable Edit Button
                 if (btnToggle) {
                     btnToggle.textContent = 'Habilitar Edición';
-                    btnToggle.style.background = 'rgba(35, 18, 11, 0.1)';
-                    btnToggle.style.color = 'var(--chocolate-dark)';
-                    btnToggle.style.borderColor = 'rgba(35, 18, 11, 0.25)';
+                    btnToggle.style.background = 'linear-gradient(135deg, #fff4de 0%, #f1d3a5 100%)';
+                    btnToggle.style.color = '#4a2f1b';
+                    btnToggle.style.borderColor = 'rgba(255,255,255,0.95)';
                 }
 
                 // Update Save Button (keep active styles)
@@ -2794,7 +2863,6 @@
 
             const id_solicitud = document.getElementById('reporteSolicitudId')?.value;
             const id_resultado = document.getElementById('reporteResultadoId')?.value;
-            const estado = 'finalizado'; // Estado siempre finalizado
             
             // Campos del resultado si están siendo editados
             const resultadoEditField = document.getElementById('modalValResEdit');
@@ -2856,10 +2924,10 @@
                     }
                 }
 
-                // 1. Create the Report
+                // 1. Create the Report with a valid backend estado for reportes
                 const reportPayload = {
                     id_solicitud: parseInt(id_solicitud),
-                    estado: estado
+                    estado: 'borrador'
                 };
                 
                 console.log("Submitting new report:", reportPayload);
@@ -2890,7 +2958,6 @@
                 console.log("Report created successfully:", createdReport);
 
                 // 2. Mark the Resultado as 'reportado'
-                // Attempt to mark the Resultado as 'reportado' (optional)
                 if (id_resultado) {
                     try {
                         console.log(`Marking resultado ${id_resultado} as 'reportado'...`);
@@ -2900,21 +2967,40 @@
                         });
                         if (!reportarRes.ok) {
                             const err = await reportarRes.json().catch(() => null);
-                            console.warn('Failed to mark resultado as reportado:', err?.detail || reportarRes.status);
+                            console.warn('Failed to mark resultado as reportado using /reportar:', err?.detail || reportarRes.status);
+                            
+                            // Fallback: update the Resultado estado via PUT if POST fails
+                            const fallbackRes = await fetch(`${API_URL}/resultados/${id_resultado}`, {
+                                method: 'PUT',
+                                headers,
+                                body: JSON.stringify({ estado: 'reportado' })
+                            });
+                            if (!fallbackRes.ok) {
+                                const fallbackErr = await fallbackRes.json().catch(() => null);
+                                throw new Error(fallbackErr?.detail || `PUT fallback failed with status ${fallbackRes.status}`);
+                            }
+                            console.log('Resultado estado actualizado a reportado via PUT fallback.');
                         } else {
-                            console.log('Resultado marked as reported successfully.');
+                            console.log('Resultado marcado como reportado exitosamente.');
                         }
                     } catch (e) {
                         console.error('Error marking resultado as reportado:', e);
+                        throw new Error('No se pudo marcar el resultado como reportado. ' + e.message);
                     }
                 }
 
+                const estSpan = document.getElementById('modalResEstado');
+                if (estSpan) {
+                    estSpan.textContent = 'reportado';
+                    estSpan.style.color = '#ffffff';
+                }
                 alert("Reporte guardado con éxito y resultado actualizado.");
                 closeResultadoDetailsModal();
                 
                 // Refresh both lists
                 loadReportes();
                 loadReportesList();
+                loadResultados();
                 
             } catch(e) {
                 console.error("Error al guardar reporte:", e);
