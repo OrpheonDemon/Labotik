@@ -212,9 +212,11 @@ async def generar_reporte(id_reporte: int, db: AsyncSession = Depends(get_db), c
     c.setFillColor(colors.black)
     c.setFont('Helvetica-Bold', 10)
     c.drawString(margin, y, f'Paciente: {paciente.nombre} {paciente.apellido_paterno or ""} {paciente.apellido_materno or ""}'.strip())
-    c.drawRightString(width - margin, y, f'ID Solicitud: {solicitud.id_solicitud}')
+    c.drawRightString(width - margin, y, f'ID Reporte: {id_reporte}')
     y -= 16
     c.setFont('Helvetica', 10)
+    c.drawRightString(width - margin, y, f'ID Solicitud: {solicitud.id_solicitud}')
+    y -= 16
     medico_nombre = f'{medico.nombre} {medico.apellido_paterno or ""} {medico.apellido_materno or ""}'.strip() if medico else 'Sin médico'
     laboratorista_nombre = f'{laboratorista.nombre} {laboratorista.apellido_paterno or ""} {laboratorista.apellido_materno or ""}'.strip() if laboratorista else 'Sin laboratorista'
     c.drawString(margin, y, f'Médico: {medico_nombre}')
@@ -223,7 +225,7 @@ async def generar_reporte(id_reporte: int, db: AsyncSession = Depends(get_db), c
     c.drawString(margin, y, f'Laboratorista: {laboratorista_nombre}')
     y -= 16
     c.drawString(margin, y, f'Observaciones: {reporte.observaciones or "Sin observaciones"}')
-    y -= 28
+    y -= 24
 
     # Tabla de resultados por área
     for area_nombre, items in areas.items():
@@ -267,11 +269,21 @@ async def generar_reporte(id_reporte: int, db: AsyncSession = Depends(get_db), c
         y -= 12
 
     # Firma del laboratorista
-    if y < 120:
+    if y < 180:
         c.showPage()
         y = height - margin
+    else:
+        y -= 36
+
+    c.setStrokeColor(colors.HexColor('#d1c4a5'))
+    c.setLineWidth(0.7)
+    c.line(margin, y, width - margin, y)
+    y -= 24
+
     c.setFont('Helvetica-Bold', 10)
     c.drawString(margin, y, 'Firma del laboratorista:')
+    c.drawRightString(width - margin, y, f'ID Reporte: {id_reporte}')
+    y -= 20
     c.line(margin + 140, y, margin + 380, y)
     c.setFont('Helvetica', 9)
     c.drawString(margin + 142, y - 14, laboratorista_nombre)

@@ -1,16 +1,13 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script>
-        function getToken() {
-            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
-        }
-
         (function() {
-            const token = getToken();
+            // Verificar token de acceso usando sessionStorage, con fallback a localStorage
+            const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
             if (!token) {
                 window.location.href = "/";
                 return;
@@ -18,11 +15,8 @@
             try {
                 const base64Url = token.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                const payload = JSON.parse(jsonPayload);
-                if (!payload || payload.rol !== 'laboratorista') {
+                const payload = JSON.parse(atob(base64));
+                if (!payload || payload.rol !== 'recepcionista') {
                     window.location.href = "/";
                     return;
                 }
@@ -32,7 +26,7 @@
             }
         })();
     </script>
-    <title>Dashboard Laboratorista - Labotik</title>
+    <title>Dashboard Recepcionista - Labotik</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -718,10 +712,10 @@
         </div>
         <div class="header-actions">
             <div class="user-profile" id="userProfileButton" style="cursor: pointer;">
-                <div class="user-avatar" id="avatarLetter">L</div>
+                <div class="user-avatar" id="avatarLetter">S</div>
                 <div class="user-details">
-                    <span class="user-name" id="adminName">Laboratorista</span>
-                    <span class="user-role" id="adminRole">LABORATORISTA</span>
+                    <span class="user-name" id="adminName">Super Administrador</span>
+                    <span class="user-role" id="adminRole">SUPER_ADMIN</span>
                 </div>
             </div>
         </div>
@@ -732,34 +726,25 @@
         <!-- SIDEBAR -->
         <aside class="sidebar">
             <nav style="margin-top: 10px;">
+                <div class="menu-label">Menú</div>
                 <ul class="menu-list">
-                    <li class="menu-item active">
+                    <li class="menu-item">
                         <a href="#" onclick="navigateMenu(event, 'dashboard', 'Dashboard')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
                             </svg>
                             Dashboard
                         </a>
                     </li>
-                    <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'resultados', 'Resultados')">
+                    <li class="menu-item active">
+                        <a href="#" onclick="navigateMenu(event, 'solicitudes', 'Solicitudes')">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            Resultados
+                            Solicitudes
                         </a>
                     </li>
-                    <li class="menu-item">
-                        <a href="#" onclick="navigateMenu(event, 'reportes', 'Reportes')">
-                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 17h6M9 3h6" />
-                            </svg>
-                            Reportes
-                        </a>
-                    </li>
-                </ul>
-                <ul class="menu-list" style="margin-top: 20px;">
-                    <li class="menu-item" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
+                    <li class="menu-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; padding-top: 20px;">
                         <a href="#" onclick="handleLogout()" style="color: #e74c3c;">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #e74c3c;">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -786,7 +771,7 @@
                         <div class="profile-grid">
                             <!-- Campo: ID (solo lectura) -->
                             <div class="profile-field-card">
-                                <label class="profile-label" for="profileId">ID laboratorista</label>
+                                <label class="profile-label" for="profileId">ID administrador</label>
                                 <input type="text" id="profileId" class="profile-input" disabled>
                             </div>
                             <!-- Campo: Nombre -->
@@ -813,8 +798,11 @@
                             <div class="profile-field-card">
                                 <label class="profile-label" for="profileRole">Rol</label>
                                 <select id="profileRole" class="profile-select">
-                                    <option value="laboratorista">Laboratorista</option>
-                                    <option value="jefe_laboratorio">Jefe Laboratorio</option>
+                                    <option value="super_admin">Super Administrador</option>
+                                    <option value="admin_general">Admin General</option>
+                                    <option value="admin_financiero">Admin Financiero</option>
+                                    <option value="admin_lab">Admin Laboratorio</option>
+                                    <option value="recepcionista">Recepcionista</option>
                                 </select>
                             </div>
                             <!-- Campo: Fecha de nacimiento -->
@@ -847,97 +835,44 @@
                     </form>
                 </div>
             </section>
-            <section id="dashboard" class="dashboard-section active" aria-hidden="false">
+
+            <section id="dashboard" class="dashboard-section" aria-hidden="true">
                 <div class="profile-panel">
                     <div class="profile-panel-header">
                         <div>
-                            <h1 class="profile-panel-title">Dashboard</h1>
-                            <p class="profile-panel-subtitle">Visión general del sistema.</p>
+                            <h1 class="profile-panel-title">Dashboard de Solicitudes</h1>
+                            <p class="profile-panel-subtitle">Resumen rápido de las solicitudes y su estado actual.</p>
+                            <p class="dashboard-welcome-text">Bienvenido, <strong id="dashboardUserName">Recepcionista</strong>. Aquí puedes revisar las solicitudes y mantener el flujo operativo bajo control.</p>
                         </div>
-                    </div>
-                    <div class="dashboard-welcome">
-                        <div class="dashboard-welcome-card">
-                            <div class="dashboard-hero">
-                                <div>
-                                    <p class="dashboard-greeting">Hola, <strong id="dashboardAdminName">Cargando...</strong> 👋</p>
-                                    <h2 class="dashboard-hero-title">Bienvenido al panel de Control</h2>
-                                    <p class="dashboard-welcome-text">Aquí tienes un resumen inteligente de Labotik: usuarios, pruebas, solicitudes, reportes y resultados. Navega con datos clave y mantén el flujo operativo bajo control.</p>
-                                </div>
-                                <div class="dashboard-spotlight">
-                                    <div class="dashboard-spot">
-                                        <strong id="dashboardHighlightRequests">0</strong>
-                                        Solicitudes activas
-                                    </div>
-                                    <div class="dashboard-spot">
-                                        <strong id="dashboardHighlightResults">0</strong>
-                                        Resultados listos para reportar
-                                    </div>
-                                    <div class="dashboard-spot">
-                                        <strong id="dashboardHighlightReports">0</strong>
-                                        Reportes entregados
-                                    </div>
-                                    <div class="dashboard-spot">
-                                        <strong id="dashboardHighlightPayments">0</strong>
-                                        Pagos registrados
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="dashboard-summary-card">
-                                <h3>Estado del sistema</h3>
-                                <p id="dashboardInsightText">Cargando datos del sistema... Actualiza para ver un resumen completo de pacientes, médicos, laboratoristas, pruebas y más.</p>
-                            </div>
+                        <div>
+                            <button type="button" class="btn btn-primary" onclick="navigateMenuFromButton('solicitudes', 'Solicitudes')">Ver Solicitudes</button>
                         </div>
                     </div>
                     <div class="metric-card-grid">
                         <div class="metric-card">
-                            <div class="metric-card-label">Pacientes</div>
-                            <div class="metric-card-value" id="metricPacientes">0</div>
-                            <div class="metric-card-note">Número total de pacientes registrados en Labotik.</div>
+                            <div class="metric-card-label">Solicitudes totales</div>
+                            <div class="metric-card-value" id="dashboardSolicitudesTotal">0</div>
+                            <div class="metric-card-note">Todas las solicitudes registradas en el sistema.</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-card-label">Médicos</div>
-                            <div class="metric-card-value" id="metricMedicos">0</div>
-                            <div class="metric-card-note">Médicos afiliados disponibles para solicitudes.</div>
+                            <div class="metric-card-label">Solicitudes pagadas</div>
+                            <div class="metric-card-value" id="dashboardSolicitudesPaid">0</div>
+                            <div class="metric-card-note">Solicitudes con pago total confirmado.</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-card-label">Laboratoristas</div>
-                            <div class="metric-card-value" id="metricLaboratoristas">0</div>
-                            <div class="metric-card-note">Profesionales que procesan resultados en el laboratorio.</div>
-                        </div>
-                        <!-- Administradores metric removed for laboratorista view -->
-                        <div class="metric-card">
-                            <div class="metric-card-label">Pruebas</div>
-                            <div class="metric-card-value" id="metricPruebas">0</div>
-                            <div class="metric-card-note">Pruebas disponibles para asignar a solicitudes.</div>
+                            <div class="metric-card-label">Solicitudes pendientes</div>
+                            <div class="metric-card-value" id="dashboardSolicitudesPending">0</div>
+                            <div class="metric-card-note">Solicitudes aún sin pago total.</div>
                         </div>
                         <div class="metric-card">
-                            <div class="metric-card-label">Reportes</div>
-                            <div class="metric-card-value" id="metricReportes">0</div>
-                            <div class="metric-card-note">Reportes registrados y listos para descarga.</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-card-label">Resultados</div>
-                            <div class="metric-card-value" id="metricResultados">0</div>
-                            <div class="metric-card-note">Resultados guardados en el sistema para validar y reportar.</div>
-                        </div>
-                        <div class="metric-card">
-                            <div class="metric-card-label">Solicitudes</div>
-                            <div class="metric-card-value" id="metricSolicitudes">0</div>
-                            <div class="metric-card-note">Órdenes médicas administradas y en proceso.</div>
-                        </div>
-                    </div>
-                    <div class="dashboard-chart-row">
-                        <div class="dashboard-chart-card">
-                            <h3 class="dashboard-card-title">Equipo y carga operativa</h3>
-                            <canvas id="dashboardRoleChart" aria-label="Gráfico de equipo" role="img"></canvas>
-                        </div>
-                        <div class="dashboard-chart-card">
-                            <h3 class="dashboard-card-title">Histograma de estados</h3>
-                            <canvas id="dashboardStateChart" aria-label="Histograma de estados" role="img"></canvas>
+                            <div class="metric-card-label">Solicitudes en proceso</div>
+                            <div class="metric-card-value" id="dashboardSolicitudesInProgress">0</div>
+                            <div class="metric-card-note">Solicitudes que aún requieren atención operativa.</div>
                         </div>
                     </div>
                 </div>
             </section>
+
             <!-- ENTITY EDIT MODAL (constrained to workspace, no cover header/sidebar/footer) -->
             <div id="entityModal" class="modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.35); z-index:50;">
                 <div class="modal-inner" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 20px 40px rgba(0,0,0,0.3); color:#4b2e2a;">
@@ -977,28 +912,25 @@
 
     <!-- FOOTER -->
     <footer class="app-footer">
-        <p>&copy; 2026 Labotik. Todos los derechos reservados. | Conexión Segura SSL | Portal de Laboratorista</p>
+        <p>&copy; 2026 Labotik. Todos los derechos reservados. | Conexión Segura SSL | Portal de Recepcionista</p>
     </footer>
 
     <script>
         const API_URL = "http://127.0.0.1:8000";
         const DEFAULT_PAGE_SIZE = 5;
 
+        function getToken() {
+            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        }
+
         function decodeJwt(token) {
             try {
                 const base64Url = token.split('.')[1];
                 const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-                }).join(''));
-                return JSON.parse(jsonPayload);
+                return JSON.parse(atob(base64));
             } catch (e) {
                 return null;
             }
-        }
-
-        function getToken() {
-            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
         }
 
         let currentAdminData = null;
@@ -1011,7 +943,7 @@
             }
 
             const payload = decodeJwt(token);
-            if (!payload || payload.rol !== 'laboratorista') {
+            if (!payload || payload.rol !== 'recepcionista') {
                 window.location.href = "/";
                 return;
             }
@@ -1045,10 +977,20 @@
                 });
             }
 
-            // Show dashboard by default on load
-            document.querySelector('.page-title').innerText = 'Panel de Control';
-            showOnlyDashboardSection('dashboard');
-            await loadDashboardStats();
+            // Show solicitudes by default on load
+            document.querySelector('.page-title').innerText = 'Solicitudes';
+            await loadSectionHtml('solicitudes');
+            showOnlyDashboardSection('solicitudes');
+            await loadSectionData('solicitudes');
+
+            // Mark solicitudes as active in the sidebar menu
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            const solicitudesMenuItem = Array.from(document.querySelectorAll('.menu-item a'))
+                .find(link => link.textContent.trim() === 'Solicitudes')
+                ?.closest('.menu-item');
+            if (solicitudesMenuItem) {
+                solicitudesMenuItem.classList.add('active');
+            }
         });
 
         function showOnlyDashboardSection(sectionId) {
@@ -1071,14 +1013,14 @@
 
         function fillProfileForm(admin) {
             currentAdminData = admin;
-            document.getElementById('profileId').value = admin.id_laboratorista || '';
+            document.getElementById('profileId').value = admin.id_administrador || '';
             document.getElementById('profileFirstName').value = admin.nombre || '';
             document.getElementById('profileLastName').value = admin.apellido_paterno || '';
             document.getElementById('profileMiddleName').value = admin.apellido_materno || '';
             document.getElementById('profileEmail').value = admin.email || '';
             const roleSelect = document.getElementById('profileRole');
             if (roleSelect) {
-                roleSelect.value = admin.rol_laboratorista || 'laboratorista';
+                roleSelect.value = admin.rol_administrador || 'admin_general';
             }
             document.getElementById('profileBirthdate').value = formatDateForInput(admin.fecha_nacimiento);
             document.getElementById('profilePhone').value = admin.telefono || '';
@@ -1092,17 +1034,13 @@
             statusDiv.innerText = 'Cargando datos del usuario...';
             const token = getToken();
             const payload = token ? decodeJwt(token) : null;
-            if (!token || !payload || payload.rol !== 'laboratorista' || !payload.sub) {
+            if (!token || !payload || payload.rol !== 'recepcionista' || !payload.sub) {
                 window.location.href = "/";
                 return;
             }
 
             try {
-                const laboratoristaId = payload.id_usuario;
-                if (!laboratoristaId) {
-                    throw new Error('Identificador de laboratorista no encontrado en el token');
-                }
-                const response = await fetch(`${API_URL}/laboratoristas/${laboratoristaId}`, {
+                const response = await fetch(`${API_URL}/administradores/by-email?email=${encodeURIComponent(payload.sub)}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!response.ok) throw new Error('Error al obtener perfil');
@@ -1114,16 +1052,20 @@
                 const adminRoleEl = document.getElementById('adminRole');
                 const fullName = `${adminData.nombre || ''} ${adminData.apellido_paterno || ''} ${adminData.apellido_materno || ''}`.trim();
                 if (adminNameEl) {
-                    adminNameEl.innerText = fullName || adminData.email || 'Laboratorista';
+                    adminNameEl.innerText = fullName || adminData.email || 'Administrador';
                 }
                 if (dashboardNameEl) {
-                    dashboardNameEl.innerText = fullName || 'Laboratorista';
+                    dashboardNameEl.innerText = fullName || 'Administrador';
+                }
+                const dashboardUserNameEl = document.getElementById('dashboardUserName');
+                if (dashboardUserNameEl) {
+                    dashboardUserNameEl.innerText = fullName || adminData.email || 'Recepcionista';
                 }
                 if (avatarLetterEl && adminData.nombre) {
                     avatarLetterEl.innerText = adminData.nombre.charAt(0).toUpperCase();
                 }
                 if (adminRoleEl) {
-                    adminRoleEl.innerText = adminData.rol_laboratorista ? adminData.rol_laboratorista.replace('_', ' ').toUpperCase() : 'LABORATORISTA';
+                    adminRoleEl.innerText = adminData.rol_administrador ? adminData.rol_administrador.replace('_', ' ').toUpperCase() : 'ADMINISTRADOR';
                 }
                 statusDiv.innerText = 'Perfil cargado correctamente.';
             } catch (error) {
@@ -1150,14 +1092,14 @@
 
             // Solo campos editables (excluimos email, id, y campos eliminados)
             const roleElement = document.getElementById('profileRole');
-            const selectedRole = roleElement ? roleElement.value : (currentAdminData?.rol_laboratorista || 'laboratorista');
+            const selectedRole = roleElement ? roleElement.value : (currentAdminData?.rol_administrador || 'admin_general');
             const updatedData = {
                 nombre: document.getElementById('profileFirstName').value.trim(),
                 apellido_paterno: document.getElementById('profileLastName').value.trim(),
                 apellido_materno: document.getElementById('profileMiddleName').value.trim() || null,
                 telefono: document.getElementById('profilePhone').value.trim() || null,
                 fecha_nacimiento: document.getElementById('profileBirthdate').value || null,
-                rol_laboratorista: selectedRole,
+                rol_administrador: selectedRole,
             };
             if (password) {
                 updatedData.password = password;
@@ -1165,13 +1107,13 @@
 
             const adminId = document.getElementById('profileId').value;
             if (!adminId) {
-                statusDiv.innerText = 'ID de laboratorista no encontrado.';
+                statusDiv.innerText = 'ID de administrador no encontrado.';
                 return;
             }
 
             statusDiv.innerText = 'Guardando cambios...';
             try {
-                const response = await fetch(`${API_URL}/laboratoristas/${adminId}`, {
+                const response = await fetch(`${API_URL}/administradores/${adminId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1190,7 +1132,7 @@
                 const fullName = `${savedAdmin.nombre || ''} ${savedAdmin.apellido_paterno || ''} ${savedAdmin.apellido_materno || ''}`.trim();
                 const dashboardNameEl = document.getElementById('dashboardAdminName');
                 if (dashboardNameEl) {
-                    dashboardNameEl.innerText = fullName || 'Laboratorista';
+                    dashboardNameEl.innerText = fullName || 'Administrador';
                 }
                 document.getElementById('adminName').innerText = fullName || savedAdmin.email;
                 document.getElementById('avatarLetter').innerText = (savedAdmin.nombre?.[0] || savedAdmin.email?.[0] || 'A').toUpperCase();
@@ -1203,6 +1145,7 @@
         function showUserProfile() {
             showOnlyDashboardSection('user-profile');
             document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            document.querySelector('.page-title').innerText = 'Perfil';
             loadProfileData();
         }
         async function loadSectionHtml(sectionId) {
@@ -1210,7 +1153,7 @@
             const key = (sectionId || '').toLowerCase();
             let section = document.getElementById(key);
             // if not in DOM, fetch and append
-            if (!section && ['dashboard', 'resultados', 'reportes'].includes(key)) {
+            if (!section && ['administradores', 'pacientes', 'medicos', 'laboratoristas', 'areas', 'pruebas', 'solicitudes', 'resultados', 'reportes'].includes(key)) {
                 try {
                     const response = await fetch(`/static/partials/${key}.html`);
                     if (response.ok) {
@@ -1243,19 +1186,25 @@
             await loadSectionData(key);
         }
 
+        function navigateMenuFromButton(sectionId, title) {
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            const menuItem = Array.from(document.querySelectorAll('.menu-item a'))
+                .find(link => link.textContent.trim() === title)
+                ?.closest('.menu-item');
+            if (menuItem) {
+                menuItem.classList.add('active');
+            }
+            loadSectionHtml(sectionId).then(() => showOnlyDashboardSection(sectionId));
+            if (title) document.querySelector('.page-title').innerText = title;
+            loadSectionData(sectionId);
+        }
+
 
         async function loadSectionData(sectionId) {
             if (!sectionId) return;
             // use paginated fetch for common sections
-            if (['resultados','reportes','dashboard'].includes(sectionId)) {
-                // For these sections we either call specialized loaders or fetchAndRender when appropriate
-                if (sectionId === 'dashboard') {
-                    // dashboard uses loadDashboardStats
-                } else if (sectionId === 'resultados') {
-                    // resultados has custom loaders handled below
-                } else {
-                    fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
-                }
+            if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas','solicitudes'].includes(sectionId)) {
+                fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
             }
             // Custom load for Resultados: listar solicitudes pagadas y resultados registrados
             if (sectionId === 'Resultados' || sectionId === 'resultados') {
@@ -1271,7 +1220,31 @@
                 await loadReportesList();
             }
             if (sectionId === 'dashboard') {
-                await loadDashboardStats();
+                await loadDashboardSummary();
+            }
+        }
+
+        async function loadDashboardSummary() {
+            const token = getToken();
+            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+            try {
+                const solicitudesRes = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers });
+                const pagosRes = await fetch(`${API_URL}/pagos?skip=0&limit=1000`, { headers });
+                const solicitudes = solicitudesRes.ok ? await solicitudesRes.json() : [];
+                const pagos = pagosRes.ok ? await pagosRes.json() : [];
+
+                const total = solicitudes.length;
+                const paid = solicitudes.filter(item => item.estado_pago === 'pagado_total').length;
+                const pending = solicitudes.filter(item => item.estado_pago !== 'pagado_total').length;
+                const inProgress = solicitudes.filter(item => item.estado && item.estado !== 'finalizado' && item.estado !== 'cancelado').length;
+
+                document.getElementById('dashboardSolicitudesTotal').innerText = total;
+                document.getElementById('dashboardSolicitudesPaid').innerText = paid;
+                document.getElementById('dashboardSolicitudesPending').innerText = pending;
+                document.getElementById('dashboardSolicitudesInProgress').innerText = inProgress;
+            } catch (error) {
+                console.error('Error cargando resumen del dashboard:', error);
             }
         }
 
@@ -1282,6 +1255,7 @@
                 pacientes: 'metricPacientes',
                 medicos: 'metricMedicos',
                 laboratoristas: 'metricLaboratoristas',
+                administradores: 'metricAdministradores',
                 pruebas: 'metricPruebas',
                 reportes: 'metricReportes',
                 resultados: 'metricResultados',
@@ -1289,20 +1263,22 @@
             };
 
             try {
-                const [pacientesRes, medicosRes, laboratoristasRes, pruebasRes, solicitudesRes, reportesRes, resultadosRes] = await Promise.all([
+                const [pacientesRes, medicosRes, laboratoristasRes, administradoresRes, pruebasRes, solicitudesRes, reportesRes, resultadosRes] = await Promise.all([
                     fetch(`${API_URL}/pacientes?limit=1000`, { headers }),
                     fetch(`${API_URL}/medicos?limit=1000`, { headers }),
                     fetch(`${API_URL}/laboratoristas?limit=1000`, { headers }),
+                    fetch(`${API_URL}/administradores?limit=1000`, { headers }),
                     fetch(`${API_URL}/pruebas?limit=1000`, { headers }),
                     fetch(`${API_URL}/solicitudes?limit=1000`, { headers }),
                     fetch(`${API_URL}/reportes?skip=0&limit=1000`, { headers }),
                     fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers }),
                 ]);
 
-                const [pacientes, medicos, laboratoristas, pruebas, solicitudes, reportes, resultados] = await Promise.all([
+                const [pacientes, medicos, laboratoristas, administradores, pruebas, solicitudes, reportes, resultados] = await Promise.all([
                     pacientesRes.ok ? pacientesRes.json() : [],
                     medicosRes.ok ? medicosRes.json() : [],
                     laboratoristasRes.ok ? laboratoristasRes.json() : [],
+                    administradoresRes.ok ? administradoresRes.json() : [],
                     pruebasRes.ok ? pruebasRes.json() : [],
                     solicitudesRes.ok ? solicitudesRes.json() : [],
                     reportesRes.ok ? reportesRes.json() : [],
@@ -1313,6 +1289,7 @@
                     pacientes: pacientes.length,
                     medicos: medicos.length,
                     laboratoristas: laboratoristas.length,
+                    administradores: administradores.length,
                     pruebas: pruebas.length,
                     reportes: reportes.length,
                     resultados: resultados.length,
@@ -1352,16 +1329,16 @@
                 const chartCtx = document.getElementById('dashboardRoleChart');
                 if (chartCtx) {
                     const ctx = chartCtx.getContext('2d');
-                    if (window.dashboardRoleChart && typeof window.dashboardRoleChart.destroy === 'function') {
+                    if (window.dashboardRoleChart) {
                         window.dashboardRoleChart.destroy();
                     }
                     window.dashboardRoleChart = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
-                            labels: ['Pacientes', 'Médicos', 'Laboratoristas'],
+                            labels: ['Pacientes', 'Médicos', 'Laboratoristas', 'Administradores'],
                             datasets: [{
-                                data: [counts.pacientes, counts.medicos, counts.laboratoristas],
-                                backgroundColor: ['#ffca6d', '#8c6efe', '#5dd9c1'],
+                                data: [counts.pacientes, counts.medicos, counts.laboratoristas, counts.administradores],
+                                backgroundColor: ['#ffca6d', '#8c6efe', '#5dd9c1', '#f1ad55'],
                                 borderColor: 'rgba(255,255,255,0.12)',
                                 borderWidth: 2,
                             }]
@@ -1384,7 +1361,7 @@
                         const tokenPayload = decodeJwt(token);
                         adminFullName = tokenPayload ? [tokenPayload.nombre, tokenPayload.apellido_paterno, tokenPayload.apellido_materno].filter(Boolean).join(' ') : '';
                     }
-                    dashboardNameEl.innerText = adminFullName || 'Laboratorista';
+                    dashboardNameEl.innerText = adminFullName || 'Administrador';
                 }
 
                 const stateLabels = ['Pendiente', 'Registrado', 'Reportado', 'Borrador', 'Entregado', 'Completado'];
@@ -1400,7 +1377,7 @@
                 const stateChartCtx = document.getElementById('dashboardStateChart');
                 if (stateChartCtx) {
                     const ctxState = stateChartCtx.getContext('2d');
-                    if (window.dashboardStateChart && typeof window.dashboardStateChart.destroy === 'function') {
+                    if (window.dashboardStateChart) {
                         window.dashboardStateChart.destroy();
                     }
                     window.dashboardStateChart = new Chart(ctxState, {
@@ -1472,7 +1449,7 @@
         }
 
         const sectionConfig = {
-            // administradores removed for laboratorista view
+            administradores: { endpoint: 'administradores', idField: 'id_administrador', searchIdParam: 'id_administrador' },
             pacientes: { endpoint: 'pacientes', idField: 'id_paciente', searchIdParam: 'id_paciente' },
             medicos: { endpoint: 'medicos', idField: 'id_medico', searchIdParam: 'id_medico' },
             laboratoristas: { endpoint: 'laboratoristas', idField: 'id_laboratorista', searchIdParam: 'id_laboratorista', searchAreaIdParam: 'id_area' },
@@ -1843,7 +1820,7 @@
             const fRol = document.getElementById('fRol');
             const fEspecialidad = document.getElementById('fEspecialidad');
             const fIdArea = document.getElementById('fIdArea');
-            if (document.getElementById('modalRol')) document.getElementById('modalRol').value = entityData.rol_laboratorista || entityData.rol || 'laboratorista';
+            if (document.getElementById('modalRol')) document.getElementById('modalRol').value = entityData.rol_administrador || entityData.rol || 'admin_general';
             if (document.getElementById('modalEspecialidad')) document.getElementById('modalEspecialidad').value = entityData.especialidad || '';
             const modalAreaSelect = document.getElementById('modalIdArea');
             if (modalAreaSelect) {
@@ -1864,7 +1841,8 @@
                     ['fDescripcion'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
                 }
                 ['fApellidoP', 'fApellidoM', 'fEmail', 'fTelefono', 'fFecha', 'fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
-            // administradores section not available in laboratorista view
+            } else if (sectionKey === 'administradores') {
+                if (fRol) fRol.style.display = '';
             } else if (sectionKey === 'pacientes') {
                 ['fGenero','fDireccion','fTipoSangre','fAlergias'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
             } else if (sectionKey === 'medicos') {
@@ -1906,7 +1884,7 @@
                 else if (fid === 'modalDireccion') payload['direccion'] = el.value || null;
                 else if (fid === 'modalGenero') payload['genero'] = el.value || null;
                 else if (fid === 'modalPassword') payload['password'] = el.value;
-                else if (fid === 'modalRol') payload['rol_laboratorista'] = el.value || null;
+                else if (fid === 'modalRol') payload['rol_administrador'] = el.value || null;
                 else if (fid === 'modalEspecialidad') payload['especialidad'] = el.value || null;
                 else if (fid === 'modalIdArea') payload['id_area'] = el.value || null;
                 else if (fid === 'modalNombre') payload['nombre'] = el.value || null;
@@ -1920,7 +1898,7 @@
                 else if (fid === 'modalTiempoEstimado') payload['tiempo_estimado_minutos'] = el.value ? parseInt(el.value) : 30;
             });
             // Validar contraseña solo para secciones de usuarios, no para áreas o pruebas
-            const userSections = ['pacientes', 'medicos', 'laboratoristas'];
+            const userSections = ['pacientes', 'medicos', 'laboratoristas', 'administradores'];
             if (mode === 'create' && userSections.includes(sectionKey) && !payload.password) {
                 alert('Para crear un usuario debe ingresar una contraseña.');
                 return;
@@ -2369,6 +2347,9 @@
                         opt.textContent = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno || ''} (${p.id_paciente})`;
                         pacSelect.appendChild(opt);
                     });
+                } else if (pRes.status === 401 || pRes.status === 403) {
+                    pacSelect.innerHTML = '<option value="">No autorizado. Inicia sesión nuevamente.</option>';
+                    console.warn('Cargar pacientes: no autorizado (401/403)');
                 } else {
                     pacSelect.innerHTML = '<option value="">Error al cargar pacientes</option>';
                 }

@@ -46,9 +46,12 @@ async def login_access_token(
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
-    # Agregar 'sub' (subject -> email), 'rol' y el ID específico al token
+    token_data = {"sub": user.email, "rol": rol, "id_usuario": user_id}
+    if rol in ["administrador", "recepcionista"]:
+        token_data["rol_administrador"] = user.rol_administrador
+
     access_token = create_access_token(
-        data={"sub": user.email, "rol": rol, "id_usuario": user_id},
+        data=token_data,
         expires_delta=access_token_expires
     )
     

@@ -193,6 +193,8 @@
             switch (role) {
                 case 'administrador':
                     return '/admin-dashboard/';
+                case 'recepcionista':
+                    return '/recepcionista-dashboard/';
                 case 'medico':
                     return '/medico-dashboard/';
                 case 'paciente':
@@ -205,12 +207,12 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
-            const token = sessionStorage.getItem('access_token');
+            const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
             if (token) {
                 const payload = decodeJwt(token);
                 const dashboardPath = payload ? getRoleDashboardPath(payload.rol) : null;
                 if (dashboardPath) {
-                    window.location.href = dashboardPath;
+                    window.location.replace(dashboardPath);
                 }
             }
         });
@@ -336,16 +338,19 @@
 
                 // Successful login
                 showAlert('Acceso verificado. Redirigiendo...', 'success');
+                if (remember) {
+                    localStorage.setItem('access_token', data.access_token);
+                }
                 sessionStorage.setItem('access_token', data.access_token);
                 
                 setTimeout(() => {
                     const payload = decodeJwt(data.access_token);
                     const dashboardPath = payload ? getRoleDashboardPath(payload.rol) : null;
                     if (dashboardPath) {
-                        window.location.href = dashboardPath;
-                    } else {
-                        showProfile(data.access_token);
+                        window.location.replace(dashboardPath);
+                        return;
                     }
+                    showProfile(data.access_token);
                 }, 800);
 
             } catch (error) {

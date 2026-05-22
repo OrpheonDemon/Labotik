@@ -72,7 +72,7 @@ async def get_current_user(request: Request, db: AsyncSession = Depends(get_db))
         stmt = select(Laboratorista).where(Laboratorista.email == token_data.email, Laboratorista.activo == 1)
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
-    elif token_data.rol == "administrador":
+    elif token_data.rol in ["administrador", "recepcionista"]:
         from sqlalchemy import select
         from app.models import Administrador
         stmt = select(Administrador).where(Administrador.email == token_data.email, Administrador.activo == 1)

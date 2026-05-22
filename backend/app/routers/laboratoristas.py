@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app import schemas, crud
 from app.database import get_db
-from app.dependencies import require_laboratorista
+from app.dependencies import require_laboratorista, get_current_active_user
 
 router = APIRouter(prefix="/laboratoristas", tags=["Laboratoristas"])
 
 @router.get("/", response_model=list[schemas.LaboratoristaOut])
-async def list_laboratoristas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+async def list_laboratoristas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
+    # Permitir acceso a laboratoristas y otros roles autenticados para ver el listado
     return await crud.laboratorista_crud.get_multi(db, skip, limit)
 
 @router.get("/search", response_model=list[schemas.LaboratoristaOut])
@@ -18,7 +19,7 @@ async def search_laboratoristas(
     apellido_materno: str = Query(None),
     nombre: str = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_laboratorista)
+    current_user: dict = Depends(get_current_active_user)
 ):
     if id_laboratorista:
         laboratorista = await crud.laboratorista_crud.get(db, id_laboratorista)

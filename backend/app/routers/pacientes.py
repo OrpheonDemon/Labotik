@@ -14,7 +14,7 @@ async def list_pacientes(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador", "recepcionista", "paciente"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para listar pacientes")
     return await crud.paciente_crud.get_multi(db, skip, limit)
 
@@ -27,7 +27,7 @@ async def search_pacientes(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico", "administrador"]:
+    if current_user["rol"] not in ["laboratorista", "medico", "administrador", "recepcionista", "paciente"]:
         raise HTTPException(status_code=403, detail="No tienes permisos para buscar pacientes")
     if id_paciente:
         paciente = await crud.paciente_crud.get(db, id_paciente)
@@ -40,7 +40,7 @@ async def get_paciente(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_active_user)
 ):
-    # Un paciente solo puede verse a sí mismo, a menos que sea laboratorista o médico
+    # Un paciente solo puede verse a sí mismo, a menos que sea laboratorista, médico o recepcionista
     user_obj = current_user["user"]
     if current_user["rol"] == "paciente" and user_obj.id_paciente != id_paciente:
         raise HTTPException(status_code=403, detail="No puedes ver información de otros pacientes")

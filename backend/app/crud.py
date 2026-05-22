@@ -131,6 +131,14 @@ class CRUDPaciente(CRUDBase[Paciente, PacienteCreate, PacienteUpdate]):
         return result.scalars().all()
 
 class CRUDMedico(CRUDBase[Medico, MedicoCreate, MedicoUpdate]):
+    async def get_by_email(self, db: AsyncSession, email: str):
+        stmt = select(Medico).where(
+            Medico.email == email,
+            Medico.activo == 1
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def search_by_names(self, db: AsyncSession, apellido_paterno: str = "", apellido_materno: str = "", nombre: str = ""):
         conditions = []
         if apellido_paterno:
@@ -251,6 +259,8 @@ async def authenticate_user(db: AsyncSession, email: str, password: str):
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     if user and verify_password(password, user.password):
+        if getattr(user, 'rol_administrador', None) == 'recepcionista':
+            return {"user": user, "rol": "recepcionista"}
         return {"user": user, "rol": "administrador"}
 
     return None

@@ -11,6 +11,10 @@ def medico_dashboard_view(request):
     return render(request, 'dashboard/medico_dashboard.html')
 
 
+def recepcionista_dashboard_view(request):
+    return render(request, 'dashboard/recepcionista_dashboard.html')
+
+
 def paciente_dashboard_view(request):
     return render(request, 'dashboard/paciente_dashboard.html')
 

@@ -20,6 +20,7 @@ from django.urls import path
 from authentication.views import (
     login_view,
     admin_dashboard_view,
+    recepcionista_dashboard_view,
     medico_dashboard_view,
     paciente_dashboard_view,
     laboratorista_dashboard_view,
@@ -32,4 +33,5 @@ urlpatterns = [
     path("medico-dashboard/", medico_dashboard_view, name="medico_dashboard"),
     path("paciente-dashboard/", paciente_dashboard_view, name="paciente_dashboard"),
     path("laboratorista-dashboard/", laboratorista_dashboard_view, name="laboratorista_dashboard"),
+    path("recepcionista-dashboard/", recepcionista_dashboard_view, name="recepcionista_dashboard"),
 ]

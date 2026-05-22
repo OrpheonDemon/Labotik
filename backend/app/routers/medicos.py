@@ -22,6 +22,13 @@ async def search_medicos(
         return [medico] if medico else []
     return await crud.medico_crud.search_by_names(db, apellido_paterno, apellido_materno, nombre)
 
+@router.get("/by-email", response_model=schemas.MedicoOut)
+async def get_medico_by_email(email: str = Query(...), db: AsyncSession = Depends(get_db)):
+    medico = await crud.medico_crud.get_by_email(db, email)
+    if not medico:
+        raise HTTPException(status_code=404, detail="Médico no encontrado")
+    return medico
+
 @router.get("/{id_medico}", response_model=schemas.MedicoOut)
 async def get_medico(id_medico: str, db: AsyncSession = Depends(get_db)):
     medico = await crud.medico_crud.get(db, id_medico)
