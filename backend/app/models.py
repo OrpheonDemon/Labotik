@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Integer, Text, Date, DateTime, Enum, Float, ForeignKey, TIMESTAMP, func
+from sqlalchemy import Column, String, Integer, Text, Date, DateTime, Enum, Float, ForeignKey, TIMESTAMP, func, JSON
 from app.database import Base
 
 class AreaLaboratorio(Base):
@@ -175,6 +175,26 @@ class Administrador(Base):
     password = Column(String(255), nullable=False)
     telefono = Column(String(20))
     rol_administrador = Column(Enum('super_admin', 'admin_general', 'admin_financiero', 'admin_lab', 'recepcionista'), default='admin_general')
+    activo = Column(Integer, default=1)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+class DiagnosticoPredictivo(Base):
+    __tablename__ = "diagnosticos_predictivos"
+    id_diagnostico = Column(Integer, primary_key=True)
+    id_solicitud = Column(Integer, ForeignKey("solicitudes.id_solicitud"), nullable=False)
+    id_paciente = Column(String(20), ForeignKey("pacientes.id_paciente"), nullable=False)
+    id_medico = Column(String(20), ForeignKey("medicos.id_medico"), nullable=False)
+    
+    diagnostico_actual = Column(Text, nullable=True)
+    confianza_actual = Column(Float, default=0.0)
+    
+    predicciones = Column(JSON, nullable=True)
+    factores_riesgo = Column(JSON, nullable=True)
+    recomendaciones = Column(Text, nullable=True)
+    
+    modelo_version = Column(String(20), default="medgemma")
+    fecha_generacion = Column(DateTime, server_default=func.now())
     activo = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

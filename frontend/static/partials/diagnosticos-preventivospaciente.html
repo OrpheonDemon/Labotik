@@ -1,0 +1,168 @@
+<section id="diagnosticos-preventivospaciente" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Asistente Clínico IA</h1>
+                <p class="profile-panel-subtitle">Consulta con el Asistente Clínico IA sobre tus resultados de laboratorio, interpretación clínica y recomendaciones.</p>
+            </div>
+        </div>
+        
+        <!-- Chat Panel -->
+        <div class="assistant-chat-panel">
+            <!-- Messages Container -->
+            <div id="assistantMessagesContainer" class="assistant-messages">
+                <div id="assistantPlaceholder" class="assistant-placeholder">
+                    <div style="text-align: center; padding: 40px 20px; color: rgba(255,255,255,0.6);">
+                        <h3 style="margin: 0 0 10px 0; font-size: 16px;">Bienvenido al Asistente Clínico</h3>
+                        <p style="margin: 0; font-size: 14px;">Haz preguntas sobre tus diagnósticos e interpretación de resultados.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="assistant-panel-actions">
+                <div style="display: flex; gap: 8px; flex: 1;">
+                    <textarea 
+                        id="assistantInputField" 
+                        class="assistant-input"
+                        placeholder="Escribe tu pregunta aquí..."
+                        rows="3"
+                        style="flex: 1; resize: none; font-family: 'Inter', sans-serif; font-size: 13px; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); color: #e5dfda; outline: none; transition: all 0.3s ease;"
+                    ></textarea>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 12px;">
+                    <button 
+                        class="btn btn-primary"
+                        onclick="submitAssistantQuery()"
+                        style="flex: 1; padding: 10px 16px; font-size: 13px;"
+                    >
+                        Enviar
+                    </button>
+                    <button 
+                        class="btn btn-secondary"
+                        onclick="clearAssistantChat()"
+                        style="padding: 10px 16px; font-size: 13px;"
+                    >
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .assistant-chat-panel {
+            display: flex;
+            flex-direction: column;
+            background: rgba(30, 20, 15, 0.6);
+            border: 1px solid rgba(200, 150, 102, 0.3);
+            border-radius: 16px;
+            overflow: hidden;
+            height: 600px;
+            backdrop-filter: blur(10px);
+        }
+
+        .assistant-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .assistant-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex: 1;
+        }
+
+        .assistant-message {
+            display: flex;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .assistant-message.user {
+            justify-content: flex-end;
+        }
+
+        .assistant-message.assistant {
+            justify-content: flex-start;
+        }
+
+        .assistant-message .bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            line-height: 1.5;
+        }
+
+        .assistant-message.assistant .bubble {
+            background: rgba(200, 150, 102, 0.15);
+            border: 1px solid rgba(200, 150, 102, 0.3);
+            color: #e5dfda;
+        }
+
+        .assistant-message.user .bubble {
+            background: rgba(102, 178, 224, 0.2);
+            border: 1px solid rgba(102, 178, 224, 0.4);
+            color: #b8d5e8;
+        }
+
+        .assistant-panel-actions {
+            padding: 16px;
+            border-top: 1px solid rgba(200, 150, 102, 0.2);
+            background: rgba(20, 10, 5, 0.8);
+        }
+
+        .assistant-input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #e5dfda;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            resize: none;
+        }
+
+        .assistant-input:focus {
+            outline: none;
+            background: rgba(255,255,255,0.12);
+            border-color: rgba(200, 150, 102, 0.5);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scrollbar styling */
+        .assistant-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .assistant-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .assistant-messages::-webkit-scrollbar-thumb {
+            background: rgba(200, 150, 102, 0.4);
+            border-radius: 4px;
+        }
+
+        .assistant-messages::-webkit-scrollbar-thumb:hover {
+            background: rgba(200, 150, 102, 0.6);
+        }
+    </style>
+</section>

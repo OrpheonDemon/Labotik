@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from app.database import engine, Base
 from app.routers import (
     areas, pruebas, pacientes, medicos, laboratoristas, administradores,
-    solicitudes, resultados, reportes, facturas, pagos, auth
+    solicitudes, resultados, reportes, facturas, pagos, auth, diagnosticos, ai
 )
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -15,22 +15,9 @@ app = FastAPI(title="Laboratorio Clínico API", version="1.0")
 # Configurar CORS (ajusta los dominios permitidos en producción)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8001",
-        "http://localhost:8001",
-        "http://127.0.0.1:8002",
-        "http://localhost:8002",
-        "http://127.0.0.1:8080",
-        "http://localhost:8080",
-        "http://127.0.0.1:5000",
-        "http://localhost:5000",
-    ],
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
     allow_headers=["*"],
     max_age=3600,
 )
@@ -78,6 +65,8 @@ app.include_router(resultados.router)
 app.include_router(reportes.router)
 app.include_router(facturas.router)
 app.include_router(pagos.router)
+app.include_router(diagnosticos.router)
+app.include_router(ai.router)
 
 @app.get("/")
 async def root():

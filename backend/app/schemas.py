@@ -376,3 +376,36 @@ class TokenData(BaseModel):
     id_usuario: Optional[str] = None
     email: Optional[str] = None
     rol: Optional[str] = None
+
+# ---------- Diagnósticos Preventivos ----------
+class DiagnosticoPreventivoBase(BaseModel):
+    id_diagnostico: Optional[int] = None
+    id_solicitud: int
+    id_paciente: str
+    id_medico: str
+    diagnostico_actual: Optional[str] = None
+    confianza_actual: Optional[float] = 0.0
+    predicciones: Optional[dict] = None
+    factores_riesgo: Optional[dict] = None
+    recomendaciones: Optional[str] = None
+    modelo_version: Optional[str] = "medgemma"
+
+class DiagnosticoPreventivoCreate(BaseModel):
+    id_solicitud: int
+    id_paciente: str
+    id_medico: str
+    diagnostico_actual: Optional[str] = None
+    confianza_actual: Optional[float] = 0.0
+
+class DiagnosticoPreventivoUpdate(BaseModel):
+    diagnostico_actual: Optional[str] = None
+    confianza_actual: Optional[float] = None
+    predicciones: Optional[dict] = None
+    factores_riesgo: Optional[dict] = None
+    recomendaciones: Optional[str] = None
+
+class DiagnosticoPreventivoOut(DiagnosticoPreventivoBase):
+    activo: int
+    fecha_generacion: datetime
+    created_at: datetime
+    updated_at: datetime

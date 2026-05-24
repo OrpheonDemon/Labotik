@@ -923,6 +923,12 @@
             return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
         }
 
+        function getAuthHeaders() {
+            const token = getToken();
+            return token ? { 'Authorization': `Bearer ${token}`, 'X-Access-Token': token } : {};
+        }
+
+
         function decodeJwt(token) {
             try {
                 const base64Url = token.split('.')[1];
@@ -1041,7 +1047,7 @@
 
             try {
                 const response = await fetch(`${API_URL}/administradores/by-email?email=${encodeURIComponent(payload.sub)}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (!response.ok) throw new Error('Error al obtener perfil');
                 const adminData = await response.json();
@@ -1117,7 +1123,7 @@
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        ...getAuthHeaders()
                     },
                     body: JSON.stringify(updatedData)
                 });
@@ -1226,7 +1232,7 @@
 
         async function loadDashboardSummary() {
             const token = getToken();
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const headers = getAuthHeaders();
 
             try {
                 const solicitudesRes = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers });
@@ -1250,7 +1256,7 @@
 
         async function loadDashboardStats() {
             const token = getToken();
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const headers = getAuthHeaders();
             const metricIds = {
                 pacientes: 'metricPacientes',
                 medicos: 'metricMedicos',
@@ -1511,9 +1517,7 @@
                 }
                 
                 const response = await fetch(`${API_URL}/areas/search?${params.toString()}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: getAuthHeaders()
                 });
                 
                 if (!response.ok) {
@@ -1549,7 +1553,7 @@
             try {
                 const token = getToken();
                 const response = await fetch(`${API_URL}/areas/search`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (response.ok) {
                     const areas = await response.json();
@@ -1600,12 +1604,12 @@
                 if (hasSearch) {
                     const query = new URLSearchParams(searchFilters).toString();
                     response = await fetch(`${API_URL}/${cfg.endpoint}/search?${query}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        headers: getAuthHeaders()
                     });
                 } else {
                     const skip = page * pageSize;
                     response = await fetch(`${API_URL}/${cfg.endpoint}?skip=${skip}&limit=${pageSize}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                        headers: getAuthHeaders()
                     });
                 }
                 if (!response.ok) {
@@ -1909,7 +1913,7 @@
                 const url = mode === 'create' ? `${API_URL}/${cfg.endpoint}/` : `${API_URL}/${cfg.endpoint}/${id}`;
                 const res = await fetch(url, {
                     method,
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) {
@@ -1932,7 +1936,7 @@
                 const token = getToken();
                 const res = await fetch(`${API_URL}/${cfg.endpoint}/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (!res.ok) {
                     const err = await res.json().catch(() => null);
@@ -1957,7 +1961,7 @@
                 
                 // Fetch patients
                 const pRes = await fetch(`${API_URL}/pacientes?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (pRes.ok) {
                     const patients = await pRes.json();
@@ -1969,7 +1973,7 @@
 
                 // Fetch doctors
                 const mRes = await fetch(`${API_URL}/medicos?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (mRes.ok) {
                     const medicos = await mRes.json();
@@ -1981,7 +1985,7 @@
 
                 // Fetch tests/pruebas
                 const tRes = await fetch(`${API_URL}/pruebas?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (tRes.ok) {
                     const pruebas = await tRes.json();
@@ -2009,7 +2013,7 @@
             try {
                 const skip = page * pageSize;
                 const requestLimit = pageSize + 1;
-                let res = await fetch(`${API_URL}/solicitudes/paid?skip=${skip}&limit=${requestLimit}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                let res = await fetch(`${API_URL}/solicitudes/paid?skip=${skip}&limit=${requestLimit}`, { headers: getAuthHeaders() });
                 let items = [];
                 let totalItems = [];
                 if (res.ok) {
@@ -2017,7 +2021,7 @@
                     totalItems = items;
                 } else {
                     console.warn('/solicitudes/paid failed, falling back to /solicitudes');
-                    res = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    res = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers: getAuthHeaders() });
                     if (!res.ok) {
                         status.innerText = 'Error cargando solicitudes.';
                         return;
@@ -2087,7 +2091,7 @@
             status.innerText = 'Cargando resultados...';
             try {
                 const res = await fetch(`${API_URL}/resultados?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (!res.ok) {
                     status.innerText = 'Error cargando resultados.';
@@ -2336,7 +2340,7 @@
             try {
                 // Fetch patients
                 const pRes = await fetch(`${API_URL}/pacientes?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (pRes.ok) {
                     const patients = await pRes.json();
@@ -2356,7 +2360,7 @@
 
                 // Fetch doctors
                 const mRes = await fetch(`${API_URL}/medicos?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (mRes.ok) {
                     const medicos = await mRes.json();
@@ -2385,14 +2389,14 @@
             try {
                 // 1. Fetch Areas
                 const aRes = await fetch(`${API_URL}/areas?limit=100`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (!aRes.ok) throw new Error('Error al cargar áreas');
                 const areas = await aRes.json();
 
                 // 2. Fetch Pruebas
                 const tRes = await fetch(`${API_URL}/pruebas?limit=1000`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: getAuthHeaders()
                 });
                 if (!tRes.ok) throw new Error('Error al cargar pruebas');
                 const pruebas = await tRes.json();
@@ -2576,7 +2580,7 @@
                     method,
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        ...getAuthHeaders()
                     },
                     body: JSON.stringify(payload)
                 });
@@ -2659,7 +2663,7 @@
             if (pagination) pagination.innerHTML = '';
             
             try{
-                const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+                const headers = getAuthHeaders();
                 console.log('Iniciando carga de resultados desde:', `${API_URL}/resultados?limit=1000`);
                 const res = await fetch(`${API_URL}/resultados?limit=1000`, { headers });
                 
@@ -2765,7 +2769,7 @@
             if (resetPage) reportesPage = 0;
             const token = getToken();
             const tbody = document.getElementById('reportesListTbody');
-            const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
+            const headers = getAuthHeaders();
             if(!tbody) { console.error('No se encontró tabla de reportes'); return; }
             
             tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Cargando...</td></tr>';
@@ -2889,7 +2893,7 @@
             reportesPage = 0;
             
             const token = getToken();
-            const headers = token?{ 'Authorization': `Bearer ${token}` }:{};
+            const headers = getAuthHeaders();
             const tbody = document.getElementById('reportesListTbody'); 
             if(!tbody) return; 
             
@@ -2996,7 +3000,7 @@
         async function openResultadoDetailsModal(id_resultado) {
             console.log("Opening details modal for resultado ID:", id_resultado);
             const token = getToken();
-            const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+            const headers = getAuthHeaders();
             
             const modal = document.getElementById('resultadoDetalleModal');
             if (!modal) {
@@ -3395,6 +3399,23 @@
             loadReportesList();
         }
     </script>
+
+    <!-- Load Clinical AI Assistant Widget dynamically -->
+    <div id="clinical-ai-widget-container"></div>
+    <script>
+        (async function loadClinicalAI() {
+            try {
+                const response = await fetch('/static/partials/clinical-assistant-ai.html');
+                if (response.ok) {
+                    const html = await response.text();
+                    document.getElementById('clinical-ai-widget-container').innerHTML = html;
+                }
+            } catch (e) {
+                console.error('Error loading clinical AI widget:', e);
+            }
+        })();
+    </script>
+
 </body>
 </html>
 

@@ -1,0 +1,612 @@
+<!-- Clinical AI Assistant Widget - Positioned above footer -->
+<style>
+    .clinical-ai-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 9998;
+        padding-bottom: 20px;
+    }
+
+    .clinical-ai-wrapper {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .clinical-ai-widget {
+        width: 100%;
+        max-width: 550px;
+    }
+
+    .clinical-ai-toggle-group {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+        background: rgba(20, 25, 35, 0.95);
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid rgba(44, 90, 160, 0.3);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        flex-wrap: wrap;
+        backdrop-filter: blur(10px);
+    }
+
+    .clinical-ai-toggle-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 10px 14px;
+        background: rgba(44, 90, 160, 0.1);
+        border: 1px solid rgba(44, 90, 160, 0.3);
+        color: #a0a8b0;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.2s;
+    }
+
+    .clinical-ai-toggle-btn:hover {
+        background: rgba(44, 90, 160, 0.2);
+        border-color: rgba(44, 90, 160, 0.6);
+        color: #3d7fb3;
+    }
+
+    .clinical-ai-toggle-btn.active {
+        background: linear-gradient(135deg, #2c5aa0 0%, #3d7fb3 100%);
+        border-color: #3d7fb3;
+        color: white;
+        box-shadow: 0 4px 12px rgba(44, 90, 160, 0.3);
+    }
+
+    .clinical-ai-main-btn {
+        width: 100%;
+        padding: 12px 16px;
+        background: linear-gradient(135deg, #2c5aa0 0%, #3d7fb3 100%);
+        border: none;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+    .clinical-ai-main-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(44, 90, 160, 0.4);
+    }
+
+    .clinical-ai-modal {
+        width: 100%;
+        max-height: 650px;
+        background: rgba(20, 25, 35, 0.98);
+        border: 2px solid rgba(44, 90, 160, 0.5);
+        border-radius: 16px;
+        display: none;
+        flex-direction: column;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .clinical-ai-modal.show {
+        display: flex;
+    }
+
+    .clinical-ai-header {
+        padding: 16px;
+        border-bottom: 1px solid rgba(44, 90, 160, 0.3);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(to right, rgba(44, 90, 160, 0.1), transparent);
+    }
+
+    .clinical-ai-title {
+        color: #e0e6f0;
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .clinical-ai-title::before {
+        content: "🔬";
+        font-size: 18px;
+    }
+
+    .clinical-ai-close {
+        background: none;
+        border: none;
+        color: #e0e6f0;
+        cursor: pointer;
+        font-size: 20px;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .clinical-ai-close:hover {
+        opacity: 1;
+    }
+
+    .clinical-ai-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .clinical-ai-section {
+        display: none;
+    }
+
+    .clinical-ai-section.active {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .clinical-ai-form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .clinical-ai-label {
+        color: #d0d8e0;
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .clinical-ai-select,
+    .clinical-ai-input {
+        padding: 10px 12px;
+        background: rgba(44, 90, 160, 0.1);
+        border: 1px solid rgba(44, 90, 160, 0.3);
+        border-radius: 6px;
+        color: #e0e6f0;
+        font-size: 14px;
+        font-family: inherit;
+        transition: all 0.2s;
+    }
+
+    .clinical-ai-select:focus,
+    .clinical-ai-input:focus {
+        outline: none;
+        background: rgba(44, 90, 160, 0.15);
+        border-color: rgba(44, 90, 160, 0.6);
+        box-shadow: 0 0 8px rgba(44, 90, 160, 0.2);
+    }
+
+    .clinical-ai-select option {
+        background: #1e1e1e;
+        color: #e0e6f0;
+    }
+
+    .clinical-ai-button-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .clinical-ai-analyze-btn {
+        flex: 1;
+        padding: 10px 16px;
+        background: linear-gradient(135deg, #2c5aa0 0%, #3d7fb3 100%);
+        border: none;
+        color: white;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+
+    .clinical-ai-analyze-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(44, 90, 160, 0.3);
+    }
+
+    .clinical-ai-analyze-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .clinical-ai-results {
+        max-height: 280px;
+        overflow-y: auto;
+        padding: 12px;
+        background: rgba(44, 90, 160, 0.05);
+        border-radius: 8px;
+        border: 1px solid rgba(44, 90, 160, 0.2);
+        font-size: 12px;
+        line-height: 1.5;
+        color: #d0d8e0;
+    }
+
+    .clinical-ai-results h4 {
+        color: #3d7fb3;
+        margin: 8px 0 4px 0;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .clinical-ai-results ul {
+        margin: 4px 0;
+        padding-left: 16px;
+    }
+
+    .clinical-ai-results li {
+        margin: 2px 0;
+        font-size: 11px;
+    }
+
+    .clinical-ai-alert {
+        padding: 10px;
+        background: rgba(220, 53, 69, 0.1);
+        border-left: 3px solid #dc3545;
+        border-radius: 4px;
+        color: #d0d8e0;
+        font-size: 11px;
+    }
+
+    .clinical-ai-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 16px;
+        color: #a0a8b0;
+        font-size: 12px;
+    }
+
+    .clinical-ai-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(44, 90, 160, 0.3);
+        border-top-color: #3d7fb3;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Scrollbar styling */
+    .clinical-ai-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .clinical-ai-content::-webkit-scrollbar-track {
+        background: rgba(44, 90, 160, 0.1);
+        border-radius: 3px;
+    }
+
+    .clinical-ai-content::-webkit-scrollbar-thumb {
+        background: rgba(44, 90, 160, 0.3);
+        border-radius: 3px;
+    }
+
+    .clinical-ai-content::-webkit-scrollbar-thumb:hover {
+        background: rgba(44, 90, 160, 0.5);
+    }
+
+    @media (max-width: 768px) {
+        .clinical-ai-wrapper {
+            padding: 0 10px;
+        }
+
+        .clinical-ai-widget {
+            max-width: 100%;
+        }
+
+        .clinical-ai-toggle-group {
+            flex-direction: column;
+        }
+
+        .clinical-ai-toggle-btn {
+            min-width: auto;
+        }
+    }
+</style>
+
+<!-- Clinical AI Assistant Widget Container -->
+<div class="clinical-ai-container">
+    <div class="clinical-ai-wrapper">
+        <div class="clinical-ai-widget">
+            <!-- Toggle Buttons -->
+            <div class="clinical-ai-toggle-group">
+                <button class="clinical-ai-toggle-btn active" data-section="patient-analysis">
+                    👤 Análisis Paciente
+                </button>
+                <button class="clinical-ai-toggle-btn" data-section="result-analysis">
+                    🧪 Análisis Resultado
+                </button>
+                <button class="clinical-ai-toggle-btn" data-section="chat">
+                    💬 Chat Clínico
+                </button>
+            </div>
+
+            <!-- Main Modal -->
+            <div class="clinical-ai-modal" id="clinicalAiModal">
+                <div class="clinical-ai-header">
+                    <h3 class="clinical-ai-title">Asistente Clínico IA</h3>
+                    <button class="clinical-ai-close" id="clinicalAiClose">&times;</button>
+                </div>
+
+                <div class="clinical-ai-content">
+                    <!-- Patient Analysis Section -->
+                    <div class="clinical-ai-section active" data-section="patient-analysis">
+                        <div class="clinical-ai-form-group">
+                            <label class="clinical-ai-label">Seleccionar Paciente</label>
+                            <select class="clinical-ai-select" id="patientSelect">
+                                <option value="">-- Cargando pacientes --</option>
+                            </select>
+                        </div>
+
+                        <button class="clinical-ai-analyze-btn" id="analyzePatientBtn">
+                            🔬 Analizar Paciente
+                        </button>
+
+                        <div id="patientResultsContainer" style="display: none;">
+                            <div class="clinical-ai-results" id="patientResults"></div>
+                        </div>
+                    </div>
+
+                    <!-- Result Analysis Section -->
+                    <div class="clinical-ai-section" data-section="result-analysis">
+                        <div class="clinical-ai-form-group">
+                            <label class="clinical-ai-label">Seleccionar Paciente</label>
+                            <select class="clinical-ai-select" id="resultPatientSelect">
+                                <option value="">-- Cargando pacientes --</option>
+                            </select>
+                        </div>
+
+                        <div class="clinical-ai-form-group">
+                            <label class="clinical-ai-label">Seleccionar Resultado</label>
+                            <select class="clinical-ai-select" id="resultSelect">
+                                <option value="">-- Selecciona paciente primero --</option>
+                            </select>
+                        </div>
+
+                        <button class="clinical-ai-analyze-btn" id="analyzeResultBtn">
+                            🧬 Analizar Resultado
+                        </button>
+
+                        <div id="resultResultsContainer" style="display: none;">
+                            <div class="clinical-ai-results" id="resultResults"></div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Section -->
+                    <div class="clinical-ai-section" data-section="chat">
+                        <div class="clinical-ai-form-group">
+                            <label class="clinical-ai-label">Pregunta Clínica</label>
+                            <textarea class="clinical-ai-input" id="chatInput" 
+                                placeholder="Escribe tu pregunta clínica..." style="min-height: 80px; resize: vertical;"></textarea>
+                        </div>
+
+                        <div class="clinical-ai-form-group">
+                            <label class="clinical-ai-label">Contexto del Paciente (opcional)</label>
+                            <textarea class="clinical-ai-input" id="chatContext" 
+                                placeholder="Información clínica relevante..." style="min-height: 60px; resize: vertical;"></textarea>
+                        </div>
+
+                        <button class="clinical-ai-analyze-btn" id="chatBtn">
+                            💬 Enviar Pregunta
+                        </button>
+
+                        <div id="chatResultsContainer" style="display: none;">
+                            <div class="clinical-ai-results" id="chatResults"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Toggle Button -->
+            <button class="clinical-ai-main-btn" id="toggleClinicalAi">
+                🔬 Asistente Clínico IA
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', async function() {
+        const modal = document.getElementById('clinicalAiModal');
+        const toggleBtn = document.getElementById('toggleClinicalAi');
+        const closeBtn = document.getElementById('clinicalAiClose');
+        const sectionBtns = document.querySelectorAll('.clinical-ai-toggle-btn');
+        
+        const patientSelect = document.getElementById('patientSelect');
+        const resultPatientSelect = document.getElementById('resultPatientSelect');
+        const resultSelect = document.getElementById('resultSelect');
+        const analyzePatientBtn = document.getElementById('analyzePatientBtn');
+        const analyzeResultBtn = document.getElementById('analyzeResultBtn');
+        const chatBtn = document.getElementById('chatBtn');
+
+        // Toggle modal
+        toggleBtn.addEventListener('click', () => {
+            modal.classList.toggle('show');
+        });
+
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('show');
+        });
+
+        // Section switching
+        sectionBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const section = btn.getAttribute('data-section');
+                sectionBtns.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.clinical-ai-section').forEach(s => s.classList.remove('active'));
+                btn.classList.add('active');
+                document.querySelector(`[data-section="${section}"]`).classList.add('active');
+            });
+        });
+
+        // Load patients
+        async function loadPatients() {
+            try {
+                const response = await fetch('/pacientes/', { method: 'GET' });
+                const data = await response.json();
+                const patients = data.items || [];
+                const options = '<option value="">-- Selecciona un paciente --</option>' +
+                    patients.map(p => `<option value="${p.id_paciente}">${p.nombre} ${p.apellido_paterno}</option>`).join('');
+                patientSelect.innerHTML = options;
+                resultPatientSelect.innerHTML = options;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Load results when patient selected
+        resultPatientSelect.addEventListener('change', async function() {
+            const patientId = this.value;
+            resultSelect.innerHTML = '<option value="">-- Cargando --</option>';
+            if (!patientId) return;
+            try {
+                const response = await fetch(`/solicitudes/?id_paciente=${patientId}`);
+                const data = await response.json();
+                const results = [];
+                for (const solicitud of (data.items || [])) {
+                    const detailResponse = await fetch(`/detalle-solicitud/?id_solicitud=${solicitud.id_solicitud}`);
+                    const detailData = await detailResponse.json();
+                    for (const detalle of (detailData.items || [])) {
+                        const resultResponse = await fetch(`/resultados/?id_detalle=${detalle.id_detalle}`);
+                        const resultData = await resultResponse.json();
+                        for (const result of (resultData.items || [])) {
+                            results.push({ id: result.id_resultado, text: `Resultado #${result.id_resultado}` });
+                        }
+                    }
+                }
+                resultSelect.innerHTML = '<option value="">-- Selecciona resultado --</option>' +
+                    results.map(r => `<option value="${r.id}">${r.text}</option>`).join('');
+            } catch (error) {
+                console.error('Error:', error);
+                resultSelect.innerHTML = '<option value="">Error</option>';
+            }
+        });
+
+        // Analyze patient
+        analyzePatientBtn.addEventListener('click', async function() {
+            const patientId = patientSelect.value;
+            if (!patientId) { alert('Selecciona un paciente'); return; }
+            const container = document.getElementById('patientResultsContainer');
+            const resultsDiv = document.getElementById('patientResults');
+            resultsDiv.innerHTML = '<div class="clinical-ai-loading"><div class="clinical-ai-spinner"></div>Analizando...</div>';
+            container.style.display = 'block';
+            try {
+                const response = await fetch('/ai/patient-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: patientId, include_history: true })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const analysis = data.analysis;
+                    let html = '<h4>📊 Análisis del Paciente</h4>';
+                    html += `<p><strong>Prioridad:</strong> ${analysis.prioridad_seguimiento || 'N/A'}</p>`;
+                    if (analysis.hallazgos_integrales && analysis.hallazgos_integrales.length > 0) {
+                        html += '<h4>Hallazgos:</h4><ul>' + analysis.hallazgos_integrales.map(h => `<li>${h}</li>`).join('') + '</ul>';
+                    }
+                    if (analysis.recomendaciones_clinicas && analysis.recomendaciones_clinicas.length > 0) {
+                        html += '<h4>Recomendaciones:</h4><ul>' + analysis.recomendaciones_clinicas.map(r => `<li>${r}</li>`).join('') + '</ul>';
+                    }
+                    html += '<div class="clinical-ai-alert" style="border-left-color: #17a2b8; background: rgba(23, 162, 184, 0.1);"><strong>ℹ️ Validación clínica requerida</strong></div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div class="clinical-ai-alert">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="clinical-ai-alert">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Analyze result
+        analyzeResultBtn.addEventListener('click', async function() {
+            const patientId = resultPatientSelect.value;
+            const resultId = resultSelect.value;
+            if (!patientId || !resultId) { alert('Selecciona paciente y resultado'); return; }
+            const container = document.getElementById('resultResultsContainer');
+            const resultsDiv = document.getElementById('resultResults');
+            resultsDiv.innerHTML = '<div class="clinical-ai-loading"><div class="clinical-ai-spinner"></div>Analizando...</div>';
+            container.style.display = 'block';
+            try {
+                const response = await fetch('/ai/result-analysis', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ patient_id: patientId, result_id: parseInt(resultId), include_related: true })
+                });
+                const data = await response.json();
+                if (data.status === 'success') {
+                    const analysis = data.analysis;
+                    let html = '<h4>🔬 Análisis del Resultado</h4>';
+                    html += `<p><strong>Urgencia:</strong> ${analysis.urgencia || 'N/A'}</p>`;
+                    html += `<p><strong>Severidad:</strong> ${analysis.severidad || 'N/A'}</p>`;
+                    if (analysis.significado_clinico) {
+                        html += `<h4>Significado:</h4><p>${analysis.significado_clinico}</p>`;
+                    }
+                    if (analysis.recomendaciones_seguimiento && analysis.recomendaciones_seguimiento.length > 0) {
+                        html += '<h4>Recomendaciones:</h4><ul>' + analysis.recomendaciones_seguimiento.map(r => `<li>${r}</li>`).join('') + '</ul>';
+                    }
+                    html += '<div class="clinical-ai-alert" style="border-left-color: #17a2b8; background: rgba(23, 162, 184, 0.1);"><strong>ℹ️ Validación profesional requerida</strong></div>';
+                    resultsDiv.innerHTML = html;
+                } else {
+                    resultsDiv.innerHTML = `<div class="clinical-ai-alert">Error: ${data.error}</div>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="clinical-ai-alert">Error: ${error.message}</div>`;
+            }
+        });
+
+        // Chat
+        chatBtn.addEventListener('click', async function() {
+            const question = document.getElementById('chatInput').value;
+            if (!question.trim()) { alert('Escribe una pregunta'); return; }
+            const container = document.getElementById('chatResultsContainer');
+            const resultsDiv = document.getElementById('chatResults');
+            resultsDiv.innerHTML = '<div class="clinical-ai-loading"><div class="clinical-ai-spinner"></div>Procesando...</div>';
+            container.style.display = 'block';
+            try {
+                const response = await fetch('/ai/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        question: question,
+                        patient_context: document.getElementById('chatContext').value
+                    })
+                });
+                const data = await response.json();
+                let html = '<h4>💬 Respuesta Clínica</h4>';
+                html += `<p><strong>Pregunta:</strong> ${data.query}</p>`;
+                html += `<p><strong>Respuesta:</strong> ${data.assistant_response}</p>`;
+                html += '<div class="clinical-ai-alert" style="border-left-color: #17a2b8; background: rgba(23, 162, 184, 0.1);"><strong>ℹ️ Copiloto clínico - Requiere validación</strong></div>';
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="clinical-ai-alert">Error: ${error.message}</div>`;
+            }
+        });
+
+        await loadPatients();
+    });
+</script>

@@ -216,6 +216,23 @@ class CRUDAdministrador(CRUDBase[Administrador, AdministradorCreate, Administrad
         result = await db.execute(stmt)
         return result.scalars().all()
 
+class CRUDDiagnosticoPredictivo(CRUDBase[DiagnosticoPredictivo, DiagnosticoPreventivoCreate, DiagnosticoPreventivoUpdate]):
+    async def get_by_solicitud(self, db: AsyncSession, id_solicitud: int):
+        stmt = select(DiagnosticoPredictivo).where(
+            DiagnosticoPredictivo.id_solicitud == id_solicitud,
+            DiagnosticoPredictivo.activo == 1
+        )
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_paciente(self, db: AsyncSession, id_paciente: str):
+        stmt = select(DiagnosticoPredictivo).where(
+            DiagnosticoPredictivo.id_paciente == id_paciente,
+            DiagnosticoPredictivo.activo == 1
+        ).order_by(DiagnosticoPredictivo.fecha_generacion.desc())
+        result = await db.execute(stmt)
+        return result.scalars().all()
+
 # Instancias
 area_crud = CRUDBase(AreaLaboratorio, "id_area")
 prueba_crud = CRUDPrueba(Prueba, "id_prueba")
@@ -230,6 +247,7 @@ reporte_crud = CRUDBase(Reporte, "id_reporte")
 factura_crud = CRUDBase(Factura, "id_factura")
 detalle_factura_crud = CRUDBase(DetalleFactura, "id_detalle_factura")
 pago_crud = CRUDBase(Pago, "id_pago")
+diagnostico_crud = CRUDDiagnosticoPredictivo(DiagnosticoPredictivo, "id_diagnostico")
 
 # Función de Autenticación
 async def authenticate_user(db: AsyncSession, email: str, password: str):
