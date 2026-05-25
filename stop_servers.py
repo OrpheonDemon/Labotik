@@ -50,8 +50,9 @@ def main():
             pass
     
     # Run netstat cleanups to ensure no orphan reloaders are keeping the ports busy
-    free_port(8000)
-    free_port(3000)
+    free_port(11434)  # Ollama port
+    free_port(8000)   # FastAPI port
+    free_port(3000)   # Django port
     print("Todos los servidores se han detenido exitosamente.")
 
 if __name__ == "__main__":

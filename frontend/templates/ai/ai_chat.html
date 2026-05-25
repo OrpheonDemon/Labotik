@@ -1,0 +1,357 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Chat Médico - IA Clínica{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4" style="height: 100vh; display: flex; flex-direction: column;">
+    <div class="row mb-3 flex-shrink-0">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-comments text-success"></i> Asistente Médico IA
+            </h1>
+            <p class="text-muted">Realiza preguntas clínicas y obtén respuestas basadas en IA médica</p>
+        </div>
+    </div>
+
+    <div class="row flex-grow-1" style="overflow: hidden;">
+        <!-- Panel Principal de Chat -->
+        <div class="col-lg-8">
+            <div class="card h-100 d-flex flex-column">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Conversación</h5>
+                </div>
+                
+                <!-- Historial de Mensajes -->
+                <div class="card-body flex-grow-1 overflow-auto" id="chatMessages">
+                    <div class="text-center text-muted py-5">
+                        <i class="fas fa-comments-dollar fa-3x mb-3"></i>
+                        <p>Bienvenido. Haz una pregunta clínica para comenzar.</p>
+                        <small class="text-muted">Ejemplos: "¿Qué significa TSH elevado?", "Paciente con K 6.8"</small>
+                    </div>
+                </div>
+                
+                <!-- Input de Mensaje -->
+                <div class="card-footer border-top bg-light">
+                    <form id="chatForm" class="d-flex gap-2">
+                        {% csrf_token %}
+                        <input type="text" class="form-control" id="messageInput" 
+                               placeholder="Escribe tu pregunta médica..." autocomplete="off" required>
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Lateral de Contexto -->
+        <div class="col-lg-4">
+            <!-- Contexto del Paciente -->
+            <div class="card mb-3 h-50 overflow-auto">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-user-md"></i> Contexto Paciente
+                    </h6>
+                </div>
+                <div class="card-body" id="patientContext">
+                    <div class="mb-3">
+                        <label class="form-label small">Seleccionar Paciente</label>
+                        <select class="form-select form-select-sm" id="contextPatient">
+                            <option>-- Ninguno --</option>
+                        </select>
+                    </div>
+                    
+                    <div id="patientDetails" style="display:none;">
+                        <div class="mb-2">
+                            <small class="text-muted">Edad</small>
+                            <p class="mb-2" id="patientAge">-</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Género</small>
+                            <p class="mb-2" id="patientGender">-</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Antecedentes</small>
+                            <p class="mb-2 small" id="patientHistory">-</p>
+                        </div>
+                        <div class="mb-2">
+                            <small class="text-muted">Últimos Resultados</small>
+                            <div class="small" id="patientResults">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Temas Sugeridos -->
+            <div class="card h-50 overflow-auto">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-lightbulb"></i> Preguntas Sugeridas
+                    </h6>
+                </div>
+                <div class="card-body" id="suggestedQuestions">
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start"
+                            onclick="sendMessage('¿Qué significa hemoglobina baja?')">
+                        <i class="fas fa-question-circle"></i> Hemoglobina baja
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start"
+                            onclick="sendMessage('¿Cuándo es crítica la glucosa?')">
+                        <i class="fas fa-question-circle"></i> Glucosa crítica
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start"
+                            onclick="sendMessage('¿Qué pruebas indicar para diabetes?')">
+                        <i class="fas fa-question-circle"></i> Diabetes - Pruebas
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 mb-2 text-start"
+                            onclick="sendMessage('¿Cómo interpretar INR > 3?')">
+                        <i class="fas fa-question-circle"></i> INR elevado
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning w-100 text-start"
+                            onclick="sendMessage('¿Valores críticos de potasio?')">
+                        <i class="fas fa-question-circle"></i> Potasio crítico
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+#chatMessages {
+    padding: 20px;
+}
+
+.message {
+    margin-bottom: 15px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.message.user {
+    text-align: right;
+}
+
+.message.assistant {
+    text-align: left;
+}
+
+.message-bubble {
+    display: inline-block;
+    max-width: 80%;
+    padding: 10px 15px;
+    border-radius: 10px;
+    word-wrap: break-word;
+}
+
+.user .message-bubble {
+    background-color: #28a745;
+    color: white;
+    border-bottom-right-radius: 0;
+}
+
+.assistant .message-bubble {
+    background-color: #f0f0f0;
+    color: #333;
+    border-bottom-left-radius: 0;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 5px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.typing-indicator span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #999;
+    animation: typing 1.4s infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 60%, 100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    30% {
+        opacity: 1;
+        transform: translateY(-10px);
+    }
+}
+</style>
+
+<script>
+let conversationHistory = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadPatients();
+    document.getElementById('chatForm').addEventListener('submit', handleChatSubmit);
+    document.getElementById('contextPatient').addEventListener('change', loadPatientContext);
+});
+
+function loadPatients() {
+    fetch('/api/pacientes/')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('contextPatient');
+            data.forEach(p => {
+                const option = document.createElement('option');
+                option.value = p.id;
+                option.textContent = `${p.nombre} (${p.id})`;
+                select.appendChild(option);
+            });
+        });
+}
+
+function loadPatientContext() {
+    const patientId = document.getElementById('contextPatient').value;
+    if (!patientId) {
+        document.getElementById('patientDetails').style.display = 'none';
+        return;
+    }
+    
+    fetch(`/api/pacientes/${patientId}/`)
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('patientAge').textContent = data.edad || '-';
+            document.getElementById('patientGender').textContent = data.sexo || '-';
+            document.getElementById('patientHistory').textContent = data.antecedentes || '-';
+            document.getElementById('patientDetails').style.display = 'block';
+            
+            // Cargar últimos resultados
+            fetch(`/api/pacientes/${patientId}/resultados/`)
+                .then(r => r.json())
+                .then(results => {
+                    const html = results.slice(0, 3).map(r => 
+                        `<div>${r.prueba}: ${r.valor} ${r.unidad}</div>`
+                    ).join('');
+                    document.getElementById('patientResults').innerHTML = html || '-';
+                });
+        });
+}
+
+function handleChatSubmit(e) {
+    e.preventDefault();
+    
+    const input = document.getElementById('messageInput');
+    const message = input.value.trim();
+    
+    if (!message) return;
+    
+    sendMessage(message);
+    input.value = '';
+}
+
+function sendMessage(message) {
+    // Agregar mensaje del usuario
+    addMessageToChat('user', message);
+    
+    // Agregar contexto si está disponible
+    const patientId = document.getElementById('contextPatient').value;
+    
+    // Mostrar indicador de escritura
+    showTypingIndicator();
+    
+    // Enviar al backend
+    fetch('/api/ai/chat/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            message: message,
+            patient_id: patientId || null,
+            conversation_history: conversationHistory
+        })
+    })
+    .then(r => r.json())
+    .then(data => {
+        removeTypingIndicator();
+        const response = data.response;
+        addMessageToChat('assistant', response);
+        
+        // Actualizar historial
+        conversationHistory.push({
+            role: 'user',
+            content: message
+        });
+        conversationHistory.push({
+            role: 'assistant',
+            content: response
+        });
+    })
+    .catch(error => {
+        removeTypingIndicator();
+        addMessageToChat('assistant', 'Error: No pude procesar tu pregunta. Intenta de nuevo.');
+    });
+}
+
+function addMessageToChat(role, content) {
+    const container = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${role}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.textContent = content;
+    
+    const time = document.createElement('div');
+    time.className = 'message-time';
+    time.textContent = new Date().toLocaleTimeString('es-ES', {hour: '2-digit', minute:'2-digit'});
+    
+    messageDiv.appendChild(bubble);
+    messageDiv.appendChild(time);
+    container.appendChild(messageDiv);
+    
+    // Auto-scroll al final
+    container.scrollTop = container.scrollHeight;
+}
+
+function showTypingIndicator() {
+    const container = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = 'message assistant';
+    messageDiv.id = 'typingIndicator';
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+    bubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    
+    messageDiv.appendChild(bubble);
+    container.appendChild(messageDiv);
+    container.scrollTop = container.scrollHeight;
+}
+
+function removeTypingIndicator() {
+    const indicator = document.getElementById('typingIndicator');
+    if (indicator) indicator.remove();
+}
+</script>
+{% endblock %}

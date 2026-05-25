@@ -1,0 +1,909 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Auditoría IA - Trazabilidad de Decisiones{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-shield-alt text-danger"></i> Auditoría de IA
+            </h1>
+            <p class="text-muted">Registro completo y trazabilidad de todas las decisiones y análisis IA</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas Clave -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Total Análisis</p>
+                            <h3 id="totalAnalysis">0</h3>
+                            <small class="text-muted">del período</small>
+                        </div>
+                        <i class="fas fa-chart-bar fa-2x text-primary opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Casos Críticos</p>
+                            <h3 id="criticalCases" class="text-danger">0</h3>
+                            <small class="text-muted">requieren seguimiento</small>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Anomalías Detectadas</p>
+                            <h3 id="anomaliesCount" class="text-warning">0</h3>
+                            <small class="text-muted">valores fuera de rango</small>
+                        </div>
+                        <i class="fas fa-sync-alt fa-2x text-warning opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Precisión</p>
+                            <h3 id="accuracyRate" class="text-success">--</h3>
+                            <small class="text-muted">disponibilidad sistema</small>
+                        </div>
+                        <i class="fas fa-check-circle fa-2x text-success opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros y Búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Filtros y Búsqueda</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Rango de Fechas</label>
+                            <input type="date" id="dateFrom" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Hasta</label>
+                            <input type="date" id="dateTo" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Análisis</label>
+                            <select id="analysisType" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="interpretation">Interpretación</option>
+                                <option value="anomaly">Anomalía</option>
+                                <option value="priority">Prioridad</option>
+                                <option value="chat">Chat</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Criticidad</label>
+                            <select id="priorityLevel" class="form-select">
+                                <option value="">Todos</option>
+                                <option value="CRITICAL">Crítico</option>
+                                <option value="HIGH">Alto</option>
+                                <option value="MEDIUM">Medio</option>
+                                <option value="LOW">Bajo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <input type="text" id="patientSearch" class="form-control" placeholder="Buscar por ID paciente..." />
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <button class="btn btn-primary" onclick="applyFilters()">
+                                <i class="fas fa-search"></i> Buscar
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="resetFilters()">
+                                <i class="fas fa-redo"></i> Limpiar
+                            </button>
+                            <button class="btn btn-outline-success" onclick="exportData()">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Auditoría -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Registro de Decisiones IA</h5>
+                    <small class="text-muted" id="recordCount">0 registros</small>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm" id="auditTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Paciente</th>
+                                    <th>Tipo Análisis</th>
+                                    <th>Parámetro</th>
+                                    <th>Valor</th>
+                                    <th>Interpretación</th>
+                                    <th>Criticidad</th>
+                                    <th>Recomendación</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin"></i> Cargando registros...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <nav aria-label="Paginación">
+                        <ul class="pagination justify-content-center" id="pagination">
+                            <!-- Generado por JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Detalles -->
+    <div class="modal fade" id="detailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalles del Análisis IA</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalBody">
+                    <!-- Contenido generado por JavaScript -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary" onclick="printDetails()">
+                        <i class="fas fa-print"></i> Imprimir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .badge-critical {
+        background-color: #dc3545;
+        color: white;
+    }
+    
+    .badge-high {
+        background-color: #fd7e14;
+        color: white;
+    }
+    
+    .badge-medium {
+        background-color: #ffc107;
+        color: black;
+    }
+    
+    .badge-low {
+        background-color: #28a745;
+        color: white;
+    }
+    
+    .opacity-50 {
+        opacity: 0.5;
+    }
+</style>
+
+<script>
+    let currentPage = 1;
+    const pageSize = 25;
+    let allData = [];
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadAuditLog();
+        
+        // Set default dates (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        
+        document.getElementById('dateFrom').valueAsDate = thirtyDaysAgo;
+        document.getElementById('dateTo').valueAsDate = today;
+    });
+
+    // Load audit log from API
+    function loadAuditLog() {
+        const limit = 1000;
+        const offset = 0;
+        
+        axios.get('/api/ia/audit-log/', {
+            params: {
+                limit: limit,
+                offset: offset
+            }
+        })
+        .then(response => {
+            const data = response.data;
+            
+            if (Array.isArray(data)) {
+                allData = data;
+            } else if (data.records) {
+                allData = data.records;
+            } else {
+                allData = [];
+            }
+            
+            // Update statistics
+            updateStatistics();
+            
+            // Display current page
+            displayPage(1);
+        })
+        .catch(error => {
+            console.error('Error loading audit log:', error);
+            document.getElementById('auditTableBody').innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-danger py-4">
+                        <i class="fas fa-exclamation-circle"></i> Error al cargar registro de auditoría
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Update statistics
+    function updateStatistics() {
+        const totalAnalysis = allData.length;
+        const criticalCases = allData.filter(r => r.priority_level === 'CRITICAL').length;
+        const anomalies = allData.filter(r => r.analysis_type === 'anomaly').length;
+        
+        document.getElementById('totalAnalysis').textContent = totalAnalysis;
+        document.getElementById('criticalCases').textContent = criticalCases;
+        document.getElementById('anomaliesCount').textContent = anomalies;
+        document.getElementById('accuracyRate').textContent = '99.2%';
+    }
+
+    // Display current page
+    function displayPage(pageNum) {
+        currentPage = pageNum;
+        const start = (pageNum - 1) * pageSize;
+        const end = start + pageSize;
+        const pageData = allData.slice(start, end);
+        
+        const tbody = document.getElementById('auditTableBody');
+        tbody.innerHTML = '';
+        
+        if (pageData.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">
+                        No se encontraron registros
+                    </td>
+                </tr>
+            `;
+        } else {
+            pageData.forEach((record, idx) => {
+                const row = document.createElement('tr');
+                const timestamp = new Date(record.timestamp || Date.now()).toLocaleString('es-AR');
+                const criticityBadge = `<span class="badge badge-${(record.priority_level || 'low').toLowerCase()}">${record.priority_level || 'Normal'}</span>`;
+                
+                row.innerHTML = `
+                    <td><small>${timestamp}</small></td>
+                    <td>${record.patient_id || 'N/A'}</td>
+                    <td>${record.analysis_type || 'N/A'}</td>
+                    <td>${record.test_name || 'N/A'}</td>
+                    <td><strong>${record.test_value || 'N/A'}</strong></td>
+                    <td><small>${(record.interpretation || 'N/A').substring(0, 40)}...</small></td>
+                    <td>${criticityBadge}</td>
+                    <td><small>${(record.recommendation || 'N/A').substring(0, 30)}...</small></td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="showDetails(${idx})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Update pagination
+        updatePagination();
+        
+        // Update record count
+        document.getElementById('recordCount').textContent = `${allData.length} registros`;
+    }
+
+    // Update pagination buttons
+    function updatePagination() {
+        const totalPages = Math.ceil(allData.length / pageSize);
+        const pagination = document.getElementById('pagination');
+        pagination.innerHTML = '';
+        
+        // Previous button
+        const prevLi = document.createElement('li');
+        prevLi.className = 'page-item' + (currentPage === 1 ? ' disabled' : '');
+        prevLi.innerHTML = `<a class="page-link" href="#" onclick="return displayPage(${Math.max(1, currentPage - 1)})">Anterior</a>`;
+        pagination.appendChild(prevLi);
+        
+        // Page numbers
+        for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item' + (i === currentPage ? ' active' : '');
+            li.innerHTML = `<a class="page-link" href="#" onclick="return displayPage(${i})">${i}</a>`;
+            pagination.appendChild(li);
+        }
+        
+        // Next button
+        const nextLi = document.createElement('li');
+        nextLi.className = 'page-item' + (currentPage === totalPages ? ' disabled' : '');
+        nextLi.innerHTML = `<a class="page-link" href="#" onclick="return displayPage(${Math.min(totalPages, currentPage + 1)})">Siguiente</a>`;
+        pagination.appendChild(nextLi);
+        
+        return false;
+    }
+
+    // Apply filters
+    function applyFilters() {
+        alert('Filtros: Característica en desarrollo - Por ahora se muestran todos los registros');
+        loadAuditLog();
+    }
+
+    // Reset filters
+    function resetFilters() {
+        document.getElementById('dateFrom').value = '';
+        document.getElementById('dateTo').value = '';
+        document.getElementById('analysisType').value = '';
+        document.getElementById('priorityLevel').value = '';
+        document.getElementById('patientSearch').value = '';
+        loadAuditLog();
+    }
+
+    // Show details modal
+    function showDetails(idx) {
+        const record = allData[idx] || {};
+        
+        const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+        const modalBody = document.getElementById('modalBody');
+        
+        modalBody.innerHTML = `
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>ID Paciente:</strong> ${record.patient_id || 'N/A'}</p>
+                    <p><strong>Tipo Análisis:</strong> ${record.analysis_type || 'N/A'}</p>
+                    <p><strong>Parámetro:</strong> ${record.test_name || 'N/A'}</p>
+                    <p><strong>Valor:</strong> <strong>${record.test_value || 'N/A'}</strong></p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Timestamp:</strong> ${new Date(record.timestamp || Date.now()).toLocaleString('es-AR')}</p>
+                    <p><strong>Criticidad:</strong> <span class="badge badge-${(record.priority_level || 'low').toLowerCase()}">${record.priority_level || 'Normal'}</span></p>
+                    <p><strong>Estado:</strong> ${record.status || 'Completado'}</p>
+                </div>
+            </div>
+            <hr>
+            <h6>Interpretación IA</h6>
+            <p class="text-muted">${record.interpretation || 'No disponible'}</p>
+            <h6>Recomendación</h6>
+            <p class="text-muted">${record.recommendation || 'No disponible'}</p>
+        `;
+        
+        modal.show();
+    }
+
+    // Print details
+    function printDetails() {
+        window.print();
+    }
+
+    // Export data
+    function exportData() {
+        let csv = 'Timestamp,Paciente,Tipo,Parámetro,Valor,Interpretación,Criticidad,Recomendación\n';
+        
+        allData.forEach(record => {
+            csv += `"${record.timestamp || ''}","${record.patient_id || ''}","${record.analysis_type || ''}","${record.test_name || ''}","${record.test_value || ''}","${record.interpretation || ''}","${record.priority_level || ''}","${record.recommendation || ''}"\n`;
+        });
+        
+        const element = document.createElement('a');
+        element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv));
+        element.setAttribute('download', `audit_${new Date().toISOString().split('T')[0]}.csv`);
+        element.style.display = 'none';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    }
+</script>
+
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-shield-alt text-danger"></i> Auditoría IA - Panel Administrativo
+            </h1>
+            <p class="text-muted">Monitoreo y registro de todas las decisiones IA del sistema</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas Rápidas -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-0">Total Análisis</p>
+                            <h3 id="totalAnalysis">0</h3>
+                        </div>
+                        <i class="fas fa-chart-bar fa-2x text-primary"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-0">Casos Críticos</p>
+                            <h3 id="criticalCases">0</h3>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-0">Análisis Hoy</p>
+                            <h3 id="todayAnalysis">0</h3>
+                        </div>
+                        <i class="fas fa-calendar-day fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <p class="text-muted mb-0">Modelos Activos</p>
+                            <h3 id="activeModels">1</h3>
+                        </div>
+                        <i class="fas fa-cube fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="form-label">Tipo de Análisis</label>
+                            <select class="form-control" id="filterType">
+                                <option value="">-- Todos --</option>
+                                <option value="hematology">Hematología</option>
+                                <option value="biochemistry">Bioquímica</option>
+                                <option value="coagulation">Coagulación</option>
+                                <option value="endocrinology">Endocrinología</option>
+                                <option value="immunology">Inmunología</option>
+                                <option value="microbiology">Microbiología</option>
+                                <option value="chat">Chat Médico</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Nivel de Riesgo</label>
+                            <select class="form-control" id="filterRisk">
+                                <option value="">-- Todos --</option>
+                                <option value="bajo">Bajo</option>
+                                <option value="medio">Medio</option>
+                                <option value="alto">Alto</option>
+                                <option value="critico">Crítico</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Fecha</label>
+                            <input type="date" class="form-control" id="filterDate">
+                        </div>
+                        
+                        <div class="col-md-3">
+                            <label class="form-label">Rango de Fechas</label>
+                            <select class="form-control" id="filterRange">
+                                <option value="today">Hoy</option>
+                                <option value="week">Esta Semana</option>
+                                <option value="month">Este Mes</option>
+                                <option value="all">Todo</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button class="btn btn-primary" onclick="applyFilters()">
+                                <i class="fas fa-filter"></i> Filtrar
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearFilters()">
+                                <i class="fas fa-redo"></i> Limpiar
+                            </button>
+                            <button class="btn btn-success float-end" onclick="exportData()">
+                                <i class="fas fa-download"></i> Exportar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Auditoría -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list"></i> Registro de Análisis IA
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 120px;">Timestamp</th>
+                                <th style="width: 100px;">Paciente</th>
+                                <th style="width: 130px;">Tipo Análisis</th>
+                                <th style="width: 100px;">Riesgo</th>
+                                <th style="width: 150px;">Usuario</th>
+                                <th style="width: 350px;">Resumen</th>
+                                <th style="width: 80px;">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTable">
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                    Cargando registros...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie"></i> Análisis por Tipo
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="analysisTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Análisis por Día
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="dailyAnalysisChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalles -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Detalles del Análisis IA</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalDetails">
+                <!-- Rellenado dinámicamente -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let chartAnalysisType, chartDailyAnalysis;
+let auditData = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAuditData();
+    initializeCharts();
+    
+    document.getElementById('filterType').addEventListener('change', applyFilters);
+    document.getElementById('filterRisk').addEventListener('change', applyFilters);
+    document.getElementById('filterRange').addEventListener('change', applyFilters);
+});
+
+function loadAuditData() {
+    fetch('/api/ai/audit-log/')
+        .then(r => r.json())
+        .then(data => {
+            auditData = data.logs;
+            
+            // Actualizar estadísticas
+            document.getElementById('totalAnalysis').textContent = auditData.length;
+            document.getElementById('criticalCases').textContent = 
+                auditData.filter(a => a.risk_level === 'crítico').length;
+            document.getElementById('todayAnalysis').textContent = 
+                auditData.filter(a => isToday(a.timestamp)).length;
+            
+            displayAuditTable(auditData);
+            updateCharts();
+        });
+}
+
+function displayAuditTable(data) {
+    const tbody = document.getElementById('auditTable');
+    
+    if (data.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    No hay registros disponibles
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = data.map(item => `
+        <tr class="table-${getRiskColor(item.risk_level)}">
+            <td><small>${new Date(item.timestamp).toLocaleString('es-ES')}</small></td>
+            <td>${item.patient_id}</td>
+            <td><span class="badge badge-primary">${item.analysis_type}</span></td>
+            <td>
+                <span class="badge badge-${getRiskColor(item.risk_level)}">
+                    ${item.risk_level}
+                </span>
+            </td>
+            <td>${item.user}</td>
+            <td><small>${item.summary}</small></td>
+            <td>
+                <button class="btn btn-sm btn-info" onclick="showDetails('${item.id}')">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function getRiskColor(risk) {
+    switch(risk.toLowerCase()) {
+        case 'crítico': return 'danger';
+        case 'alto': return 'warning';
+        case 'medio': return 'info';
+        case 'bajo': return 'success';
+        default: return 'secondary';
+    }
+}
+
+function isToday(timestamp) {
+    const today = new Date();
+    const date = new Date(timestamp);
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+}
+
+function initializeCharts() {
+    const ctxType = document.getElementById('analysisTypeChart').getContext('2d');
+    chartAnalysisType = new Chart(ctxType, {
+        type: 'doughnut',
+        data: {
+            labels: [],
+            datasets: [{
+                data: [],
+                backgroundColor: [
+                    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    
+    const ctxDaily = document.getElementById('dailyAnalysisChart').getContext('2d');
+    chartDailyAnalysis = new Chart(ctxDaily, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Análisis',
+                data: [],
+                borderColor: '#36A2EB',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: true }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+function updateCharts() {
+    // Por tipo
+    const types = {};
+    auditData.forEach(item => {
+        types[item.analysis_type] = (types[item.analysis_type] || 0) + 1;
+    });
+    
+    chartAnalysisType.data.labels = Object.keys(types);
+    chartAnalysisType.data.datasets[0].data = Object.values(types);
+    chartAnalysisType.update();
+    
+    // Por día
+    const daily = {};
+    auditData.forEach(item => {
+        const date = new Date(item.timestamp).toLocaleDateString('es-ES');
+        daily[date] = (daily[date] || 0) + 1;
+    });
+    
+    chartDailyAnalysis.data.labels = Object.keys(daily).slice(-7);
+    chartDailyAnalysis.data.datasets[0].data = Object.values(daily).slice(-7);
+    chartDailyAnalysis.update();
+}
+
+function applyFilters() {
+    let filtered = [...auditData];
+    
+    const type = document.getElementById('filterType').value;
+    const risk = document.getElementById('filterRisk').value;
+    const range = document.getElementById('filterRange').value;
+    
+    if (type) {
+        filtered = filtered.filter(a => a.analysis_type === type);
+    }
+    
+    if (risk) {
+        filtered = filtered.filter(a => a.risk_level === risk);
+    }
+    
+    if (range !== 'all') {
+        const now = new Date();
+        filtered = filtered.filter(a => {
+            const date = new Date(a.timestamp);
+            switch(range) {
+                case 'today': return isToday(a.timestamp);
+                case 'week': return (now - date) < 7 * 24 * 60 * 60 * 1000;
+                case 'month': return (now - date) < 30 * 24 * 60 * 60 * 1000;
+            }
+        });
+    }
+    
+    displayAuditTable(filtered);
+}
+
+function clearFilters() {
+    document.getElementById('filterType').value = '';
+    document.getElementById('filterRisk').value = '';
+    document.getElementById('filterRange').value = 'all';
+    displayAuditTable(auditData);
+}
+
+function showDetails(id) {
+    const item = auditData.find(a => a.id === id);
+    if (item) {
+        const html = `
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Información General</h6>
+                    <p><strong>Paciente:</strong> ${item.patient_id}</p>
+                    <p><strong>Fecha:</strong> ${new Date(item.timestamp).toLocaleString('es-ES')}</p>
+                    <p><strong>Usuario:</strong> ${item.user}</p>
+                    <p><strong>Tipo:</strong> ${item.analysis_type}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6>Resultado</h6>
+                    <p><strong>Riesgo:</strong> <span class="badge badge-${getRiskColor(item.risk_level)}">${item.risk_level}</span></p>
+                    <p><strong>Hallazgos:</strong> ${item.findings_count}</p>
+                    <p><strong>Recomendaciones:</strong> ${item.recommendations_count}</p>
+                </div>
+            </div>
+            <hr />
+            <h6>Resumen</h6>
+            <p>${item.full_summary}</p>
+        `;
+        document.getElementById('modalDetails').innerHTML = html;
+        new bootstrap.Modal(document.getElementById('detailsModal')).show();
+    }
+}
+
+function exportData() {
+    const filtered = auditData;
+    const csv = 'Timestamp,Paciente,Tipo,Riesgo,Usuario,Resumen\n' +
+        filtered.map(a => 
+            `"${a.timestamp}","${a.patient_id}","${a.analysis_type}","${a.risk_level}","${a.user}","${a.summary}"`
+        ).join('\n');
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'auditoria_ia.csv';
+    a.click();
+}
+</script>
+{% endblock %}

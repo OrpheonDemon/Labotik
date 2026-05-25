@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}IA Clínica - Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid pt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5">
+                <i class="fas fa-brain text-primary"></i> Asistente IA Clínico
+            </h1>
+            <p class="text-muted">Análisis inteligente de resultados de laboratorio con MedGem</p>
+        </div>
+    </div>
+
+    <!-- Estado del Sistema IA -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Estado Servidor</p>
+                            <h4 id="ollama-status">
+                                <span class="spinner-border spinner-border-sm text-primary" role="status"></span>
+                                Verificando...
+                            </h4>
+                        </div>
+                        <i class="fas fa-server fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Modelo Activo</p>
+                            <h4 id="model-name">MedGem 7B</h4>
+                            <small class="text-muted">Medical Language Model</small>
+                        </div>
+                        <i class="fas fa-cube fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Análisis Hoy</p>
+                            <h4 id="analysis-count">0</h4>
+                        </div>
+                        <i class="fas fa-chart-line fa-2x text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3">
+            <div class="card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <p class="text-muted mb-2">Casos Críticos</p>
+                            <h4 id="critical-count">0</h4>
+                        </div>
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Opciones Principales -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card h-100 cursor-pointer" onclick="goToAnalysis()">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-microscope fa-3x text-primary mb-3"></i>
+                    <h5 class="card-title">Analizar Resultados</h5>
+                    <p class="card-text text-muted">Carga resultados de laboratorio para análisis IA inteligente</p>
+                    <small class="text-primary">→ Ir a análisis</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 cursor-pointer" onclick="goToChat()">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-comments fa-3x text-success mb-3"></i>
+                    <h5 class="card-title">Chat Médico</h5>
+                    <p class="card-text text-muted">Realiza preguntas clínicas y obtén respuestas basadas en IA</p>
+                    <small class="text-success">→ Abrir chat</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card h-100 cursor-pointer" onclick="goToExplain()">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-graduation-cap fa-3x text-info mb-3"></i>
+                    <h5 class="card-title">Educación Médica</h5>
+                    <p class="card-text text-muted">Explora conceptos y biomarcadores con ejemplos clínicos</p>
+                    <small class="text-info">→ Explorar</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Análisis Recientes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history text-primary"></i> Análisis Recientes
+                    </h5>
+                </div>
+                <div class="card-body" id="recent-analyses">
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>No hay análisis recientes. Crea uno nuevo para comenzar.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.cursor-pointer {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.cursor-pointer:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.card {
+    border-radius: 8px;
+}
+</style>
+
+<script>
+    // Initialize dashboard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        checkSystemHealth();
+    });
+
+    // Check Ollama and FastAPI health
+    function checkSystemHealth() {
+        axios.get('/api/ia/health/')
+            .then(response => {
+                const status = response.data;
+                document.getElementById('ollama-status').innerHTML = 
+                    '<span class="badge bg-success">Activo</span>';
+                
+                if (status.models && status.models.length > 0) {
+                    document.getElementById('model-name').textContent = 
+                        status.models[0].name || 'MedGem 7B';
+                }
+            })
+            .catch(error => {
+                console.error('Health check failed:', error);
+                document.getElementById('ollama-status').innerHTML = 
+                    '<span class="badge bg-danger">Desconectado</span>';
+            });
+    }
+
+    // Navigation functions
+    function goToAnalysis() {
+        window.location.href = '{% url "ia_analysis" %}';
+    }
+
+    function goToChat() {
+        window.location.href = '{% url "ia_chat" %}';
+    }
+
+    function goToExplain() {
+        alert('Módulo en desarrollo');
+    }
+
+    function goToAudit() {
+        window.location.href = '{% url "ia_audit" %}';
+    }
+</script>
+
+{% endblock %}
+
+<script>
+// Verificar estado de Ollama al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    checkOllamaStatus();
+    loadRecentAnalyses();
+    loadStatistics();
+});
+
+function checkOllamaStatus() {
+    fetch('/api/ai/health')
+        .then(response => response.json())
+        .then(data => {
+            const statusEl = document.getElementById('ollama-status');
+            if (data.ollama_running) {
+                statusEl.innerHTML = '<i class="fas fa-check-circle text-success"></i> Conectado';
+            } else {
+                statusEl.innerHTML = '<i class="fas fa-times-circle text-danger"></i> Desconectado';
+            }
+        })
+        .catch(error => {
+            document.getElementById('ollama-status').innerHTML = 
+                '<i class="fas fa-times-circle text-danger"></i> Error';
+        });
+}
+
+function loadStatistics() {
+    // Cargar estadísticas desde el backend
+    fetch('/api/ai/statistics')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('analysis-count').textContent = data.analysis_count || 0;
+            document.getElementById('critical-count').textContent = data.critical_count || 0;
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function loadRecentAnalyses() {
+    fetch('/api/ai/recent-analyses')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('recent-analyses');
+            if (data.analyses && data.analyses.length > 0) {
+                const html = data.analyses.map(analysis => `
+                    <div class="border-bottom pb-3 mb-3">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6>Paciente ${analysis.patient_id}</h6>
+                                <p class="text-muted mb-1">
+                                    <small>${new Date(analysis.timestamp).toLocaleString()}</small>
+                                </p>
+                                <p class="mb-0">${analysis.summary}</p>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <span class="badge badge-${analysis.risk_level_color}">
+                                    ${analysis.risk_level}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                container.innerHTML = html;
+            }
+        });
+}
+
+function goToAnalysis() {
+    window.location.href = '/ia/analysis/';
+}
+
+function goToChat() {
+    window.location.href = '/ia/chat/';
+}
+
+function goToExplain() {
+    window.location.href = '/ia/explain/';
+}
+</script>
+{% endblock %}

@@ -1,55 +1,144 @@
+"""
+Cliente asíncrono para comunicación con Ollama y extracción de JSON robusto.
+"""
+
 import aiohttp
+import json
 import asyncio
 import logging
-from typing import Any
+from typing import Dict, Any, Optional
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
 
 class OllamaClient:
-    def __init__(self, model: str = "medgemma", base_url: str = "http://localhost:11434"):
+    """Cliente asíncrono para Ollama con reintentos y manejo de errores."""
+    
+    def __init__(self, model: str = "medgemma", base_url: str = "http://localhost:11434", timeout: int = 300):
         self.model = model
         self.base_url = base_url.rstrip('/')
-        self.api_url = f"{self.base_url}/api"
-        self.session: aiohttp.ClientSession | None = None
+        self.timeout = timeout
+        self.session: Optional[aiohttp.ClientSession] = None
 
-    async def _get_session(self) -> aiohttp.ClientSession:
-        if self.session is None or self.session.closed:
-            self.session = aiohttp.ClientSession()
-        return self.session
+    async def __aenter__(self):
+        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout))
+        return self
 
-    async def verify_connection(self) -> bool:
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if self.session:
+            await self.session.close()
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+    async def generate_json(
+        self,
+        prompt: str,
+        system: str = "Eres un asistente clínico profesional.",
+        temperature: float = 0.3
+    ) -> Dict[str, Any]:
+        """Genera JSON desde Ollama con reintentos automáticos."""
+        if not self.session:
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout))
+
         try:
-            session = await self._get_session()
-            async with session.get(f"{self.api_url}/models", timeout=aiohttp.ClientTimeout(total=5)) as resp:
-                return resp.status == 200
-        except Exception as exc:
-            logger.error(f"Error verificando conexión con Ollama: {exc}")
-            return False
+            url = f"{self.base_url}/api/generate"
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "system": system,
+                "stream": False,
+                "temperature": temperature,
+                "format": "json"
+            }
 
-    async def generate(self, prompt: str, temperature: float = 0.2, max_tokens: int = 800) -> str:
-        session = await self._get_session()
-        payload = {
-            "model": self.model,
-            "prompt": prompt,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            "stream": False,
-        }
-        try:
-            async with session.post(f"{self.api_url}/generate", json=payload, timeout=aiohttp.ClientTimeout(total=60)) as resp:
-                text = await resp.text()
-                if resp.status != 200:
-                    logger.error(f"Ollama API error {resp.status}: {text}")
-                    raise Exception(f"Ollama API error: {resp.status}")
-                data = await resp.json()
-                return data.get("response", data.get("text", "")).strip()
+            async with self.session.post(url, json=payload) as response:
+                if response.status != 200:
+                    logger.error(f"Ollama error {response.status}: {await response.text()}")
+                    raise Exception(f"Ollama HTTP {response.status}")
+
+                data = await response.json()
+                response_text = data.get("response", "")
+
+                # Extrae JSON robustamente
+                try:
+                    json_match = self._extract_json(response_text)
+                    if json_match:
+                        return json.loads(json_match)
+                    else:
+                        return {"error": "No JSON found", "raw": response_text}
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error: {e}")
+                    return {"error": "Invalid JSON", "raw": response_text[:500]}
+
         except asyncio.TimeoutError:
-            raise Exception("Timeout esperando respuesta de Ollama")
-        except Exception as exc:
-            logger.error(f"Error generando texto en Ollama: {exc}")
+            logger.error(f"Timeout after {self.timeout}s")
+            raise
+        except aiohttp.ClientError as e:
+            logger.error(f"Connection error: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error: {e}")
             raise
 
-    async def close(self) -> None:
-        if self.session and not self.session.closed:
-            await self.session.close()
+    async def generate_text(
+        self,
+        prompt: str,
+        system: str = "Eres un asistente clínico profesional.",
+        temperature: float = 0.3
+    ) -> str:
+        """Genera texto desde Ollama."""
+        if not self.session:
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout))
+
+        try:
+            url = f"{self.base_url}/api/generate"
+            payload = {
+                "model": self.model,
+                "prompt": prompt,
+                "system": system,
+                "stream": False,
+                "temperature": temperature
+            }
+
+            async with self.session.post(url, json=payload) as response:
+                if response.status != 200:
+                    logger.error(f"Ollama error {response.status}")
+                    return "Error al generar respuesta"
+
+                data = await response.json()
+                return data.get("response", "").strip()
+
+        except Exception as e:
+            logger.error(f"Error in generate_text: {e}")
+            return f"Error: {str(e)}"
+
+    @staticmethod
+    def _extract_json(text: str) -> Optional[str]:
+        """Extrae el primer JSON válido de un texto."""
+        start = text.find('{')
+        if start == -1:
+            return None
+
+        depth = 0
+        for i in range(start, len(text)):
+            if text[i] == '{':
+                depth += 1
+            elif text[i] == '}':
+                depth -= 1
+                if depth == 0:
+                    return text[start:i+1]
+
+        return None
+
+    async def check_status(self) -> bool:
+        """Verifica si Ollama está disponible."""
+        if not self.session:
+            self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=5))
+
+        try:
+            url = f"{self.base_url}/api/tags"
+            async with self.session.get(url) as response:
+                return response.status == 200
+        except Exception as e:
+            logger.error(f"Status check failed: {e}")
+            return False

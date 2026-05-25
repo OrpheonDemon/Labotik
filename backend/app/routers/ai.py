@@ -1,361 +1,528 @@
-from typing import Any, Optional
+"""
+Router de IA Clínica - Endpoints para análisis inteligentes
+"""
 
-from fastapi import APIRouter, Query, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
+from typing import Dict, Any
 
+from app.database import get_db
+from app.dependencies import require_medico, require_admin, get_current_active_user
 from app.ai_engine import (
     OllamaClient,
     ClinicalInterpreter,
     AnomalyDetector,
     PriorityEngine,
-    AuditService,
-    EmbeddingsService,
-    RAGEngine,
     ClinicalAssistant,
-    PatientAnalyzer,
-    ResultAnalyzer,
-)
-from app.dependencies import get_db
-from app.crud import (
-    paciente_crud,
-    resultado_crud,
-    detalle_solicitud_crud,
-    prueba_crud,
-    solicitud_crud,
+    AuditService
 )
 
-router = APIRouter(prefix="/ai", tags=["Asistente Clínico IA"])
+router = APIRouter(
+    prefix="/ai",
+    tags=["IA Clínica"]
+)
 
-# Inicializar clientes y analizadores
-ollama_client = OllamaClient(model="medgemma", base_url="http://localhost:11434")
-clinical_interpreter = ClinicalInterpreter(ollama_client)
-anomaly_detector = AnomalyDetector()
-priority_engine = PriorityEngine()
+# Instancias globales
+ollama_client = None
 audit_service = AuditService()
-embeddings_service = EmbeddingsService()
-rag_engine = RAGEngine(embeddings_service, ollama_client)
-clinical_assistant = ClinicalAssistant(rag_engine, ollama_client)
-patient_analyzer = PatientAnalyzer(ollama_client)
-result_analyzer = ResultAnalyzer(ollama_client)
 
 
-class ResultPayload(BaseModel):
-    resultados: list[dict[str, Any]]
-    patient_context: Optional[str] = None
+async def get_ollama_client():
+    """Factory para obtener cliente de Ollama."""
+    global ollama_client
+    if ollama_client is None:
+        ollama_client = OllamaClient()
+    return ollama_client
 
 
-class PriorityPayload(BaseModel):
-    resultados: list[dict[str, Any]]
-    paciente: Optional[dict[str, Any]] = None
+@router.get("/status")
+async def ai_status():
+    """Verifica el estado del motor IA y Ollama."""
+    try:
+        client = OllamaClient()
+        is_available = await client.check_status()
+        
+        return {
+            "status": "available" if is_available else "unavailable",
+            "ollama_running": is_available,
+            "models": ["medgemma:latest"] if is_available else [],
+            "model_active": is_available,
+            "message": "Motor IA operativo" if is_available else "Ollama no disponible en localhost:11434"
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "ollama_running": False,
+            "message": f"Error: {str(e)}"
+        }
 
 
-class ChatPayload(BaseModel):
-    question: str
-    patient_context: Optional[str] = None
+@router.post("/interpret-results")
+async def interpret_results(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico),
+    db: AsyncSession = Depends(get_db)
+):
+    """Interpreta resultados de laboratorio usando IA."""
+    
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(
+                status_code=503,
+                detail="Motor IA no disponible. Verifica que Ollama esté corriendo en puerto 11434"
+            )
+
+        interpreter = ClinicalInterpreter(client)
+        
+        interpretation = await interpreter.interpret_results(
+            results=request.get("resultados", {}),
+            patient_age=request.get("edad"),
+            patient_gender=request.get("sexo"),
+            clinical_history=request.get("historial_clinico")
+        )
+
+        # Registrar en auditoría
+        audit_service.log_analysis(
+            analysis_type="interpretacion",
+            user_email=current_user["user"].email,
+            patient_id=request.get("id_paciente", "unknown"),
+            input_data=request,
+            ai_output=interpretation,
+            confidence=interpretation.get("confianza", 0.8)
+        )
+
+        return {
+            "status": "success",
+            "interpretation": interpretation
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": str(e)
+        }
 
 
-class PatientAnalysisPayload(BaseModel):
-    patient_id: str
-    include_history: bool = True
+@router.post("/detect-anomalies")
+async def detect_anomalies(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico),
+    db: AsyncSession = Depends(get_db)
+):
+    """Detecta anomalías en muestras (hemólisis, lipemia, etc)."""
+    
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible")
 
+        detector = AnomalyDetector(client)
+        
+        anomalies = await detector.detect_anomalies(
+            results=request.get("resultados", {}),
+            reference_ranges=request.get("rangos_referencia")
+        )
 
-class ResultAnalysisPayload(BaseModel):
-    patient_id: str
-    result_id: int
-    include_related: bool = True
+        audit_service.log_analysis(
+            analysis_type="deteccion_anomalias",
+            user_email=current_user["user"].email,
+            patient_id=request.get("id_paciente", "unknown"),
+            input_data=request,
+            ai_output=anomalies,
+            confidence=anomalies.get("confianza", 0.8)
+        )
 
-
-
-@router.post("/analyze")
-async def ai_analyze(payload: ResultPayload):
-    interpretation = await clinical_interpreter.interpret(payload.resultados, payload.patient_context)
-    priority = priority_engine.score(payload.resultados, None)
-    anomalies = anomaly_detector.detect(payload.resultados)
-
-    audit_service.record_event("ai_analyze", None, {
-        "resultados_count": len(payload.resultados),
-        "priority": priority.get("priority"),
-        "anomaly_count": len(anomalies),
-    })
-
-    return {
-        "hallazgos_relevantes": interpretation.get("observaciones", []),
-        "interpretacion_clinica": interpretation.get("diagnostico_sugestivo", ""),
-        "alertas_criticas": priority.get("alerts", []),
-        "anomalias_detectadas": [
-            f"{item.get('tipo')}: {item.get('mensaje')}" for item in anomalies
-        ],
-        "prioridad": priority.get("priority", "normal"),
-        "recomendaciones": [interpretation.get("recomendaciones")] if interpretation.get("recomendaciones") else [],
-        "requiere_revision_humana": True,
-    }
-
-
-@router.post("/interpret")
-async def ai_interpret(payload: ResultPayload):
-    interpretation = await clinical_interpreter.interpret(payload.resultados, payload.patient_context)
-    audit_service.record_event("ai_interpret", None, {
-        "resultados_count": len(payload.resultados),
-    })
-    return {
-        "tipo": "interpretacion_clinica",
-        "interpretacion": interpretation,
-    }
+        return {
+            "status": "success",
+            "anomalies": anomalies
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 @router.post("/prioritize")
-async def ai_prioritize(payload: PriorityPayload):
-    score = priority_engine.score(payload.resultados, payload.paciente)
-    audit_service.record_event("ai_prioritize", None, {
-        "resultados_count": len(payload.resultados),
-        "patient_info_present": payload.paciente is not None,
-    })
-    return {
-        "tipo": "prioridad_clinica",
-        "prioridad": score.get("priority"),
-        "score": score.get("score"),
-        "alertas": score.get("alerts", []),
-    }
+async def prioritize(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico),
+    db: AsyncSession = Depends(get_db)
+):
+    """Clasifica urgencia clínica de los resultados."""
+    
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible")
+
+        priority_engine = PriorityEngine(client)
+        
+        priority = await priority_engine.prioritize(
+            results=request.get("resultados", {}),
+            patient_age=request.get("edad"),
+            critical_values=request.get("valores_criticos")
+        )
+
+        audit_service.log_analysis(
+            analysis_type="priorizacion",
+            user_email=current_user["user"].email,
+            patient_id=request.get("id_paciente", "unknown"),
+            input_data=request,
+            ai_output=priority,
+            confidence=priority.get("confianza", 0.9)
+        )
+
+        return {
+            "status": "success",
+            "priority": priority
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
 @router.post("/chat")
-async def ai_chat(payload: ChatPayload):
-    response = await clinical_assistant.ask(payload.question, payload.patient_context)
-    audit_service.record_event("ai_chat", None, {
-        "question": payload.question,
-    })
-    return response
+async def chat(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico)
+):
+    """Chat clínico interactivo para consultas sobre resultados."""
+    
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible")
+
+        assistant = ClinicalAssistant(client)
+        
+        response = await assistant.ask_question(
+            question=request.get("pregunta", ""),
+            patient_age=request.get("edad"),
+            patient_gender=request.get("sexo"),
+            test_name=request.get("nombre_prueba"),
+            test_value=request.get("valor"),
+            reference_range=request.get("rango_referencia")
+        )
+
+        return {
+            "status": "success",
+            "respuesta": response
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
 
 
-@router.get("/history")
-async def ai_history(limit: int = Query(50, ge=1, le=200)):
-    history = audit_service.get_audit_log(limit)
+@router.post("/explain-biomarker")
+async def explain_biomarker(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico)
+):
+    """Explica qué significa un biomarcador específico."""
+    
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible")
+
+        assistant = ClinicalAssistant(client)
+        
+        explanation = await assistant.explain_biomarker(
+            biomarker_name=request.get("biomarcador", ""),
+            value=request.get("valor", 0),
+            reference_range=request.get("rango_referencia", ""),
+            patient_context=request.get("contexto")
+        )
+
+        return {
+            "status": "success",
+            "explicacion": explanation
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
+
+
+@router.get("/audit-log")
+async def get_audit_log(
+    current_user: dict = Depends(require_admin),
+    limit: int = 50,
+    tipo: str = None
+):
+    """Obtiene registro de auditoría de análisis de IA (solo admin)."""
+    
+    logs = audit_service.get_audit_logs(limit=limit, analysis_type=tipo)
+    stats = audit_service.get_statistics()
+    
     return {
-        "tipo": "historial_ia",
-        "evento_count": len(history),
-        "historial": history,
+        "status": "success",
+        "registros": logs,
+        "estadisticas": stats
     }
 
 
-@router.post("/patient-analysis")
-async def analyze_patient_integral(
-    payload: PatientAnalysisPayload,
+@router.get("/health")
+async def health_check():
+    """Verifica el estado del motor IA y sus componentes."""
+    
+    try:
+        from app.ai_engine import OllamaClient
+        from app.ai_engine.reference_ranges import get_reference_range
+        from app.ai_engine.medical_prompts import get_system_prompt_names
+        
+        # Test Ollama
+        client = OllamaClient()
+        ollama_status = await client.check_status()
+        
+        # Test módulos
+        modules_ok = True
+        errors = []
+        
+        try:
+            ranges = get_reference_range("hemoglobina")
+            if not ranges:
+                errors.append("reference_ranges: fallo")
+                modules_ok = False
+        except Exception as e:
+            errors.append(f"reference_ranges: {str(e)}")
+            modules_ok = False
+        
+        try:
+            prompts = get_system_prompt_names()
+            if len(prompts) < 9:
+                errors.append(f"medical_prompts: solo {len(prompts)}/9 prompts")
+                modules_ok = False
+        except Exception as e:
+            errors.append(f"medical_prompts: {str(e)}")
+            modules_ok = False
+        
+        return {
+            "status": "healthy" if ollama_status and modules_ok else "degraded",
+            "components": {
+                "ollama": "available" if ollama_status else "unavailable",
+                "modules": "ok" if modules_ok else "error",
+                "audit_service": "available"
+            },
+            "errors": errors if errors else [],
+            "timestamp": str(__import__('datetime').datetime.now())
+        }
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": str(e),
+            "errors": [str(e)]
+        }
+
+
+@router.post("/specialized-analysis")
+async def specialized_analysis(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico),
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Análisis clínico integral de un paciente.
-    Incluye análisis del perfil general y correlaciones.
+    Realiza análisis especializado según disciplina médica.
+    
+    Request:
+    {
+        "specialty": "hematology|biochemistry|coagulation|endocrinology|immunology|microbiology",
+        "resultados": {...},
+        "paciente": {
+            "edad": int,
+            "sexo": "hombre|mujer",
+            "antecedentes": str
+        }
+    }
     """
+    
     try:
-        # Obtener datos del paciente
-        patient = await paciente_crud.get(db, payload.patient_id)
-        if not patient:
-            raise HTTPException(status_code=404, detail="Paciente no encontrado")
-
-        # Convertir a diccionario
-        patient_dict = {
-            "id_paciente": patient.id_paciente,
-            "nombre": patient.nombre,
-            "apellido_paterno": patient.apellido_paterno,
-            "apellido_materno": patient.apellido_materno or "",
-            "fecha_nacimiento": patient.fecha_nacimiento,
-            "genero": patient.genero,
-            "tipo_sangre": patient.tipo_sangre,
-            "alergias": patient.alergias,
+        from app.ai_engine.specialized_analyzers import run_specialized_analysis
+        
+        specialty = request.get("specialty", "").lower()
+        results = request.get("resultados", {})
+        patient_info = request.get("paciente", {})
+        
+        if not specialty:
+            raise HTTPException(
+                status_code=400,
+                detail="Se requiere especificar 'specialty': hematology, biochemistry, coagulation, endocrinology, immunology, microbiology"
+            )
+        
+        # Ejecutar análisis especializado
+        analysis_result = await run_specialized_analysis(specialty, results, patient_info)
+        
+        if analysis_result is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Especialidad '{specialty}' no válida"
+            )
+        
+        # Registrar en auditoría
+        audit_service.log_analysis(
+            analysis_type=f"specialized_{specialty}",
+            user_email=current_user["user"].email,
+            patient_id=request.get("id_paciente", "unknown"),
+            input_data=request,
+            ai_output=analysis_result.to_dict(),
+            confidence=0.85
+        )
+        
+        return {
+            "status": "success",
+            "analysis": analysis_result.to_dict()
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": str(e)
         }
 
-        # Obtener historiales si se solicita
-        medical_history = None
-        recent_results = None
 
-        if payload.include_history:
-            # Obtener solicitudes del paciente
-            from sqlalchemy import select
-            solicitudes_stmt = select(solicitud_crud.model).where(
-                solicitud_crud.model.id_paciente == payload.patient_id,
-                solicitud_crud.model.activo == 1,
-                solicitud_crud.model.estado == "completado"
+@router.get("/models")
+async def list_models():
+    """Lista modelos de IA disponibles en Ollama."""
+    
+    try:
+        client = OllamaClient()
+        
+        # Verificar disponibilidad
+        is_available = await client.check_status()
+        
+        if not is_available:
+            return {
+                "status": "unavailable",
+                "models": [],
+                "message": "Ollama no disponible en localhost:11434"
+            }
+        
+        # Modelos recomendados para laboratorio clínico
+        recommended_models = [
+            {
+                "name": "medgemma",
+                "full_name": "medgemma:latest",
+                "size": "7B",
+                "specialty": "Medicina general y análisis clínico",
+                "installed": True  # Asumimos instalado si Ollama responde
+            },
+            {
+                "name": "neural-chat",
+                "full_name": "neural-chat:latest",
+                "size": "7B",
+                "specialty": "Chat general (respaldo)",
+                "installed": False
+            }
+        ]
+        
+        return {
+            "status": "success",
+            "available": True,
+            "models": recommended_models,
+            "current_model": "medgemma:latest",
+            "instructions": {
+                "install": "ollama pull medgemma",
+                "run_server": "ollama serve",
+                "endpoint": "http://localhost:11434"
+            }
+        }
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": str(e),
+            "available": False
+        }
+
+
+@router.post("/validate-results")
+async def validate_results(
+    request: Dict[str, Any],
+    current_user: dict = Depends(require_medico),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Valida resultados de laboratorio contra rangos de referencia.
+    
+    Retorna: valores fuera de rango, valores críticos, alertas
+    """
+    
+    try:
+        from app.ai_engine.reference_ranges import (
+            get_reference_range,
+            is_critical,
+            get_interpretation_level
+        )
+        
+        results = request.get("resultados", {})
+        patient_info = request.get("paciente", {})
+        
+        validation = {
+            "normal": [],
+            "out_of_range": [],
+            "critical": [],
+            "unknown": []
+        }
+        
+        for test_name, value in results.items():
+            range_info = get_reference_range(
+                test_name,
+                age=patient_info.get("edad"),
+                gender=patient_info.get("sexo")
             )
-            solicitudes_result = await db.execute(solicitudes_stmt)
-            solicitudes = solicitudes_result.scalars().all()
-
-            if solicitudes:
-                medical_history = []
-                recent_results = []
-
-                for solicitud in solicitudes[-5:]:  # Últimas 5 solicitudes
-                    # Obtener detalles y resultados
-                    detalles_stmt = select(detalle_solicitud_crud.model).where(
-                        detalle_solicitud_crud.model.id_solicitud == solicitud.id_solicitud
-                    )
-                    detalles_result = await db.execute(detalles_stmt)
-                    detalles = detalles_result.scalars().all()
-
-                    for detalle in detalles:
-                        # Obtener resultados
-                        resultados_stmt = select(resultado_crud.model).where(
-                            resultado_crud.model.id_detalle == detalle.id_detalle
-                        )
-                        resultados_result = await db.execute(resultados_stmt)
-                        resultados = resultados_result.scalars().all()
-
-                        # Obtener datos de prueba
-                        prueba = await prueba_crud.get(db, detalle.id_prueba)
-
-                        for resultado in resultados:
-                            recent_results.append({
-                                "nombre_prueba": prueba.nombre if prueba else "Desconocida",
-                                "valor": resultado.resultado,
-                                "unidad": prueba.unidad if prueba else "",
-                                "rango_referencia": prueba.valor_referencia if prueba else "N/A",
-                                "estado": "anormal" if resultado.es_anormal else "normal",
-                                "fecha": resultado.created_at.isoformat() if resultado.created_at else "",
-                            })
-
-                    medical_history.append({
-                        "fecha": solicitud.fecha_solicitud.isoformat() if solicitud.fecha_solicitud else "",
-                        "hallazgos": "Solicitud completada",
-                        "prioridad": solicitud.prioridad,
+            
+            if range_info:
+                level = get_interpretation_level(test_name, value)
+                
+                if is_critical(test_name, value):
+                    validation["critical"].append({
+                        "test": test_name,
+                        "value": value,
+                        "level": level,
+                        "range": f"{range_info.get('min')}-{range_info.get('max')} {range_info.get('unidad')}"
                     })
-
-        # Realizar análisis
-        analysis_result = await patient_analyzer.analyze_patient(
-            patient_dict,
-            medical_history,
-            recent_results,
-        )
-
-        # Registrar evento
-        audit_service.record_event("patient_analysis", payload.patient_id, {
-            "patient_name": patient_dict.get("nombre"),
-            "include_history": payload.include_history,
-        })
-
-        return analysis_result
-
-    except HTTPException:
-        raise
-    except Exception as exc:
-        audit_service.record_event("patient_analysis_error", payload.patient_id, {
-            "error": str(exc)
-        })
-        raise HTTPException(status_code=500, detail=f"Error en análisis: {str(exc)}")
-
-
-@router.post("/result-analysis")
-async def analyze_result_specific(
-    payload: ResultAnalysisPayload,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Análisis clínico específico de un resultado.
-    Proporciona interpretación detallada del resultado individual.
-    """
-    try:
-        # Obtener datos del paciente
-        patient = await paciente_crud.get(db, payload.patient_id)
-        if not patient:
-            raise HTTPException(status_code=404, detail="Paciente no encontrado")
-
-        # Obtener resultado
-        resultado = await resultado_crud.get(db, payload.result_id)
-        if not resultado:
-            raise HTTPException(status_code=404, detail="Resultado no encontrado")
-
-        # Obtener detalle de solicitud
-        detalle = await detalle_solicitud_crud.get(db, resultado.id_detalle)
-        if not detalle:
-            raise HTTPException(status_code=404, detail="Detalle de solicitud no encontrado")
-
-        # Obtener prueba
-        prueba = await prueba_crud.get(db, detalle.id_prueba)
-        if not prueba:
-            raise HTTPException(status_code=404, detail="Prueba no encontrada")
-
-        # Construir diccionarios
-        patient_dict = {
-            "id_paciente": patient.id_paciente,
-            "nombre": patient.nombre,
-            "apellido_paterno": patient.apellido_paterno,
-            "fecha_nacimiento": patient.fecha_nacimiento,
-            "genero": patient.genero,
+                elif level != "NORMAL":
+                    validation["out_of_range"].append({
+                        "test": test_name,
+                        "value": value,
+                        "level": level,
+                        "range": f"{range_info.get('min')}-{range_info.get('max')} {range_info.get('unidad')}"
+                    })
+                else:
+                    validation["normal"].append({
+                        "test": test_name,
+                        "value": value,
+                        "level": "NORMAL",
+                        "range": f"{range_info.get('min')}-{range_info.get('max')} {range_info.get('unidad')}"
+                    })
+            else:
+                validation["unknown"].append({
+                    "test": test_name,
+                    "value": value,
+                    "reason": "Prueba no encontrada en base de datos de rangos"
+                })
+        
+        return {
+            "status": "success",
+            "validation": validation,
+            "summary": {
+                "total": len(results),
+                "normal": len(validation["normal"]),
+                "out_of_range": len(validation["out_of_range"]),
+                "critical": len(validation["critical"]),
+                "unknown": len(validation["unknown"])
+            }
         }
-
-        result_dict = {
-            "id_resultado": resultado.id_resultado,
-            "nombre_prueba": prueba.nombre,
-            "valor": float(resultado.resultado) if resultado.resultado else 0,
-            "unidad": prueba.unidad or "",
-            "rango_min": 0,
-            "rango_max": 100,
-            "rango_referencia": prueba.valor_referencia or "N/A",
-            "contexto_clinico": resultado.observacion or "No especificado",
+    
+    except Exception as e:
+        return {
+            "status": "error",
+            "detail": str(e)
         }
-
-        # Parsear rango de referencia si es posible
-        if prueba.valor_referencia:
-            try:
-                import re
-                parts = re.findall(r'[\d.]+', str(prueba.valor_referencia))
-                if len(parts) >= 2:
-                    result_dict["rango_min"] = float(parts[0])
-                    result_dict["rango_max"] = float(parts[1])
-            except Exception:
-                pass
-
-        # Obtener biomarcadores relacionados si se solicita
-        related_markers = None
-        if payload.include_related:
-            from sqlalchemy import select
-            # Obtener otros resultados de la misma solicitud
-            otros_detalles_stmt = select(detalle_solicitud_crud.model).where(
-                detalle_solicitud_crud.model.id_solicitud == detalle.id_solicitud,
-                detalle_solicitud_crud.model.id_detalle != detalle.id_detalle,
-            )
-            otros_detalles_result = await db.execute(otros_detalles_stmt)
-            otros_detalles = otros_detalles_result.scalars().all()
-
-            related_markers = []
-            for otro_detalle in otros_detalles:
-                otro_resultado_stmt = select(resultado_crud.model).where(
-                    resultado_crud.model.id_detalle == otro_detalle.id_detalle
-                )
-                otro_resultado_result = await db.execute(otro_resultado_stmt)
-                otro_resultado = otro_resultado_result.scalar_one_or_none()
-
-                if otro_resultado:
-                    otra_prueba = await prueba_crud.get(db, otro_detalle.id_prueba)
-                    if otra_prueba:
-                        related_markers.append({
-                            "nombre": otra_prueba.nombre,
-                            "valor": float(otro_resultado.resultado) if otro_resultado.resultado else 0,
-                            "unidad": otra_prueba.unidad or "",
-                            "estado": "anormal" if otro_resultado.es_anormal else "normal",
-                        })
-
-        # Realizar análisis
-        analysis_result = await result_analyzer.analyze_result(
-            patient_dict,
-            result_dict,
-            related_markers,
-        )
-
-        # Registrar evento
-        audit_service.record_event("result_analysis", payload.patient_id, {
-            "result_id": payload.result_id,
-            "test_name": prueba.nombre,
-            "include_related": payload.include_related,
-        })
-
-        return analysis_result
-
-    except HTTPException:
-        raise
-    except Exception as exc:
-        audit_service.record_event("result_analysis_error", payload.patient_id, {
-            "error": str(exc)
-        })
-        raise HTTPException(status_code=500, detail=f"Error en análisis: {str(exc)}")
-

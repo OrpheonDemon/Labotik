@@ -388,7 +388,7 @@ class DiagnosticoPreventivoBase(BaseModel):
     predicciones: Optional[dict] = None
     factores_riesgo: Optional[dict] = None
     recomendaciones: Optional[str] = None
-    modelo_version: Optional[str] = "medgemma"
+    modelo_version: Optional[str] = None
 
 class DiagnosticoPreventivoCreate(BaseModel):
     id_solicitud: int

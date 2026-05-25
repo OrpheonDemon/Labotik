@@ -3400,22 +3400,6 @@
         }
     </script>
 
-    <!-- Load Clinical AI Assistant Widget dynamically -->
-    <div id="clinical-ai-widget-container"></div>
-    <script>
-        (async function loadClinicalAI() {
-            try {
-                const response = await fetch('/static/partials/clinical-assistant-ai.html');
-                if (response.ok) {
-                    const html = await response.text();
-                    document.getElementById('clinical-ai-widget-container').innerHTML = html;
-                }
-            } catch (e) {
-                console.error('Error loading clinical AI widget:', e);
-            }
-        })();
-    </script>
-
 </body>
 </html>
 

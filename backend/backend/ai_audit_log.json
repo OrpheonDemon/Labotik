@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2026-05-25T09:46:11.187001",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x193b60ce850 state=finished raised TimeoutError>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "b0181136"
+  }
+]
