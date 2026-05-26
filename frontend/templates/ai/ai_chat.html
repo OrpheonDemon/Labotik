@@ -1,16 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Chat Médico - IA Clínica{% endblock %}
+{% block title %}Chatbot MedGema - IA Clínica{% endblock %}
 
 {% block content %}
 <div class="container-fluid pt-4" style="height: 100vh; display: flex; flex-direction: column;">
     <div class="row mb-3 flex-shrink-0">
         <div class="col-12">
             <h1>
-                <i class="fas fa-comments text-success"></i> Asistente Médico IA
+                <i class="fas fa-robot text-success"></i> Chatbot MedGema
             </h1>
-            <p class="text-muted">Realiza preguntas clínicas y obtén respuestas basadas en IA médica</p>
+            <p class="text-muted">Asistente IA avanzado con modelo MedGema para consultas médicas</p>
         </div>
     </div>
 
@@ -19,15 +19,17 @@
         <div class="col-lg-8">
             <div class="card h-100 d-flex flex-column">
                 <div class="card-header bg-success text-white">
-                    <h5 class="mb-0">Conversación</h5>
+                    <h5 class="mb-0">
+                        <i class="fas fa-robot"></i> Chatbot MedGema
+                    </h5>
                 </div>
                 
                 <!-- Historial de Mensajes -->
                 <div class="card-body flex-grow-1 overflow-auto" id="chatMessages">
                     <div class="text-center text-muted py-5">
-                        <i class="fas fa-comments-dollar fa-3x mb-3"></i>
-                        <p>Bienvenido. Haz una pregunta clínica para comenzar.</p>
-                        <small class="text-muted">Ejemplos: "¿Qué significa TSH elevado?", "Paciente con K 6.8"</small>
+                        <i class="fas fa-robot fa-3x mb-3" style="color: #28a745;"></i>
+                        <p>Bienvenido a MedGema. Haz una pregunta clínica para comenzar.</p>
+                        <small class="text-muted">Ejemplos: "¿Qué significa TSH elevado?", "Paciente con K 6.8", "¿Cómo interpretar hemoglobina baja?"</small>
                     </div>
                 </div>
                 
@@ -36,9 +38,9 @@
                     <form id="chatForm" class="d-flex gap-2">
                         {% csrf_token %}
                         <input type="text" class="form-control" id="messageInput" 
-                               placeholder="Escribe tu pregunta médica..." autocomplete="off" required>
+                               placeholder="Escribe tu pregunta para MedGema..." autocomplete="off" required>
                         <button type="submit" class="btn btn-success">
-                            <i class="fas fa-paper-plane"></i>
+                            <i class="fas fa-paper-plane"></i> Enviar
                         </button>
                     </form>
                 </div>

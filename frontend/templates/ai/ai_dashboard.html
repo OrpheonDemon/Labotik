@@ -79,7 +79,7 @@
 
     <!-- Opciones Principales -->
     <div class="row mb-4">
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card h-100 cursor-pointer" onclick="goToAnalysis()">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-microscope fa-3x text-primary mb-3"></i>
@@ -90,18 +90,7 @@
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card h-100 cursor-pointer" onclick="goToChat()">
-                <div class="card-body text-center py-5">
-                    <i class="fas fa-comments fa-3x text-success mb-3"></i>
-                    <h5 class="card-title">Chat Médico</h5>
-                    <p class="card-text text-muted">Realiza preguntas clínicas y obtén respuestas basadas en IA</p>
-                    <small class="text-success">→ Abrir chat</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
+        <div class="col-md-6">
             <div class="card h-100 cursor-pointer" onclick="goToExplain()">
                 <div class="card-body text-center py-5">
                     <i class="fas fa-graduation-cap fa-3x text-info mb-3"></i>
@@ -177,11 +166,8 @@
 
     // Navigation functions
     function goToAnalysis() {
-        window.location.href = '{% url "ia_analysis" %}';
-    }
-
-    function goToChat() {
-        window.location.href = '{% url "ia_chat" %}';
+        // Abre modal para análisis de resultados
+        showAnalysisModal();
     }
 
     function goToExplain() {
@@ -191,63 +177,219 @@
     function goToAudit() {
         window.location.href = '{% url "ia_audit" %}';
     }
+
+    function showAnalysisModal() {
+        const modal = new bootstrap.Modal(document.getElementById('analysisModal'));
+        loadPatientsInModal();
+        modal.show();
+    }
+
+    function performGeneralAnalysis() {
+        const patientId = document.getElementById('patientSelectModal').value;
+        if (!patientId) {
+            alert('Por favor selecciona un paciente');
+            return;
+        }
+        // Aquí iría la lógica para análisis general
+        alert('Análisis general del paciente ' + patientId);
+    }
+
+    function performDetailedAnalysis() {
+        const patientId = document.getElementById('patientSelectModal').value;
+        if (!patientId) {
+            alert('Por favor selecciona un paciente');
+            return;
+        }
+        // Aquí iría la lógica para análisis detallado
+        alert('Análisis detallado del paciente ' + patientId);
+    }
 </script>
 
 {% endblock %}
 
+<!-- Modal Análisis por Paciente -->
+<div class="modal fade" id="analysisModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content" style="background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%); border: 1px solid rgba(255,255,255,0.1);">
+            <div class="modal-header border-0 pb-3">
+                <h5 class="modal-title" style="color: #fff;">
+                    <i class="fas fa-user-md"></i> Análisis por Paciente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            
+            <div class="modal-body px-4">
+                <!-- Seleccionar Paciente -->
+                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                    <p style="color: rgba(255,255,255,0.9); font-weight: 500; margin-bottom: 12px;">Selecciona un paciente:</p>
+                    <select class="form-select" id="patientSelectModal" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 10px 12px;">
+                        <option value="" style="background: #1a1a1a;">-- Selecciona un paciente --</option>
+                    </select>
+                </div>
+
+                <!-- Botones de Análisis -->
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 24px;">
+                    <button type="button" class="btn" style="background: rgba(255,165,0,0.2); border: 1px solid rgba(255,165,0,0.4); color: #ffa500; padding: 12px; border-radius: 8px; font-weight: 500; cursor: pointer;" onclick="performGeneralAnalysis()">
+                        <i class="fas fa-chart-bar"></i> Análisis General
+                    </button>
+                    <button type="button" class="btn" style="background: rgba(100,200,255,0.2); border: 1px solid rgba(100,200,255,0.4); color: #64c8ff; padding: 12px; border-radius: 8px; font-weight: 500; cursor: pointer;" onclick="performDetailedAnalysis()">
+                        <i class="fas fa-microscope"></i> Analizar Resultados
+                    </button>
+                </div>
+
+                <!-- Instrucción -->
+                <div style="background: rgba(100,150,255,0.1); border-left: 3px solid rgba(100,150,255,0.5); padding: 12px; border-radius: 6px;">
+                    <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">
+                        <i class="fas fa-info-circle"></i> Selecciona un paciente y elige un tipo de análisis para comenzar
+                    </p>
+                </div>
+            </div>
+
+            <div class="modal-footer border-0 pt-3">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
-// Verificar estado de Ollama al cargar
+// Mapeo de especialidades
+const specialtyFields = {
+    hematology: [
+        { name: 'hemoglobina', label: 'Hemoglobina (g/dL)', type: 'number', step: '0.1' },
+        { name: 'hematocrito', label: 'Hematocrito (%)', type: 'number', step: '0.1' },
+        { name: 'leucocitos', label: 'Leucocitos (K/µL)', type: 'number', step: '0.1' },
+        { name: 'plaquetas', label: 'Plaquetas (K/µL)', type: 'number', step: '1' }
+    ],
+    biochemistry: [
+        { name: 'glucosa', label: 'Glucosa (mg/dL)', type: 'number', step: '1' },
+        { name: 'creatinina', label: 'Creatinina (mg/dL)', type: 'number', step: '0.1' },
+        { name: 'sodio', label: 'Sodio (mEq/L)', type: 'number', step: '0.1' },
+        { name: 'potasio', label: 'Potasio (mEq/L)', type: 'number', step: '0.1' }
+    ],
+    coagulation: [
+        { name: 'INR', label: 'INR', type: 'number', step: '0.1' },
+        { name: 'PT', label: 'PT (seg)', type: 'number', step: '0.1' },
+        { name: 'PTT', label: 'PTT (seg)', type: 'number', step: '0.1' }
+    ],
+    endocrinology: [
+        { name: 'glucosa', label: 'Glucosa (mg/dL)', type: 'number', step: '1' },
+        { name: 'TSH', label: 'TSH (mIU/L)', type: 'number', step: '0.1' },
+        { name: 'T3_libre', label: 'T3 libre (pg/mL)', type: 'number', step: '0.1' }
+    ]
+};
+
+function updateDynamicFields() {
+    const specialty = document.getElementById('specialty').value;
+    const container = document.getElementById('dynamicFields');
+    
+    if (specialty && specialtyFields[specialty]) {
+        const fields = specialtyFields[specialty];
+        container.innerHTML = fields.map(field => `
+            <div class="mb-2">
+                <label class="form-label small">${field.label}</label>
+                <input type="${field.type}" class="form-control form-control-sm" name="${field.name}" step="${field.step}" />
+            </div>
+        `).join('');
+    }
+}
+
+function displayAnalysisResults(result) {
+    const container = document.getElementById('analysisResults');
+    
+    // Asegurar que result es un objeto válido
+    if (!result) {
+        result = {
+            risk_level: 'Bajo',
+            risk_color: 'info',
+            findings: ['Sin hallazgos relevantes'],
+            recommendations: ['Mantener seguimiento regular']
+        };
+    }
+
+    const riskColor = result.risk_color || result.risk_level?.toLowerCase().includes('alto') ? 'warning' : result.risk_level?.toLowerCase().includes('crítico') ? 'danger' : 'info';
+    
+    const html = `
+        <div class="text-start">
+            <div class="alert alert-${riskColor} mb-3">
+                <h6 class="mb-0">Riesgo: <strong>${result.risk_level || 'Bajo'}</strong></h6>
+            </div>
+            
+            <div class="mb-3">
+                <h6>📋 Hallazgos:</h6>
+                <ul class="small mb-2">
+                    ${(result.findings || []).length > 0 ? 
+                        result.findings.map(f => `<li>${f}</li>`).join('') : 
+                        '<li>Sin hallazgos anormales detectados</li>'
+                    }
+                </ul>
+            </div>
+            
+            <div class="mb-3">
+                <h6>💡 Recomendaciones:</h6>
+                <ul class="small mb-2">
+                    ${(result.recommendations || []).length > 0 ? 
+                        result.recommendations.map(r => `<li>${r}</li>`).join('') : 
+                        '<li>Mantener seguimiento clínico regular</li>'
+                    }
+                </ul>
+            </div>
+
+            ${result.critical_values ? `
+                <div class="alert alert-danger small mb-3">
+                    <h6 class="mb-2">⚠️ Valores Críticos Detectados:</h6>
+                    <p class="mb-0">${result.critical_values}</p>
+                </div>
+            ` : ''}
+            
+            <div class="alert alert-info small">
+                <strong>✓ Análisis generado:</strong> ${new Date().toLocaleString('es-ES')}
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+}
+
+function exportAnalysisResults() {
+    const results = document.getElementById('analysisResults').innerText;
+    const csv = `Análisis IA - ${new Date().toLocaleString()}\n\n${results}`;
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'analisis_ia.csv';
+    a.click();
+}
+
+// Cargar pacientes
+function loadPatientsInModal() {
+    fetch('/api/pacientes/')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('patientSelectModal');
+            if (!select) return;
+            select.innerHTML = '<option value="" style="background: #1a1a1a;">-- Selecciona un paciente --</option>';
+            data.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = `${p.nombre} (ID: ${p.id})`;
+                opt.style.background = '#1a1a1a';
+                opt.style.color = '#fff';
+                select.appendChild(opt);
+            });
+        })
+        .catch(e => console.error('Error loading patients:', e));
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    checkOllamaStatus();
-    loadRecentAnalyses();
-    loadStatistics();
+    const modal = document.getElementById('analysisModal');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', loadPatientsInModal);
+    }
 });
+</script>
 
-function checkOllamaStatus() {
-    fetch('/api/ai/health')
-        .then(response => response.json())
-        .then(data => {
-            const statusEl = document.getElementById('ollama-status');
-            if (data.ollama_running) {
-                statusEl.innerHTML = '<i class="fas fa-check-circle text-success"></i> Conectado';
-            } else {
-                statusEl.innerHTML = '<i class="fas fa-times-circle text-danger"></i> Desconectado';
-            }
-        })
-        .catch(error => {
-            document.getElementById('ollama-status').innerHTML = 
-                '<i class="fas fa-times-circle text-danger"></i> Error';
-        });
-}
-
-function loadStatistics() {
-    // Cargar estadísticas desde el backend
-    fetch('/api/ai/statistics')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('analysis-count').textContent = data.analysis_count || 0;
-            document.getElementById('critical-count').textContent = data.critical_count || 0;
-        })
-        .catch(error => console.error('Error:', error));
-}
-
-function loadRecentAnalyses() {
-    fetch('/api/ai/recent-analyses')
-        .then(response => response.json())
-        .then(data => {
-            const container = document.getElementById('recent-analyses');
-            if (data.analyses && data.analyses.length > 0) {
-                const html = data.analyses.map(analysis => `
-                    <div class="border-bottom pb-3 mb-3">
-                        <div class="row">
-                            <div class="col-md-8">
-                                <h6>Paciente ${analysis.patient_id}</h6>
-                                <p class="text-muted mb-1">
-                                    <small>${new Date(analysis.timestamp).toLocaleString()}</small>
-                                </p>
-                                <p class="mb-0">${analysis.summary}</p>
-                            </div>
-                            <div class="col-md-4 text-end">
+{% endblock %}
                                 <span class="badge badge-${analysis.risk_level_color}">
                                     ${analysis.risk_level}
                                 </span>
@@ -262,10 +404,6 @@ function loadRecentAnalyses() {
 
 function goToAnalysis() {
     window.location.href = '/ia/analysis/';
-}
-
-function goToChat() {
-    window.location.href = '/ia/chat/';
 }
 
 function goToExplain() {

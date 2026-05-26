@@ -1052,17 +1052,11 @@
                     </div>
 
                     <!-- Opciones Principales -->
-                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
                         <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="alert('Módulo de análisis en desarrollo')" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                             <div style="font-size: 32px; margin-bottom: 12px;">🔬</div>
                             <h5 style="color: #fff; margin: 0 0 8px; font-size: 16px;">Analizar Resultados</h5>
                             <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">Carga resultados para análisis inteligente</p>
-                        </div>
-
-                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="alert('Chat médico en desarrollo')" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
-                            <div style="font-size: 32px; margin-bottom: 12px;">💬</div>
-                            <h5 style="color: #fff; margin: 0 0 8px; font-size: 16px;">Chat Médico</h5>
-                            <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">Preguntas clínicas basadas en IA</p>
                         </div>
 
                         <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="alert('Auditoría en desarrollo')" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
@@ -1089,12 +1083,12 @@
                             </select>
                             
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px;">
-                                <button id="ia-analyze-general" disabled onclick="analyzePatientGeneral()" style="padding: 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(102, 126, 234, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">📊 Análisis General</button>
-                                <button id="ia-analyze-results" disabled onclick="analyzePatientResults()" style="padding: 12px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(245, 87, 108, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
+                                <button id="ia-analyze-general" disabled onclick="analyzePatientGeneral()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">📊 Análisis General</button>
+                                <button id="ia-analyze-results" disabled onclick="analyzePatientResults()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
                             </div>
                         </div>
                         
-                        <div id="ia-analysis-result" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; min-height: 100px; color: rgba(255,255,255,0.7);">ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar</div>
+                        <div id="ia-analysis-result" style="display: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; min-height: 100px; color: rgba(255,255,255,0.7);">ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar</div>
                     </div>
                 </div>
             </section>
@@ -3619,7 +3613,9 @@
             }
             
             const headers = getAuthHeaders();
-            document.getElementById('ia-analysis-result').innerHTML = '<p style="color: #fbbf24;">⏳ Analizando datos del paciente...</p>';
+            const analysisEl = document.getElementById('ia-analysis-result');
+            analysisEl.style.display = 'block';
+            analysisEl.innerHTML = '<p style="color: #fbbf24;">⏳ Analizando datos generales y todos los resultados del paciente...</p>';
             
             try {
                 const resP = await fetch(`${API_URL}/pacientes?id_paciente=${pacienteId}`, { headers });
@@ -3632,16 +3628,63 @@
                 
                 const resRes = await fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers });
                 const resultados = await resRes.json();
+                const resultadosPaciente = resultados.filter(r => solicitudesPaciente.map(s => s.id_solicitud).includes(r.id_solicitud));
                 
                 const analysis = {
                     paciente: paciente,
                     solicitudes_totales: solicitudesPaciente.length,
                     solicitudes_pendientes: solicitudesPaciente.filter(s => s.estado === 'pendiente').length,
                     solicitudes_completadas: solicitudesPaciente.filter(s => s.estado === 'completada').length,
-                    resultados_totales: resultados.filter(r => solicitudesPaciente.map(s => s.id_solicitud).includes(r.id_solicitud)).length,
+                    resultados_totales: resultadosPaciente.length,
                     edad: new Date().getFullYear() - new Date(paciente.fecha_nacimiento).getFullYear(),
                     genero: paciente.genero
                 };
+                
+                if (resultadosPaciente.length === 0) {
+                    document.getElementById('ia-analysis-result').innerHTML = `<div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #fff; margin-top: 0;">📊 Análisis General del Paciente</h3>
+                        <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${analysis.paciente.nombre} ${analysis.paciente.apellido_paterno}</p>
+                        <p style="color: rgba(255,255,255,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
+                        <p style="color: rgba(255,255,255,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
+                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
+                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
+                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
+                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
+                        </div>
+                        <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 13px;">⚠️ No hay resultados para este paciente, solo se muestran estadísticas generales.</p>
+                    </div>`;
+                    return;
+                }
+                
+                const resultData = {
+                    id_paciente: pacienteId,
+                    edad: analysis.edad,
+                    sexo: paciente.genero === 'M' ? 'masculino' : 'femenino',
+                    historial_clinico: paciente.historial_clinico,
+                    resultados: {},
+                    valores_criticos: []
+                };
+                
+                resultadosPaciente.forEach(r => {
+                    resultData.resultados[r.id_prueba] = r.resultado;
+                    if (typeof r.resultado === 'number' && (r.resultado > 140 || r.resultado < 45)) {
+                        resultData.valores_criticos.push(r.id_prueba);
+                    }
+                });
+                
+                const resIAInterpret = await fetch(`${API_URL}/ai/interpret-results`, {
+                    method: 'POST',
+                    headers: {
+                        ...headers,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(resultData)
+                });
+                const iaData = await resIAInterpret.json();
+                
+                const patologiasActuales = parsePatologias(iaData.interpretation?.resumen || '');
+                const patologiasFuturas = predictFuturePathologies(paciente, resultData);
                 
                 const html = `
                     <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
@@ -3650,24 +3693,26 @@
                         <p style="color: rgba(255,255,255,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
                         <p style="color: rgba(255,255,255,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
-                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
-                                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p>
-                                <h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4>
+                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
+                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
+                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
+                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
+                        </div>
+                        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                            <div style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
+                                <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
+                                <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                                    ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">No se detectan patologías significativas</p>'}
+                                </div>
                             </div>
-                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
-                                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p>
-                                <h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4>
-                            </div>
-                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
-                                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">PENDIENTES</p>
-                                <h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4>
-                            </div>
-                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;">
-                                <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">RESULTADOS</p>
-                                <h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4>
+                            <div style="background: rgba(251, 191, 36, 0.15); border-left: 4px solid #fbbf24; padding: 16px; border-radius: 8px;">
+                                <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales</strong></p>
+                                <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                                    ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">Riesgo futuro bajo según datos actuales</p>'}
+                                </div>
                             </div>
                         </div>
-                        <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 13px;">✅ Análisis general completado. Carga resultados específicos para análisis clínico detallado.</p>
+                        <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 13px;">✅ Análisis general completado con IA sobre todos los resultados del paciente.</p>
                     </div>
                 `;
                 
@@ -3689,7 +3734,9 @@
             }
             
             const headers = getAuthHeaders();
-            document.getElementById('ia-analysis-result').innerHTML = '<p style="color: #fbbf24;">⏳ Cargando resultados específicos...</p>';
+            const analysisEl = document.getElementById('ia-analysis-result');
+            analysisEl.style.display = 'block';
+            analysisEl.innerHTML = '<p style="color: #fbbf24;">⏳ Cargando resultados específicos...</p>';
             
             try {
                 // Obtener datos del paciente
@@ -3714,6 +3761,106 @@
                     return;
                 }
                 
+                // Crear tabla de resultados para seleccionar
+                let resultadosHTML = `
+                    <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #fff; margin-top: 0;">🔬 Selecciona Resultados para Analizar</h3>
+                        <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${paciente.nombre} | <strong>Total de resultados:</strong> ${resultadosPaciente.length}</p>
+                        
+                        <div style="overflow-x: auto; margin: 16px 0;">
+                            <table style="width: 100%; border-collapse: collapse; color: rgba(255,255,255,0.9);">
+                                <thead>
+                                    <tr style="background: rgba(200, 150, 102, 0.3); border-bottom: 2px solid #c89666;">
+                                        <th style="padding: 12px; text-align: left; cursor: pointer;" onclick="toggleAllResultados()">✓</th>
+                                        <th style="padding: 12px; text-align: left;">Prueba</th>
+                                        <th style="padding: 12px; text-align: center;">Valor</th>
+                                        <th style="padding: 12px; text-align: center;">Unidad</th>
+                                        <th style="padding: 12px; text-align: center;">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                resultadosPaciente.forEach((r, idx) => {
+                    const isAbnormal = r.resultado > 150 || r.resultado < 50; // Simple check
+                    const statusColor = isAbnormal ? '#ef4444' : '#22c55e';
+                    const statusText = isAbnormal ? '⚠️ Anormal' : '✅ Normal';
+                    
+                    resultadosHTML += `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: ${idx % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'transparent'};">
+                            <td style="padding: 12px;"><input type="checkbox" id="resultado-${r.id_resultado}" checked style="cursor: pointer; width: 18px; height: 18px; accent-color: #c89666;"></td>
+                            <td style="padding: 12px;">${r.id_prueba}</td>
+                            <td style="padding: 12px; text-align: center; font-weight: 600;">${r.resultado}</td>
+                            <td style="padding: 12px; text-align: center;">mg/dL</td>
+                            <td style="padding: 12px; text-align: center; color: ${statusColor};">${statusText}</td>
+                        </tr>
+                    `;
+                });
+                
+                resultadosHTML += `
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;">
+                            <button onclick="selectAllResults()" style="padding: 10px; background: #c89666; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✓ Seleccionar Todo</button>
+                            <button onclick="deselectAllResults()" style="padding: 10px; background: #666; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✗ Deseleccionar Todo</button>
+                            <button onclick="performAnalysisIA('${pacienteId}')" style="padding: 10px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🧠 Analizar con IA</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('ia-analysis-result').innerHTML = resultadosHTML;
+                
+            } catch (error) {
+                console.error('Error in results analysis:', error);
+                document.getElementById('ia-analysis-result').innerHTML = `<p style="color: #ef4444;">❌ Error: ${error.message}</p>`;
+            }
+        }
+        
+        // Funciones de selección
+        function selectAllResults() {
+            document.querySelectorAll('input[id^="resultado-"]').forEach(cb => cb.checked = true);
+        }
+        
+        function deselectAllResults() {
+            document.querySelectorAll('input[id^="resultado-"]').forEach(cb => cb.checked = false);
+        }
+        
+        function toggleAllResultados() {
+            const checkboxes = document.querySelectorAll('input[id^="resultado-"]');
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+            checkboxes.forEach(cb => cb.checked = !allChecked);
+        }
+        
+        // Realizar análisis con IA después de seleccionar resultados
+        async function performAnalysisIA(pacienteId) {
+            const selectedResultados = Array.from(document.querySelectorAll('input[id^="resultado-"]:checked'))
+                .map(cb => cb.id.replace('resultado-', ''));
+            
+            if (selectedResultados.length === 0) {
+                alert('Selecciona al menos un resultado para analizar');
+                return;
+            }
+            
+            const headers = getAuthHeaders();
+            document.getElementById('ia-analysis-result').innerHTML += '<p style="color: #fbbf24; margin-top: 20px;">⏳ Analizando patologías con IA...</p>';
+            
+            try {
+                const resP = await fetch(`${API_URL}/pacientes?id_paciente=${pacienteId}`, { headers });
+                const pacientes = await resP.json();
+                const paciente = pacientes[0];
+                
+                const resSol = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers });
+                const solicitudes = await resSol.json();
+                const solicitudesPaciente = solicitudes.filter(s => s.id_paciente === pacienteId);
+                
+                const resRes = await fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers });
+                const resultados = await resRes.json();
+                const resultadosPaciente = resultados.filter(r => 
+                    solicitudesPaciente.map(s => s.id_solicitud).includes(r.id_solicitud)
+                );
+                
                 // Preparar datos para IA
                 const resultData = {
                     id_paciente: pacienteId,
@@ -3724,9 +3871,11 @@
                     valores_criticos: []
                 };
                 
-                // Agrupar resultados por prueba
+                // Solo incluir resultados seleccionados
                 resultadosPaciente.forEach(r => {
-                    resultData.resultados[r.id_prueba] = r.resultado;
+                    if (selectedResultados.includes(r.id_resultado.toString())) {
+                        resultData.resultados[r.id_prueba] = r.resultado;
+                    }
                 });
                 
                 // Llamar endpoint de análisis clínico
@@ -3743,35 +3892,98 @@
                 
                 if (iaData.status === 'success') {
                     const interpretation = iaData.interpretation;
-                    const html = `
-                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
-                            <h3 style="color: #fff; margin-top: 0;">🔬 Análisis de Resultados Específicos</h3>
-                            <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${paciente.nombre}</p>
-                            <p style="color: rgba(255,255,255,0.9);"><strong>Resultados analizados:</strong> ${resultadosPaciente.length}</p>
+                    
+                    // Extraer patologías del análisis
+                    const patologiasActuales = parsePatologias(interpretation.resumen);
+                    const patologiasFuturas = predictFuturePathologies(paciente, resultData);
+                    
+                    let analysisHTML = `
+                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-top: 20px;">
+                            <h3 style="color: #fff; margin-top: 0;">📊 Análisis IA Completado</h3>
                             
                             <div style="background: rgba(59, 130, 246, 0.2); border-left: 4px solid #3b82f6; padding: 12px; margin: 12px 0; border-radius: 4px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>📋 Interpretación:</strong></p>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>📋 Interpretación Clínica:</strong></p>
                                 <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">${interpretation.resumen || 'Análisis completado'}</p>
                             </div>
                             
                             ${interpretation.hallazgos ? `
                             <div style="background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; padding: 12px; margin: 12px 0; border-radius: 4px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>⚠️ Hallazgos:</strong></p>
+                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>⚠️ Hallazgos Importantes:</strong></p>
                                 <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">${interpretation.hallazgos}</p>
                             </div>
                             ` : ''}
                             
-                            <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 12px;">✅ Análisis completado por IA Clínica</p>
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
+                                <div style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
+                                    <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
+                                    <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                                        ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">No se detectan patologías significativas</p>'}
+                                    </div>
+                                </div>
+                                
+                                <div style="background: rgba(251, 191, 36, 0.15); border-left: 4px solid #fbbf24; padding: 16px; border-radius: 8px;">
+                                    <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales (Futuro)</strong></p>
+                                    <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                                        ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">Pronóstico favorable sin riesgos detectados</p>'}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 12px;">✅ Análisis completado por IA Clínica | Resultados analizados: ${selectedResultados.length}</p>
                         </div>
                     `;
-                    document.getElementById('ia-analysis-result').innerHTML = html;
+                    
+                    document.getElementById('ia-analysis-result').innerHTML += analysisHTML;
                 } else {
-                    document.getElementById('ia-analysis-result').innerHTML = `<p style="color: #ef4444;">❌ Error en análisis: ${iaData.detail}</p>`;
+                    document.getElementById('ia-analysis-result').innerHTML += `<p style="color: #ef4444;">❌ Error en análisis: ${iaData.detail}</p>`;
                 }
             } catch (error) {
-                console.error('Error in results analysis:', error);
-                document.getElementById('ia-analysis-result').innerHTML = `<p style="color: #ef4444;">❌ Error: ${error.message}</p>`;
+                console.error('Error in AI analysis:', error);
+                document.getElementById('ia-analysis-result').innerHTML += `<p style="color: #ef4444;">❌ Error: ${error.message}</p>`;
             }
+        }
+        
+        // Función para extraer patologías de la interpretación
+        function parsePatologias(texto) {
+            const patologias = [];
+            const keywords = ['anemia', 'diabetes', 'hipertensión', 'infección', 'inflamación', 'deshidratación', 'desnutrición', 'insuficiencia renal', 'hepatopatía', 'colesterol alto', 'triglicéridos altos', 'hipoglucemia', 'hiperglucemia'];
+            
+            keywords.forEach(keyword => {
+                if (texto && texto.toLowerCase().includes(keyword)) {
+                    patologias.push(keyword.charAt(0).toUpperCase() + keyword.slice(1));
+                }
+            });
+            
+            return [...new Set(patologias)]; // Eliminar duplicados
+        }
+        
+        // Función para predecir patologías futuras basadas en tendencias
+        function predictFuturePathologies(paciente, resultData) {
+            const predicciones = [];
+            const edad = resultData.edad;
+            const resultados = resultData.resultados;
+            
+            // Análisis de riesgos según edad y resultados
+            if (edad > 40) {
+                if (resultados['glucosa'] && resultados['glucosa'] > 100) predicciones.push('Prediabetes o Diabetes tipo 2');
+                if (resultados['colesterol'] && resultados['colesterol'] > 200) predicciones.push('Dislipidemia y riesgo cardiovascular');
+            }
+            
+            if (edad > 50) {
+                predicciones.push('Monitoreo de hipertensión recomendado');
+                predicciones.push('Evaluación de salud ósea en consideración');
+            }
+            
+            // Riesgos específicos según historial
+            if (paciente.historial_clinico && paciente.historial_clinico.toLowerCase().includes('diabetes')) {
+                predicciones.push('Progresión de complicaciones diabéticas');
+            }
+            
+            if (paciente.historial_clinico && paciente.historial_clinico.toLowerCase().includes('hipertensión')) {
+                predicciones.push('Riesgo de enfermedad cardiovascular');
+            }
+            
+            return [...new Set(predicciones)]; // Eliminar duplicados
         }
     </script>
 
