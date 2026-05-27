@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from app.database import engine, Base
 from app.routers import (
     areas, pruebas, pacientes, medicos, laboratoristas, administradores,
@@ -15,10 +16,17 @@ app = FastAPI(title="Laboratorio Clínico API", version="1.0")
 # Configurar CORS (ajusta los dominios permitidos en producción)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost",
+        "http://127.0.0.1",
+    ],
+    allow_origin_regex=r"http://(localhost|127\.0\.0\.1)(:[0-9]{1,5})?",
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
     max_age=3600,
 )
 
@@ -88,3 +96,16 @@ async def health():
 @app.get('/test')
 async def test():
     return {"message": "Test endpoint working", "cors": "enabled"}
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled exception during request: %s", exc)
+    origin = request.headers.get("origin")
+    headers = {}
+    if origin:
+        headers["Access-Control-Allow-Origin"] = origin
+        headers["Access-Control-Allow-Credentials"] = "true"
+    status_code = getattr(exc, "status_code", 500)
+    detail = getattr(exc, "detail", "Error interno del servidor")
+    return JSONResponse(status_code=status_code, content={"detail": detail}, headers=headers)

@@ -6,10 +6,7 @@ from app.dependencies import require_laboratorista, get_current_active_user
 
 router = APIRouter(prefix="/laboratoristas", tags=["Laboratoristas"])
 
-@router.get("/", response_model=list[schemas.LaboratoristaOut])
-async def list_laboratoristas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
-    # Permitir acceso a laboratoristas y otros roles autenticados para ver el listado
-    return await crud.laboratorista_crud.get_multi(db, skip, limit)
+
 
 @router.get("/search", response_model=list[schemas.LaboratoristaOut])
 async def search_laboratoristas(
@@ -34,6 +31,10 @@ async def search_laboratoristas(
             nombre or ""
         )
     return []
+
+@router.get("/", response_model=list[schemas.LaboratoristaOut])
+async def list_laboratoristas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db)):
+    return await crud.laboratorista_crud.get_multi(db, skip, limit)
 
 @router.get("/{id_laboratorista}", response_model=schemas.LaboratoristaOut)
 async def get_laboratorista(id_laboratorista: str, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):

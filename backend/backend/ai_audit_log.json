@@ -94,5 +94,149 @@
       "requiere_revision_humana": true
     },
     "id_registro": "de26f04d"
+  },
+  {
+    "timestamp": "2026-05-25T23:07:08.549530",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1ded991d1d0 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "11fab769"
+  },
+  {
+    "timestamp": "2026-05-25T23:07:41.762248",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1ded98d6690 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "6d4da24e"
+  },
+  {
+    "timestamp": "2026-05-26T18:09:38.639492",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1b21d719590 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "37d55211"
+  },
+  {
+    "timestamp": "2026-05-27T14:55:50.160981",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115fa1f9d0 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "3a8bd4ef"
+  },
+  {
+    "timestamp": "2026-05-27T14:56:17.241784",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115f7cec30 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "615178b2"
+  },
+  {
+    "timestamp": "2026-05-27T14:56:29.341826",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115fa0f450 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "a43e5c3d"
   }
 ]

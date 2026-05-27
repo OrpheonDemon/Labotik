@@ -14,7 +14,8 @@ from app.ai_engine import (
     AnomalyDetector,
     PriorityEngine,
     ClinicalAssistant,
-    AuditService
+    AuditService,
+    SmartClinicalChatbot
 )
 
 router = APIRouter(
@@ -439,6 +440,106 @@ async def list_models():
             "status": "error",
             "detail": str(e),
             "available": False
+        }
+
+
+@router.post("/smart-chat")
+async def smart_chat(
+    request: Dict[str, Any],
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Chatbot inteligente que usa datos de la aplicación + MedGema.
+    Responde sobre enfermedades, resultados de laboratorio, biomarcadores y más.
+    
+    Request:
+    {
+        "question": "¿Qué significa hemoglobina baja?",
+        "patient_id": "19950809RCM (opcional)",
+        "lab_results": {"hemoglobina": 11.0, "glucosa": 95} (opcional)
+    }
+    
+    El contexto del paciente se obtiene automáticamente de la base de datos.
+    """
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible. Verifica que Ollama esté corriendo.")
+        
+        question = request.get("question", "").strip()
+        if not question:
+            raise HTTPException(status_code=400, detail="La pregunta es requerida")
+        
+        # Obtener contexto del paciente si se proporciona ID
+        patient_context = None
+        patient_id = request.get("patient_id")
+        if patient_id:
+            from app.models import Paciente
+            from sqlalchemy import select
+            stmt = select(Paciente).where(Paciente.id_paciente == patient_id, Paciente.activo == 1)
+            result = await db.execute(stmt)
+            patient = result.scalar_one_or_none()
+            if patient:
+                # Calcular edad aproximada
+                from datetime import date
+                today = date.today()
+                age = today.year - patient.fecha_nacimiento.year - (
+                    (today.month, today.day) < (patient.fecha_nacimiento.month, patient.fecha_nacimiento.day)
+                ) if patient.fecha_nacimiento else None
+                
+                patient_context = {
+                    "id_paciente": patient.id_paciente,
+                    "nombre": patient.nombre,
+                    "apellido_paterno": patient.apellido_paterno,
+                    "edad": age,
+                    "genero": patient.genero,
+                    "alergias": patient.alergias,
+                    "tipo_sangre": patient.tipo_sangre,
+                }
+        
+        # Obtener resultados de laboratorio
+        lab_results = request.get("lab_results", {})
+        
+        # Info del usuario
+        user_info = {
+            "rol": current_user["rol"],
+            "nombre": getattr(current_user["user"], "nombre", "Usuario")
+        }
+        
+        # Crear chatbot y procesar pregunta
+        chatbot = SmartClinicalChatbot(client, db)
+        result = await chatbot.ask(
+            question=question,
+            user_info=user_info,
+            patient_context=patient_context,
+            lab_results=lab_results
+        )
+        
+        # Registrar en auditoría si hay contexto clínico
+        if lab_results or patient_context:
+            audit_service.log_analysis(
+                analysis_type="smart_chat",
+                user_email=current_user["user"].email,
+                patient_id=patient_id or "unknown",
+                input_data={"question": question, "patient_id": patient_id},
+                ai_output=result.get("respuesta", ""),
+                confidence=0.85
+            )
+        
+        return {
+            "status": "success",
+            **result
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Smart chat error")
+        return {
+            "status": "error",
+            "respuesta": "Error al procesar la consulta. Verifica que Ollama/MedGema esté disponible.",
+            "error": str(e)
         }
 
 

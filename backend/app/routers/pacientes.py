@@ -7,16 +7,15 @@ from app.models import Paciente
 
 router = APIRouter(prefix="/pacientes", tags=["Pacientes"])
 
+
 @router.get("/", response_model=list[schemas.PacienteOut])
 async def list_pacientes(
-    skip: int = 0, 
-    limit: int = 100, 
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_active_user)
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db)
 ):
-    if current_user["rol"] not in ["laboratorista", "medico", "administrador", "recepcionista", "paciente"]:
-        raise HTTPException(status_code=403, detail="No tienes permisos para listar pacientes")
     return await crud.paciente_crud.get_multi(db, skip, limit)
+
 
 @router.get("/search", response_model=list[schemas.PacienteOut])
 async def search_pacientes(

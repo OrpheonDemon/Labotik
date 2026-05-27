@@ -11,6 +11,7 @@ from .anomaly_detector import AnomalyDetector
 from .priority_engine import PriorityEngine
 from .clinical_assistant import ClinicalAssistant
 from .audit_service import AuditService
+from .chatbot import SmartClinicalChatbot
 
 __all__ = [
     "OllamaClient",
@@ -18,5 +19,6 @@ __all__ = [
     "AnomalyDetector",
     "PriorityEngine",
     "ClinicalAssistant",
-    "AuditService"
+    "AuditService",
+    "SmartClinicalChatbot"
 ]

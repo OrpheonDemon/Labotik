@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1053,7 +1053,7 @@
 
                     <!-- Opciones Principales -->
                     <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
-                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="alert('Módulo de análisis en desarrollo')" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="openIAnalysisPopup()" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
                             <div style="font-size: 32px; margin-bottom: 12px;">🔬</div>
                             <h5 style="color: #fff; margin: 0 0 8px; font-size: 16px;">Analizar Resultados</h5>
                             <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">Carga resultados para análisis inteligente</p>
@@ -1069,26 +1069,31 @@
                     <!-- Información del Sistema -->
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px;">
                         <h3 style="color: #fff; margin: 0 0 12px; font-size: 16px;">📊 Estado del Sistema IA</h3>
-                        <p id="ia-system-status" style="color: rgba(255,255,255,0.8); margin: 0; line-height: 1.6;">Iniciando conexión con motor IA... Verifica que Ollama esté ejecutándose en puerto 11434.</p>
+                        <p id="ia-system-status" style="color: rgba(255,255,255,0.8); margin: 0; line-height: 1.6;">Iniciando conexión con motor IA... Verifica que Ollama esté ejecutándoseun tipo de análisis para comenzar</div>
                     </div>
-
-                    <!-- Análisis por Paciente -->
-                    <div style="margin-top: 32px;">
-                        <h2 style="color: #fff; margin: 24px 0 16px; font-size: 18px;">👤 Análisis por Paciente</h2>
-                        
-                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
-                            <label style="display: block; color: rgba(255,255,255,0.9); margin-bottom: 12px; font-weight: 600;">Selecciona un paciente:</label>
-                            <select id="ia-paciente-select" onchange="this.value && (document.getElementById('ia-analyze-general').disabled = false, document.getElementById('ia-analyze-results').disabled = false)" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 14px;">
-                                <option value="">-- Cargando pacientes --</option>
-                            </select>
-                            
-                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px;">
-                                <button id="ia-analyze-general" disabled onclick="analyzePatientGeneral()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">📊 Análisis General</button>
-                                <button id="ia-analyze-results" disabled onclick="analyzePatientResults()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
+                    <!-- Modal para mostrar análisis en popup -->
+                    <div id="ia-analysis-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;" onclick="if(event.target.id === 'ia-analysis-modal') closeAnalysisModalAdmin();">
+                        <div style="background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.2); border-radius: 12px; padding: 30px; min-height: 300px; max-height: 85vh; width: 95%; max-width: 900px; color: #333; overflow-y: auto; position: relative; backdrop-filter: blur(8px);">
+    <button onclick="closeAnalysisModalAdmin()" style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #ccc; color: #333; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;">×</button>
+    <!-- Análisis por Paciente -->
+    <div style="margin-top: 32px; display:block;">
+        <h2 style="color: #333; margin: 24px 0 16px; font-size: 18px;">👤 Análisis por Paciente</h2>
+                                
+                                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                                    <label style="display: block; color: #333; margin-bottom: 12px; font-weight: 600;">Selecciona un paciente:</label>
+                                    <select id="ia-paciente-select" onchange="this.value && (document.getElementById('ia-analyze-general').disabled = false, document.getElementById('ia-analyze-results').disabled = false)" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;">
+                                        <option value="">-- Cargando pacientes --</option>
+                                    </select>
+                                    
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px;">
+                                        <button id="ia-analyze-general" disabled onclick="analyzePatientGeneral()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">📊 Análisis General</button>
+                                        <button id="ia-analyze-results" disabled onclick="analyzePatientResults()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="ia-analysis-result" style="display: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; min-height: 100px; color: #333;">ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar</div>
                             </div>
                         </div>
-                        
-                        <div id="ia-analysis-result" style="display: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; min-height: 100px; color: rgba(255,255,255,0.7);">ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar</div>
                     </div>
                 </div>
             </section>
@@ -1391,7 +1396,7 @@
             if (!sectionId) return;
             // use paginated fetch for common sections
             if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas','solicitudes'].includes(sectionId)) {
-                fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
+                await fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
             }
             // Custom load for Resultados: listar solicitudes pagadas y resultados registrados
             if (sectionId === 'Resultados' || sectionId === 'resultados') {
@@ -1743,25 +1748,42 @@
             const cfg = sectionConfig[sectionKey];
             if (!cfg) return;
             
+            // Wait for DOM elements to be available (race condition after lazy partial load)
+            let status = document.getElementById(`${sectionKey}Status`);
+            let tbody = document.getElementById(`${sectionKey}Tbody`);
+            let pagination = document.getElementById(`${sectionKey}Pagination`);
+            if (!tbody) {
+                // Retry once after a short delay to allow partial insertion to complete
+                await new Promise(r => setTimeout(r, 120));
+                status = document.getElementById(`${sectionKey}Status`);
+                tbody = document.getElementById(`${sectionKey}Tbody`);
+                pagination = document.getElementById(`${sectionKey}Pagination`);
+            }
+            if (!tbody) {
+                console.error(`[fetchAndRender] DOM element '${sectionKey}Tbody' not found. Partial may not be loaded.`);
+                return;
+            }
+
             if (sectionKey === 'pruebas' || sectionKey === 'laboratoristas') {
                 await loadAreasCache();
             }
             if (sectionKey === 'solicitudes') {
                 await loadSolicitudesCaches();
             }
-
-            const status = document.getElementById(`${sectionKey}Status`);
-            const tbody = document.getElementById(`${sectionKey}Tbody`);
-            const pagination = document.getElementById(`${sectionKey}Pagination`);
             
             // Only update if elements exist
             if (status) status.innerText = `Cargando ${sectionKey}...`;
-            if (tbody) tbody.innerHTML = '';
+            tbody.innerHTML = '';
             if (pagination) pagination.innerHTML = '';
             const searchFilters = getSearchFilters(sectionKey);
             const hasSearch = Object.values(searchFilters).some(value => value);
             try {
                 const token = getToken();
+                if (!token) {
+                    if (status) status.innerText = 'Sesión expirada. Por favor inicia sesión nuevamente.';
+                    console.warn('[fetchAndRender] No token found in storage.');
+                    return;
+                }
                 let response;
                 if (hasSearch) {
                     const query = new URLSearchParams(searchFilters).toString();
@@ -1775,14 +1797,16 @@
                     });
                 }
                 if (!response.ok) {
+                    console.error(`[fetchAndRender] HTTP ${response.status} for ${sectionKey}`);
                     if (response.status === 401 || response.status === 403) {
-                        status.innerText = 'No se pudo cargar. Revisa tus permisos o inicia sesión nuevamente.';
+                        if (status) status.innerText = 'No se pudo cargar. Revisa tus permisos o inicia sesión nuevamente.';
                         return;
                     }
                     const err = await response.json().catch(() => null);
                     throw new Error(err?.detail || 'Error al cargar datos');
                 }
                 const items = await response.json();
+                console.log(`[fetchAndRender] ${sectionKey}: ${items.length} items loaded.`);
                 if (!Array.isArray(items)) throw new Error('Respuesta inesperada del servidor');
                 items.forEach(item => {
                     if (sectionKey === 'solicitudes') {
@@ -1939,8 +1963,8 @@
                     pagination.appendChild(next);
                 }
             } catch (error) {
-                console.error(error);
-                status.innerText = `Error: ${error.message}`;
+                console.error('[fetchAndRender] Error:', error);
+                if (status) status.innerText = `Error: ${error.message}`;
             }
         }
 
@@ -3588,18 +3612,37 @@
             
             try {
                 const res = await fetch(`${API_URL}/pacientes?limit=1000`, { headers });
+                if (!res.ok) {
+                    console.error('[loadPatientsForAnalysis] HTTP', res.status);
+                    return;
+                }
                 const pacientes = await res.json();
+                if (!Array.isArray(pacientes)) {
+                    console.error('[loadPatientsForAnalysis] Unexpected response:', pacientes);
+                    return;
+                }
                 
                 select.innerHTML = '<option value="">-- Selecciona un paciente --</option>';
                 pacientes.forEach(p => {
                     const option = document.createElement('option');
                     option.value = p.id_paciente;
-                    option.textContent = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno} (${p.id_paciente})`;
+                    option.textContent = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno || ''} (${p.id_paciente})`.trim();
                     select.appendChild(option);
                 });
             } catch (error) {
                 console.error('Error loading patients:', error);
             }
+        }
+
+        function openIAnalysisPopup() {
+            const modal = document.getElementById('ia-analysis-modal');
+            modal.style.display = 'flex';
+            const resultDiv = document.getElementById('ia-analysis-result');
+            if (resultDiv) {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = 'ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar';
+            }
+            loadPatientsForAnalysis();
         }
 
         // Análisis general del paciente
@@ -3614,7 +3657,8 @@
             
             const headers = getAuthHeaders();
             const analysisEl = document.getElementById('ia-analysis-result');
-            analysisEl.style.display = 'block';
+            const modal = document.getElementById('ia-analysis-modal');
+            modal.style.display = 'flex';
             analysisEl.innerHTML = '<p style="color: #fbbf24;">⏳ Analizando datos generales y todos los resultados del paciente...</p>';
             
             try {
@@ -3641,18 +3685,18 @@
                 };
                 
                 if (resultadosPaciente.length === 0) {
-                    document.getElementById('ia-analysis-result').innerHTML = `<div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
-                        <h3 style="color: #fff; margin-top: 0;">📊 Análisis General del Paciente</h3>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${analysis.paciente.nombre} ${analysis.paciente.apellido_paterno}</p>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
+                    document.getElementById('ia-analysis-result').innerHTML = `<div style="background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #333; margin-top: 0;">📊 Análisis General del Paciente</h3>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Paciente:</strong> ${analysis.paciente.nombre} ${analysis.paciente.apellido_paterno}</p>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
-                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
-                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
-                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
-                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
+                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
+                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
+                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
+                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
                         </div>
-                        <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 13px;">⚠️ No hay resultados para este paciente, solo se muestran estadísticas generales.</p>
+                        <p style="color: rgba(0,0,0,0.7); margin-top: 16px; font-size: 13px;">⚠️ No hay resultados para este paciente, solo se muestran estadísticas generales.</p>
                     </div>`;
                     return;
                 }
@@ -3687,32 +3731,32 @@
                 const patologiasFuturas = predictFuturePathologies(paciente, resultData);
                 
                 const html = `
-                    <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
-                        <h3 style="color: #fff; margin-top: 0;">📊 Análisis General del Paciente</h3>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${analysis.paciente.nombre} ${analysis.paciente.apellido_paterno}</p>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
+                    <div style="background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #333; margin-top: 0;">📊 Análisis General del Paciente</h3>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Paciente:</strong> ${analysis.paciente.nombre} ${analysis.paciente.apellido_paterno}</p>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Edad:</strong> ${analysis.edad} años | <strong>Género:</strong> ${analysis.genero}</p>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Historial Clínico:</strong> ${analysis.paciente.historial_clinico || 'No registrado'}</p>
                         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 16px;">
-                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
-                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
-                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
-                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
+                            <div style="background: rgba(59, 130, 246, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">SOLICITUDES</p><h4 style="color: #3b82f6; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_totales}</h4></div>
+                            <div style="background: rgba(34, 197, 94, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">COMPLETADAS</p><h4 style="color: #22c55e; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_completadas}</h4></div>
+                            <div style="background: rgba(251, 191, 36, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">PENDIENTES</p><h4 style="color: #fbbf24; margin: 8px 0; font-size: 20px;">${analysis.solicitudes_pendientes}</h4></div>
+                            <div style="background: rgba(239, 68, 68, 0.3); padding: 12px; border-radius: 8px; text-align: center;"><p style="color: rgba(0,0,0,0.7); margin: 0; font-size: 12px;">RESULTADOS</p><h4 style="color: #ef4444; margin: 8px 0; font-size: 20px;">${analysis.resultados_totales}</h4></div>
                         </div>
                         <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
                             <div style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
-                                <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                                    ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">No se detectan patologías significativas</p>'}
+                                <p style="color: rgba(0,0,0,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
+                                <div style="color: rgba(0,0,0,0.8); font-size: 14px;">
+                                    ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(0,0,0,0.6);">No se detectan patologías significativas</p>'}
                                 </div>
                             </div>
                             <div style="background: rgba(251, 191, 36, 0.15); border-left: 4px solid #fbbf24; padding: 16px; border-radius: 8px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales</strong></p>
-                                <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                                    ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">Riesgo futuro bajo según datos actuales</p>'}
+                                <p style="color: rgba(0,0,0,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales</strong></p>
+                                <div style="color: rgba(0,0,0,0.8); font-size: 14px;">
+                                    ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(0,0,0,0.6);">Riesgo futuro bajo según datos actuales</p>'}
                                 </div>
                             </div>
                         </div>
-                        <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 13px;">✅ Análisis general completado con IA sobre todos los resultados del paciente.</p>
+                        <p style="color: rgba(0,0,0,0.7); margin-top: 16px; font-size: 13px;">✅ Análisis general completado con IA sobre todos los resultados del paciente.</p>
                     </div>
                 `;
                 
@@ -3735,7 +3779,8 @@
             
             const headers = getAuthHeaders();
             const analysisEl = document.getElementById('ia-analysis-result');
-            analysisEl.style.display = 'block';
+            const modal = document.getElementById('ia-analysis-modal');
+            modal.style.display = 'flex';
             analysisEl.innerHTML = '<p style="color: #fbbf24;">⏳ Cargando resultados específicos...</p>';
             
             try {
@@ -3763,12 +3808,12 @@
                 
                 // Crear tabla de resultados para seleccionar
                 let resultadosHTML = `
-                    <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
-                        <h3 style="color: #fff; margin-top: 0;">🔬 Selecciona Resultados para Analizar</h3>
-                        <p style="color: rgba(255,255,255,0.9);"><strong>Paciente:</strong> ${paciente.nombre} | <strong>Total de resultados:</strong> ${resultadosPaciente.length}</p>
+                    <div style="background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin: 20px 0;">
+                        <h3 style="color: #333; margin-top: 0;">🔬 Selecciona Resultados para Analizar</h3>
+                        <p style="color: rgba(0,0,0,0.9);"><strong>Paciente:</strong> ${paciente.nombre} | <strong>Total de resultados:</strong> ${resultadosPaciente.length}</p>
                         
                         <div style="overflow-x: auto; margin: 16px 0;">
-                            <table style="width: 100%; border-collapse: collapse; color: rgba(255,255,255,0.9);">
+                            <table style="width: 100%; border-collapse: collapse; color: rgba(0,0,0,0.9);">
                                 <thead>
                                     <tr style="background: rgba(200, 150, 102, 0.3); border-bottom: 2px solid #c89666;">
                                         <th style="padding: 12px; text-align: left; cursor: pointer;" onclick="toggleAllResultados()">✓</th>
@@ -3787,7 +3832,7 @@
                     const statusText = isAbnormal ? '⚠️ Anormal' : '✅ Normal';
                     
                     resultadosHTML += `
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); background: ${idx % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'transparent'};">
+                        <tr style="border-bottom: 1px solid rgba(0,0,0,0.1); background: ${idx % 2 === 0 ? 'rgba(0,0,0,0.2)' : 'transparent'};">
                             <td style="padding: 12px;"><input type="checkbox" id="resultado-${r.id_resultado}" checked style="cursor: pointer; width: 18px; height: 18px; accent-color: #c89666;"></td>
                             <td style="padding: 12px;">${r.id_prueba}</td>
                             <td style="padding: 12px; text-align: center; font-weight: 600;">${r.resultado}</td>
@@ -3803,9 +3848,9 @@
                         </div>
                         
                         <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 16px;">
-                            <button onclick="selectAllResults()" style="padding: 10px; background: #c89666; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✓ Seleccionar Todo</button>
-                            <button onclick="deselectAllResults()" style="padding: 10px; background: #666; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✗ Deseleccionar Todo</button>
-                            <button onclick="performAnalysisIA('${pacienteId}')" style="padding: 10px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🧠 Analizar con IA</button>
+                            <button onclick="selectAllResults()" style="padding: 10px; background: #c89666; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✓ Seleccionar Todo</button>
+                            <button onclick="deselectAllResults()" style="padding: 10px; background: #666; color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'">✗ Deseleccionar Todo</button>
+                            <button onclick="performAnalysisIA('${pacienteId}')" style="padding: 10px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #333; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🧠 Analizar con IA</button>
                         </div>
                     </div>
                 `;
@@ -3814,6 +3859,8 @@
                 
             } catch (error) {
                 console.error('Error in results analysis:', error);
+                const modal = document.getElementById('ia-analysis-modal');
+                modal.style.display = 'flex';
                 document.getElementById('ia-analysis-result').innerHTML = `<p style="color: #ef4444;">❌ Error: ${error.message}</p>`;
             }
         }
@@ -3898,38 +3945,38 @@
                     const patologiasFuturas = predictFuturePathologies(paciente, resultData);
                     
                     let analysisHTML = `
-                        <div style="background: rgba(255,255,255,0.08); border-radius: 12px; padding: 20px; margin-top: 20px;">
-                            <h3 style="color: #fff; margin-top: 0;">📊 Análisis IA Completado</h3>
+                        <div style="background: rgba(0,0,0,0.08); border-radius: 12px; padding: 20px; margin-top: 20px;">
+                            <h3 style="color: #333; margin-top: 0;">📊 Análisis IA Completado</h3>
                             
                             <div style="background: rgba(59, 130, 246, 0.2); border-left: 4px solid #3b82f6; padding: 12px; margin: 12px 0; border-radius: 4px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>📋 Interpretación Clínica:</strong></p>
-                                <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">${interpretation.resumen || 'Análisis completado'}</p>
+                                <p style="color: rgba(0,0,0,0.9); margin: 0;"><strong>📋 Interpretación Clínica:</strong></p>
+                                <p style="color: rgba(0,0,0,0.8); margin-top: 8px;">${interpretation.resumen || 'Análisis completado'}</p>
                             </div>
                             
                             ${interpretation.hallazgos ? `
                             <div style="background: rgba(239, 68, 68, 0.2); border-left: 4px solid #ef4444; padding: 12px; margin: 12px 0; border-radius: 4px;">
-                                <p style="color: rgba(255,255,255,0.9); margin: 0;"><strong>⚠️ Hallazgos Importantes:</strong></p>
-                                <p style="color: rgba(255,255,255,0.8); margin-top: 8px;">${interpretation.hallazgos}</p>
+                                <p style="color: rgba(0,0,0,0.9); margin: 0;"><strong>⚠️ Hallazgos Importantes:</strong></p>
+                                <p style="color: rgba(0,0,0,0.8); margin-top: 8px;">${interpretation.hallazgos}</p>
                             </div>
                             ` : ''}
                             
                             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
                                 <div style="background: rgba(239, 68, 68, 0.15); border-left: 4px solid #ef4444; padding: 16px; border-radius: 8px;">
-                                    <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
-                                    <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                                        ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">No se detectan patologías significativas</p>'}
+                                    <p style="color: rgba(0,0,0,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🏥 Patologías Actuales</strong></p>
+                                    <div style="color: rgba(0,0,0,0.8); font-size: 14px;">
+                                        ${patologiasActuales.length > 0 ? patologiasActuales.map(p => `<p style="margin: 6px 0;">• ${p}</p>`).join('') : '<p style="color: rgba(0,0,0,0.6);">No se detectan patologías significativas</p>'}
                                     </div>
                                 </div>
                                 
                                 <div style="background: rgba(251, 191, 36, 0.15); border-left: 4px solid #fbbf24; padding: 16px; border-radius: 8px;">
-                                    <p style="color: rgba(255,255,255,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales (Futuro)</strong></p>
-                                    <div style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                                        ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(255,255,255,0.6);">Pronóstico favorable sin riesgos detectados</p>'}
+                                    <p style="color: rgba(0,0,0,0.9); margin: 0 0 12px; font-weight: 600;"><strong>🔮 Patologías Potenciales (Futuro)</strong></p>
+                                    <div style="color: rgba(0,0,0,0.8); font-size: 14px;">
+                                        ${patologiasFuturas.length > 0 ? patologiasFuturas.map(p => `<p style="margin: 6px 0;">⚡ ${p}</p>`).join('') : '<p style="color: rgba(0,0,0,0.6);">Pronóstico favorable sin riesgos detectados</p>'}
                                     </div>
                                 </div>
                             </div>
                             
-                            <p style="color: rgba(255,255,255,0.7); margin-top: 16px; font-size: 12px;">✅ Análisis completado por IA Clínica | Resultados analizados: ${selectedResultados.length}</p>
+                            <p style="color: rgba(0,0,0,0.7); margin-top: 16px; font-size: 12px;">✅ Análisis completado por IA Clínica | Resultados analizados: ${selectedResultados.length}</p>
                         </div>
                     `;
                     
@@ -3984,6 +4031,12 @@
             }
             
             return [...new Set(predicciones)]; // Eliminar duplicados
+        }
+
+        // Función para cerrar el modal de análisis
+        function closeAnalysisModalAdmin() {
+            document.getElementById('ia-analysis-modal').style.display = 'none';
+            document.getElementById('ia-analysis-result').innerHTML = '';
         }
     </script>
 
