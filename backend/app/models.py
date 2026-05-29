@@ -38,6 +38,10 @@ class Paciente(Base):
     tipo_sangre = Column(String(10))
     alergias = Column(Text)
     password = Column(String(255))
+    # === Campos de afiliación SUS / Privado ===
+    tipo_afiliacion = Column(Enum('SUS','Privado'), default='Privado')
+    numero_afiliado_sus = Column(String(50), nullable=True)
+    entidad_aseguradora = Column(String(100), nullable=True)
     activo = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -137,6 +141,12 @@ class Factura(Base):
     estado_factura = Column(Enum('emitida','pagada_parcial','pagada_total','anulada'), default='emitida')
     tipo_comprobante = Column(Enum('boleta','factura','ticket'), default='boleta')
     nro_comprobante = Column(String(50), unique=True)
+    # === Campos de facturación SUS / Privado ===
+    tipo_pago_fuente = Column(Enum('paciente','SUS','ministerio_salud'), default='paciente')
+    monto_paciente = Column(Float, default=0.0)
+    monto_sus = Column(Float, default=0.0)
+    estado_reembolso_sus = Column(Enum('no_aplica','pendiente','enviado','reembolsado'), default='no_aplica')
+    numero_reclamacion_sus = Column(String(50), nullable=True)
     activo = Column(Integer, default=1)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

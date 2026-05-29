@@ -6,7 +6,7 @@ from app.database import get_db
 from app.dependencies import get_current_active_user
 from fastapi.responses import StreamingResponse
 import io
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from app import models
 import logging
 
@@ -293,3 +293,159 @@ async def generar_reporte(id_reporte: int, db: AsyncSession = Depends(get_db), c
     filename_date = datetime.now().strftime('%Y%m%d')
     filename = f"labotik_{filename_date}_{id_reporte}.pdf"
     return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": f"inline; filename={filename}"})
+
+
+# ============================================
+# REPORTES SUS / MINISTERIO DE SALUD
+# ============================================
+
+@router.get("/sus/pendientes-reembolso")
+async def reporte_sus_pendientes_reembolso(db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
+    """Reporte de facturas SUS pendientes de reembolso para el Ministerio de Salud"""
+    stmt = select(models.Factura, models.Paciente).join(
+        models.Paciente, models.Paciente.id_paciente == models.Factura.id_paciente
+    ).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus.in_(['pendiente', 'enviado'])
+    ).order_by(models.Factura.fecha_emision.desc())
+    
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    facturas = []
+    for factura, paciente in rows:
+        facturas.append({
+            "id_factura": factura.id_factura,
+            "id_solicitud": factura.id_solicitud,
+            "id_paciente": factura.id_paciente,
+            "paciente_nombre": f"{paciente.nombre} {paciente.apellido_paterno or ''} {paciente.apellido_materno or ''}".strip(),
+            "numero_afiliado_sus": paciente.numero_afiliado_sus or "S/N",
+            "fecha_emision": str(factura.fecha_emision),
+            "total": factura.total,
+            "estado_reembolso_sus": factura.estado_reembolso_sus,
+            "numero_reclamacion_sus": factura.numero_reclamacion_sus or "Sin número"
+        })
+    
+    total_pendiente = sum(f["total"] for f in facturas if f["estado_reembolso_sus"] == "pendiente")
+    total_enviado = sum(f["total"] for f in facturas if f["estado_reembolso_sus"] == "enviado")
+    
+    return {
+        "fecha_generacion": str(datetime.now()),
+        "total_facturas": len(facturas),
+        "total_pendiente_envio": total_pendiente,
+        "total_enviado_ministerio": total_enviado,
+        "total_reclamar": total_pendiente + total_enviado,
+        "facturas": facturas
+    }
+
+
+@router.get("/sus/resumen-mensual")
+async def reporte_sus_resumen_mensual(db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
+    """Resumen mensual de facturación SUS vs Privados"""
+    stmt_pac = select(models.Paciente).where(models.Paciente.activo == 1)
+    result_pac = await db.execute(stmt_pac)
+    pacientes = result_pac.scalars().all()
+    
+    total_sus = sum(1 for p in pacientes if p.tipo_afiliacion == 'SUS')
+    total_privado = sum(1 for p in pacientes if p.tipo_afiliacion == 'Privado')
+    
+    # Facturas SUS
+    stmt_sus = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud'])
+    )
+    result_sus = await db.execute(stmt_sus)
+    fac_sus = result_sus.scalars().all()
+    
+    # Facturas Privados
+    stmt_priv = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente == 'paciente'
+    )
+    result_priv = await db.execute(stmt_priv)
+    fac_priv = result_priv.scalars().all()
+    
+    return {
+        "fecha_generacion": str(datetime.now()),
+        "pacientes": {
+            "total_sus": total_sus,
+            "total_privados": total_privado,
+            "total_general": total_sus + total_privado
+        },
+        "facturas": {
+            "sus_total": len(fac_sus),
+            "sus_monto_total": sum(f.total for f in fac_sus),
+            "sus_pendiente": sum(f.total for f in fac_sus if f.estado_reembolso_sus == "pendiente"),
+            "sus_enviado": sum(f.total for f in fac_sus if f.estado_reembolso_sus == "enviado"),
+            "sus_reembolsado": sum(f.total for f in fac_sus if f.estado_reembolso_sus == "reembolsado"),
+            "privados_total": len(fac_priv),
+            "privados_monto_cobrado": sum(f.total for f in fac_priv if f.estado_factura == "pagada_total"),
+            "privados_pendiente_pago": sum(f.total for f in fac_priv if f.estado_factura in ["emitida", "pagada_parcial"])
+        }
+    }
+
+
+@router.get("/ministerio-salud")
+async def reporte_ministerio_salud(db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_active_user)):
+    """
+    Reporte formal para el Ministerio de Salud de Bolivia.
+    Incluye todas las atenciones SUS con sus detalles para presentar como reclamación.
+    """
+    stmt = select(models.Factura, models.Paciente).join(
+        models.Paciente, models.Paciente.id_paciente == models.Factura.id_paciente
+    ).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus.in_(['pendiente', 'enviado'])
+    ).order_by(models.Factura.fecha_emision.asc())
+    
+    result = await db.execute(stmt)
+    rows = result.all()
+    
+    atenciones = []
+    for factura, paciente in rows:
+        # Obtener detalles de la factura
+        stmt_det = select(models.DetalleFactura, models.Prueba).join(
+            models.Prueba, models.Prueba.id_prueba == models.DetalleFactura.id_prueba
+        ).where(
+            models.DetalleFactura.id_factura == factura.id_factura,
+            models.DetalleFactura.activo == 1
+        )
+        result_det = await db.execute(stmt_det)
+        det_rows = result_det.all()
+        
+        items = []
+        for detalle, prueba in det_rows:
+            items.append({
+                "prueba": prueba.nombre,
+                "cantidad": detalle.cantidad,
+                "precio_unitario": detalle.precio_unitario,
+                "total": detalle.total_item
+            })
+        
+        atenciones.append({
+            "id_factura": factura.id_factura,
+            "numero_reclamacion": factura.numero_reclamacion_sus or "Pendiente",
+            "fecha_emision": str(factura.fecha_emision),
+            "paciente": f"{paciente.nombre} {paciente.apellido_paterno or ''} {paciente.apellido_materno or ''}".strip(),
+            "ci_paciente": paciente.id_paciente,
+            "numero_afiliado_sus": paciente.numero_afiliado_sus or "S/N",
+            "subtotal": factura.subtotal,
+            "impuesto": factura.impuesto,
+            "descuento": factura.descuento,
+            "total": factura.total,
+            "estado": factura.estado_reembolso_sus,
+            "items": items
+        })
+    
+    total_reclamar = sum(a["total"] for a in atenciones)
+    
+    return {
+        "titulo": "REPORTE PARA MINISTERIO DE SALUD - SISTEMA ÚNICO DE SALUD (SUS)",
+        "entidad": "Laboratorio Clínico Labotik",
+        "fecha_generacion": str(datetime.now()),
+        "total_atenciones": len(atenciones),
+        "monto_total_reclamar": total_reclamar,
+        "atenciones": atenciones
+    }

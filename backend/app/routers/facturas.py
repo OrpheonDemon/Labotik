@@ -8,12 +8,111 @@ from app.dependencies import require_laboratorista
 from fastapi.responses import StreamingResponse
 import io
 import os
+from datetime import datetime
 
 router = APIRouter(prefix="/facturas", tags=["Facturas"])
 
 @router.get("/", response_model=list[schemas.FacturaOut])
 async def list_facturas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
     return await crud.factura_crud.get_multi(db, skip, limit)
+
+
+@router.get("/sus/pendientes", response_model=list[schemas.FacturaOut])
+async def list_facturas_sus_pendientes(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+    """Lista facturas pendientes de reembolso del SUS/Ministerio de Salud"""
+    stmt = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus.in_(['pendiente', 'enviado'])
+    ).offset(skip).limit(limit)
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.get("/sus/resumen")
+async def resumen_sus(db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+    """Resumen de facturación SUS: total pendiente, enviado, reembolsado"""
+    # Total pendiente de envío
+    stmt_pend = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus == 'pendiente'
+    )
+    result_pend = await db.execute(stmt_pend)
+    facturas_pend = result_pend.scalars().all()
+    total_pendiente = sum(f.total for f in facturas_pend)
+
+    # Total enviado al SUS
+    stmt_env = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus == 'enviado'
+    )
+    result_env = await db.execute(stmt_env)
+    facturas_env = result_env.scalars().all()
+    total_enviado = sum(f.total for f in facturas_env)
+
+    # Total reembolsado
+    stmt_remb = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente.in_(['SUS', 'ministerio_salud']),
+        models.Factura.estado_reembolso_sus == 'reembolsado'
+    )
+    result_remb = await db.execute(stmt_remb)
+    facturas_remb = result_remb.scalars().all()
+    total_reembolsado = sum(f.total for f in facturas_remb)
+
+    # Total facturado a pacientes privados
+    stmt_priv = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.tipo_pago_fuente == 'paciente',
+        models.Factura.estado_factura == 'pagada_total'
+    )
+    result_priv = await db.execute(stmt_priv)
+    facturas_priv = result_priv.scalars().all()
+    total_cobrado_pacientes = sum(f.total for f in facturas_priv)
+
+    return {
+        "sus_pendientes_envio": len(facturas_pend),
+        "sus_total_pendiente": total_pendiente,
+        "sus_enviados": len(facturas_env),
+        "sus_total_enviado": total_enviado,
+        "sus_reembolsados": len(facturas_remb),
+        "sus_total_reembolsado": total_reembolsado,
+        "privados_pagados": len(facturas_priv),
+        "privados_total_cobrado": total_cobrado_pacientes,
+        "pendiente_cobro_total_sus": total_pendiente + total_enviado
+    }
+
+
+@router.put("/{id_factura}/marcar-reembolso-sus")
+async def marcar_reembolso_sus(
+    id_factura: int,
+    numero_reclamacion: str = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_laboratorista)
+):
+    """Marca una factura SUS como enviada al Ministerio o reembolsada"""
+    factura = await crud.factura_crud.get(db, id_factura)
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+    
+    if factura.tipo_pago_fuente == 'paciente':
+        raise HTTPException(status_code=400, detail="Esta factura no es al SUS")
+    
+    # Cambiar estado según el flujo
+    if factura.estado_reembolso_sus == 'pendiente':
+        factura.estado_reembolso_sus = 'enviado'
+        if numero_reclamacion:
+            factura.numero_reclamacion_sus = numero_reclamacion
+    elif factura.estado_reembolso_sus == 'enviado':
+        factura.estado_reembolso_sus = 'reembolsado'
+    else:
+        raise HTTPException(status_code=400, detail=f"No se puede cambiar estado desde '{factura.estado_reembolso_sus}'")
+    
+    await db.commit()
+    await db.refresh(factura)
+    return factura
 
 @router.get("/{id_factura}", response_model=schemas.FacturaOut)
 async def get_factura(id_factura: int, db: AsyncSession = Depends(get_db)):
@@ -32,6 +131,24 @@ async def create_factura(factura_in: schemas.FacturaCreate, db: AsyncSession = D
     new_id = await get_next_int_id(db, models.Factura, 'id_factura')
     factura_data = factura_in.dict(exclude={'detalles'})
     factura_data['id_factura'] = new_id
+    
+    # Si no se enviaron montos explícitos, calcular según tipo de afiliación
+    if factura_data.get('monto_paciente', 0) == 0 and factura_data.get('monto_sus', 0) == 0:
+        stmt_paciente = select(models.Paciente).where(models.Paciente.id_paciente == factura_data['id_paciente'])
+        res = await db.execute(stmt_paciente)
+        paciente = res.scalar_one_or_none()
+        
+        if paciente and paciente.tipo_afiliacion == 'SUS':
+            factura_data['tipo_pago_fuente'] = 'SUS'
+            factura_data['monto_paciente'] = 0.0
+            factura_data['monto_sus'] = factura_data['total']
+            factura_data['estado_reembolso_sus'] = 'pendiente'
+        else:
+            factura_data['tipo_pago_fuente'] = 'paciente'
+            factura_data['monto_paciente'] = factura_data['total']
+            factura_data['monto_sus'] = 0.0
+            factura_data['estado_reembolso_sus'] = 'no_aplica'
+    
     nueva_factura = models.Factura(**factura_data)
     db.add(nueva_factura)
     await db.flush()

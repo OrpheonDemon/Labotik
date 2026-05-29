@@ -46,11 +46,11 @@ class SmartClinicalChatbot:
         if len(self.conversation_history) > self.max_history:
             self.conversation_history = self.conversation_history[-self.max_history:]
 
-        # Construir el contexto enriquecido
-        enriched_context = self._build_context(question, patient_context, lab_results)
-        
         # Determinar el tipo de consulta
         query_type = self._classify_query(question.lower())
+
+        # Construir el contexto enriquecido
+        enriched_context = self._build_context(question, patient_context, lab_results, query_type)
         
         # Elegir el prompt del sistema basado en el tipo
         system_prompt = self._get_system_prompt(query_type, user_info)
@@ -109,9 +109,69 @@ INSTRUCCIONES:
                 "error": str(e)
             }
 
+    async def ask_stream(self, 
+                         question: str,
+                         user_info: Optional[Dict] = None,
+                         patient_context: Optional[Dict] = None,
+                         lab_results: Optional[Dict] = None) -> AsyncGenerator[str, None]:
+        """
+        Procesa una pregunta y genera respuesta usando datos del contexto con streaming.
+        """
+        # Actualizar historial
+        self.conversation_history.append({"role": "user", "content": question})
+        if len(self.conversation_history) > self.max_history:
+            self.conversation_history = self.conversation_history[-self.max_history:]
+
+        # Determinar el tipo de consulta primero
+        query_type = self._classify_query(question.lower())
+
+        # Construir el contexto enriquecido pasándole el query_type
+        enriched_context = self._build_context(question, patient_context, lab_results, query_type)
+        
+        # Elegir el prompt del sistema basado en el tipo
+        system_prompt = self._get_system_prompt(query_type, user_info)
+        
+        # Generar respuesta con Ollama
+        full_prompt = f"""{enriched_context}
+
+Historial de la conversación:
+{self._format_history()}
+
+Pregunta del usuario: {question}
+
+INSTRUCCIONES:
+1. Responde de forma clara, profesional y educativa
+2. Usa los datos clínicos proporcionados en el contexto si están disponibles
+3. Si la pregunta es sobre enfermedades, explica síntomas, causas y cuándo consultar al médico
+4. Si la pregunta es sobre resultados, interpreta usando los rangos de referencia
+5. NO diagnostiques enfermedades específicas
+6. Siempre incluye: "Consulta a tu médico para una evaluación completa"
+7. Responde en español
+8. Máximo 5 párrafos
+9. Usa lenguaje claro pero profesional"""
+
+        try:
+            full_response = []
+            async for chunk in self.ollama.generate_text_stream(
+                prompt=full_prompt,
+                system=system_prompt,
+                temperature=0.3
+            ):
+                full_response.append(chunk)
+                yield chunk
+            
+            # Agregar al historial completo
+            response_str = "".join(full_response)
+            self.conversation_history.append({"role": "assistant", "content": response_str})
+            
+        except Exception as e:
+            logger.error(f"Chatbot stream error: {e}")
+            yield "Lo siento, no pude procesar tu pregunta en este momento. Por favor, verifica que el motor de IA esté disponible e intenta de nuevo."
+
     def _build_context(self, question: str, 
                        patient: Optional[Dict],
-                       results: Optional[Dict]) -> str:
+                       results: Optional[Dict],
+                       query_type: str = "general_qa") -> str:
         """Construye el contexto enriquecido con datos de la app."""
         parts = ["CONTEXTO DISPONIBLE:\n"]
         
@@ -174,22 +234,23 @@ ID: {patient.get('id_paciente', 'N/A')}""")
                     parts.append(f"{nombre}: {valor}")
             parts.append("")
         
-        # Rangos de referencia clave (siempre disponibles)
-        parts.append("--- RANGOS DE REFERENCIA CLAVE DISPONIBLES ---")
-        key_tests = [
-            ("Hemoglobina", "Hombre: 13.5-17.5 g/dL, Mujer: 12.0-15.5 g/dL"),
-            ("Glucosa", "70-100 mg/dL (ayunas)"),
-            ("Potasio", "3.5-5.0 mEq/L"),
-            ("Leucocitos", "4.5-11.0 K/uL"),
-            ("Plaquetas", "150-400 K/uL"),
-            ("Creatinina", "0.7-1.3 mg/dL (hombre), 0.6-1.1 mg/dL (mujer)"),
-            ("TSH", "0.4-4.0 mIU/L"),
-            ("PCR", "0-3 mg/L (normal)"),
-            ("Colesterol total", "<200 mg/dL (deseable)"),
-            ("INR", "0.8-1.1 (normal)")
-        ]
-        for test, rango in key_tests:
-            parts.append(f"  • {test}: {rango}")
+        # Rangos de referencia clave (solo si es relevante)
+        if query_type in ('result_interpretation', 'biomarker_explanation'):
+            parts.append("--- RANGOS DE REFERENCIA CLAVE DISPONIBLES ---")
+            key_tests = [
+                ("Hemoglobina", "Hombre: 13.5-17.5 g/dL, Mujer: 12.0-15.5 g/dL"),
+                ("Glucosa", "70-100 mg/dL (ayunas)"),
+                ("Potasio", "3.5-5.0 mEq/L"),
+                ("Leucocitos", "4.5-11.0 K/uL"),
+                ("Plaquetas", "150-400 K/uL"),
+                ("Creatinina", "0.7-1.3 mg/dL (hombre), 0.6-1.1 mg/dL (mujer)"),
+                ("TSH", "0.4-4.0 mIU/L"),
+                ("PCR", "0-3 mg/L (normal)"),
+                ("Colesterol total", "<200 mg/dL (deseable)"),
+                ("INR", "0.8-1.1 (normal)")
+            ]
+            for test, rango in key_tests:
+                parts.append(f"  • {test}: {rango}")
         
         return "\n".join(parts)
 

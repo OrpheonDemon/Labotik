@@ -9,6 +9,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 import logging
 
+import logging
+import asyncio
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Laboratorio Clínico API", version="1.0")
@@ -33,32 +36,70 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def init_db():
-    async with engine.begin() as conn:
-        # Crea las tablas si no existen (opcional, ya deberían existir por el SQL)
-        await conn.run_sync(Base.metadata.create_all)
+    try:
+        async with engine.begin() as conn:
+            # Crea las tablas si no existen (opcional, ya deberían existir por el SQL)
+            await conn.run_sync(Base.metadata.create_all)
 
-        # Asegurar que la tabla `resultados` existe con la estructura esperada.
-        # Usamos CREATE TABLE IF NOT EXISTS para no romper esquemas existentes.
-        try:
-            await conn.execute(text(
-                """
-                CREATE TABLE IF NOT EXISTS resultados (
-                    id_resultado INT PRIMARY KEY,
-                    id_detalle INT NOT NULL,
-                    resultado VARCHAR(100) NOT NULL,
-                    observacion TEXT,
-                    estado ENUM('pendiente','registrado','reportado') NOT NULL DEFAULT 'pendiente',
-                    validado_por VARCHAR(20),
-                    fecha_validacion DATETIME,
-                    es_anormal INT DEFAULT 0,
-                    activo INT DEFAULT 1,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB;
-                """
-            ))
-            logger.info("Tabla 'resultados' asegurada en la base de datos.")
-        except Exception:
-            logger.exception("No se pudo crear/verificar la tabla 'resultados'.")
+            # Asegurar que la tabla `resultados` existe con la estructura esperada.
+            # Usamos CREATE TABLE IF NOT EXISTS para no romper esquemas existentes.
+            try:
+                await conn.execute(text(
+                    """
+                    CREATE TABLE IF NOT EXISTS resultados (
+                        id_resultado INT PRIMARY KEY,
+                        id_detalle INT NOT NULL,
+                        resultado VARCHAR(100) NOT NULL,
+                        observacion TEXT,
+                        estado ENUM('pendiente','registrado','reportado') NOT NULL DEFAULT 'pendiente',
+                        validado_por VARCHAR(20),
+                        fecha_validacion DATETIME,
+                        es_anormal INT DEFAULT 0,
+                        activo INT DEFAULT 1,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    ) ENGINE=InnoDB;
+                    """
+                ))
+                logger.info("Tabla 'resultados' asegurada en la base de datos.")
+            except Exception:
+                logger.exception("No se pudo crear/verificar la tabla 'resultados'.")
+        logger.info("✅ Base de datos inicializada correctamente")
+    except Exception as e:
+        logger.exception("❌ Error al inicializar la base de datos: %s", e)
+        # No阻断 el arranque del servidor aunque la DB falle
+
+    # Start background model warmup (no bloquea el startup)
+    try:
+        asyncio.create_task(warmup_ai_model())
+    except Exception as e:
+        logger.warning("No se pudo iniciar warmup de IA: %s", e)
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    try:
+        from app.routers.ai import ollama_client
+        if ollama_client:
+            await ollama_client.close()
+            logger.info("Conexiones de OllamaClient global cerradas correctamente.")
+    except Exception as e:
+        logger.warning(f"Error al cerrar la sesión global de OllamaClient: {e}")
+
+async def warmup_ai_model():
+    """Pre-carga medgemma para eliminar cold-start."""
+    try:
+        from app.ai_engine import OllamaClient
+        async with OllamaClient() as client:
+            if await client.check_status():
+                logger.info("Iniciando warmup de MedGemma en segundo plano...")
+                await client.generate_text(
+                    prompt="Responde OK",
+                    system="Responde solo OK.",
+                    temperature=0.0
+                )
+                logger.info("✅ MedGemma pre-cargado exitosamente")
+    except Exception as e:
+        logger.warning(f"⚠️ Warmup de MedGemma falló (se cargará en la primera consulta): {e}")
 
 # Incluir routers
 app.include_router(auth.router)

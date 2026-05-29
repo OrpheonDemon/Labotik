@@ -61,6 +61,9 @@ class PacienteBase(BaseModel):
     direccion: Optional[str] = None
     tipo_sangre: Optional[str] = None
     alergias: Optional[str] = None
+    tipo_afiliacion: Optional[str] = "Privado"
+    numero_afiliado_sus: Optional[str] = None
+    entidad_aseguradora: Optional[str] = None
 
 class PacienteCreate(PacienteBase):
     password: str
@@ -77,6 +80,9 @@ class PacienteUpdate(BaseModel):
     tipo_sangre: Optional[str] = None
     alergias: Optional[str] = None
     password: Optional[str] = None
+    tipo_afiliacion: Optional[str] = None
+    numero_afiliado_sus: Optional[str] = None
+    entidad_aseguradora: Optional[str] = None
 
 class PacienteOut(PacienteBase):
     activo: int
@@ -301,6 +307,11 @@ class FacturaBase(BaseModel):
     estado_factura: Optional[str] = "emitida"
     tipo_comprobante: Optional[str] = "boleta"
     nro_comprobante: str
+    tipo_pago_fuente: Optional[str] = "paciente"
+    monto_paciente: float = 0.0
+    monto_sus: float = 0.0
+    estado_reembolso_sus: Optional[str] = "no_aplica"
+    numero_reclamacion_sus: Optional[str] = None
 
 class FacturaCreate(FacturaBase):
     detalles: List[DetalleFacturaCreate]
@@ -309,6 +320,11 @@ class FacturaUpdate(BaseModel):
     fecha_vencimiento: Optional[date] = None
     estado_factura: Optional[str] = None
     nro_comprobante: Optional[str] = None
+    tipo_pago_fuente: Optional[str] = None
+    monto_paciente: Optional[float] = None
+    monto_sus: Optional[float] = None
+    estado_reembolso_sus: Optional[str] = None
+    numero_reclamacion_sus: Optional[str] = None
 
 class FacturaOut(FacturaBase):
     activo: int

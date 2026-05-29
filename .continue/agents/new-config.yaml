@@ -1,23 +1,32 @@
-# This is an example configuration file
-# To learn more, see the full config.yaml reference: https://docs.continue.dev/reference
-
-name: Example Config
+name: Ollama - Fix Tools
 version: 1.0.0
 schema: v1
 
-# Define which models can be used
-# https://docs.continue.dev/customization/models
 models:
-  - name: my gpt-5
-    provider: openai
-    model: gpt-5
-    apiKey: YOUR_OPENAI_API_KEY_HERE
-  - uses: ollama/qwen2.5-coder-7b
-  - uses: anthropic/claude-4-sonnet
-    with:
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  - name: Qwen2.5 Coder 7B
+    provider: ollama
+    model: qwen2.5-coder:7b
+    numCtx: 4000
+    numGpu: 2
+    numThread: 1
+    
+    # === IMPORTANTE: Desactivar tools ===
+    capabilities: []
+    
+    completionOptions:
+      temperature: 0.3
+      topP: 0.9
 
-# MCP Servers that Continue can access
-# https://docs.continue.dev/customization/mcp-tools
-mcpServers:
-  - uses: anthropic/memory-mcp
+  - name: Qwen2.5 Chat
+    provider: ollama
+    model: qwen2.5-coder:7b
+    numCtx: 4000
+    numGpu: 2
+    capabilities: []
+
+tabAutocompleteModel:
+  name: Qwen2.5 Autocomplete
+  provider: ollama
+  model: qwen2.5-coder:7b
+  temperature: 0.2
+  numCtx: 4096

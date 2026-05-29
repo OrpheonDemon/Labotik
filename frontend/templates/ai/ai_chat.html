@@ -280,23 +280,26 @@ function sendMessage(message) {
     // Mostrar indicador de escritura
     showTypingIndicator();
     
-    // Enviar al backend
-    fetch('/api/ai/chat/', {
+    const API_URL = "http://127.0.0.1:8000";
+    const token = sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+    
+    // Enviar al backend directo
+    fetch(`${API_URL}/ai/smart-chat`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            'Authorization': `Bearer ${token}`,
+            'X-Access-Token': token
         },
         body: JSON.stringify({
-            message: message,
-            patient_id: patientId || null,
-            conversation_history: conversationHistory
+            question: message,
+            patient_id: patientId || null
         })
     })
     .then(r => r.json())
     .then(data => {
         removeTypingIndicator();
-        const response = data.response;
+        const response = data.respuesta || data.response || 'Sin respuesta';
         addMessageToChat('assistant', response);
         
         // Actualizar historial

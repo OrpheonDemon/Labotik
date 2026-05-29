@@ -1,4 +1,4 @@
-{% load static %}
+﻿{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,7 +13,6 @@
             const token = getToken();
             return token ? { 'Authorization': `Bearer ${token}`, 'X-Access-Token': token } : {};
         }
-
 
         (function() {
             const token = getToken();
@@ -38,6 +37,8 @@
     <title>Dashboard Super Admin - Labotik</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Specific dashboard overrides to form a modular application layout */
@@ -365,6 +366,12 @@
             color: rgba(255,255,255,0.82);
             line-height: 1.7;
             margin: 0;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-chart-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .entity-list {
@@ -1069,7 +1076,7 @@
                     <!-- Información del Sistema -->
                     <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px;">
                         <h3 style="color: #fff; margin: 0 0 12px; font-size: 16px;">📊 Estado del Sistema IA</h3>
-                        <p id="ia-system-status" style="color: rgba(255,255,255,0.8); margin: 0; line-height: 1.6;">Iniciando conexión con motor IA... Verifica que Ollama esté ejecutándoseun tipo de análisis para comenzar</div>
+                        <p id="ia-system-status" style="color: rgba(255,255,255,0.8); margin: 0; line-height: 1.6;">Iniciando conexión con motor IA... Verifica que Ollama esté ejecutándoseun tipo de análisis para comenzar</p>
                     </div>
                     <!-- Modal para mostrar análisis en popup -->
                     <div id="ia-analysis-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;" onclick="if(event.target.id === 'ia-analysis-modal') closeAnalysisModalAdmin();">
@@ -1116,6 +1123,9 @@
                             <div class="field" id="fDireccion"><label for="modalDireccion">Dirección</label><input id="modalDireccion" class="profile-input" placeholder="Dirección" /></div>
                             <div class="field" id="fTipoSangre"><label for="modalTipoSangre">Tipo de sangre</label><select id="modalTipoSangre" class="profile-select"><option value="">Seleccione</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select></div>
                             <div class="field" id="fAlergias"><label for="modalAlergias">Alergias</label><input id="modalAlergias" class="profile-input" placeholder="Alergias" /></div>
+                            <div class="field" id="fTipoAfiliacion" style="display:none;"><label for="modalTipoAfiliacion">Tipo de afiliación</label><select id="modalTipoAfiliacion" class="profile-select" onchange="toggleAfiliacionFields()"><option value="Privado">Privado (Particular)</option><option value="SUS">SUS (Sistema Único de Salud)</option></select></div>
+                            <div class="field" id="fNumAfiliadoSUS" style="display:none;"><label for="modalNumAfiliadoSUS">N° Afiliado SUS</label><input id="modalNumAfiliadoSUS" class="profile-input" placeholder="Número de afiliación al SUS" /></div>
+                            <div class="field" id="fEntidadAseguradora" style="display:none;"><label for="modalEntidadAseguradora">Entidad Aseguradora</label><input id="modalEntidadAseguradora" class="profile-input" placeholder="Entidad de seguro (opcional)" /></div>
                             <div class="field" id="fPassword"><label for="modalPassword">Contraseña</label><input id="modalPassword" class="profile-input" type="password" placeholder="Nueva contraseña (opcional)" /></div>
                             <div class="field" id="fRol"><label for="modalRol">Rol</label><select id="modalRol" class="profile-select"><option value="admin_general">admin_general</option><option value="super_admin">super_admin</option><option value="admin_financiero">admin_financiero</option><option value="admin_lab">admin_lab</option><option value="recepcionista">recepcionista</option></select></div>
                             <div class="field" id="fEspecialidad"><label for="modalEspecialidad">Especialidad</label><select id="modalEspecialidad" class="profile-select"><option value="">Seleccione especialidad</option><option value="Cardiología">Cardiología</option><option value="Dermatología">Dermatología</option><option value="Endocrinología">Endocrinología</option><option value="Gastroenterología">Gastroenterología</option><option value="Ginecología">Ginecología</option><option value="Neurología">Neurología</option><option value="Pediatría">Pediatría</option><option value="Psiquiatría">Psiquiatría</option><option value="Oncología">Oncología</option><option value="Ortopedia">Ortopedia</option><option value="Oftalmología">Oftalmología</option><option value="Otorrinolaringología">Otorrinolaringología</option><option value="Urología">Urología</option><option value="Nefrología">Nefrología</option><option value="Reumatología">Reumatología</option><option value="Cirugía general">Cirugía general</option><option value="Medicina interna">Medicina interna</option><option value="Neumología">Neumología</option><option value="Infectología">Infectología</option><option value="Medicina familiar">Medicina familiar</option><option value="Anestesiología">Anestesiología</option><option value="Radiología">Radiología</option><option value="Hematología">Hematología</option></select></div>
@@ -1353,6 +1363,7 @@
             document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
             loadProfileData();
         }
+
         async function loadSectionHtml(sectionId) {
             const workspace = document.querySelector('.workspace');
             const key = (sectionId || '').toLowerCase();
@@ -1396,7 +1407,7 @@
             if (!sectionId) return;
             // use paginated fetch for common sections
             if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas','solicitudes'].includes(sectionId)) {
-                await fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
+                fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
             }
             // Custom load for Resultados: listar solicitudes pagadas y resultados registrados
             if (sectionId === 'Resultados' || sectionId === 'resultados') {
@@ -1748,42 +1759,25 @@
             const cfg = sectionConfig[sectionKey];
             if (!cfg) return;
             
-            // Wait for DOM elements to be available (race condition after lazy partial load)
-            let status = document.getElementById(`${sectionKey}Status`);
-            let tbody = document.getElementById(`${sectionKey}Tbody`);
-            let pagination = document.getElementById(`${sectionKey}Pagination`);
-            if (!tbody) {
-                // Retry once after a short delay to allow partial insertion to complete
-                await new Promise(r => setTimeout(r, 120));
-                status = document.getElementById(`${sectionKey}Status`);
-                tbody = document.getElementById(`${sectionKey}Tbody`);
-                pagination = document.getElementById(`${sectionKey}Pagination`);
-            }
-            if (!tbody) {
-                console.error(`[fetchAndRender] DOM element '${sectionKey}Tbody' not found. Partial may not be loaded.`);
-                return;
-            }
-
             if (sectionKey === 'pruebas' || sectionKey === 'laboratoristas') {
                 await loadAreasCache();
             }
             if (sectionKey === 'solicitudes') {
                 await loadSolicitudesCaches();
             }
+
+            const status = document.getElementById(`${sectionKey}Status`);
+            const tbody = document.getElementById(`${sectionKey}Tbody`);
+            const pagination = document.getElementById(`${sectionKey}Pagination`);
             
             // Only update if elements exist
             if (status) status.innerText = `Cargando ${sectionKey}...`;
-            tbody.innerHTML = '';
+            if (tbody) tbody.innerHTML = '';
             if (pagination) pagination.innerHTML = '';
             const searchFilters = getSearchFilters(sectionKey);
             const hasSearch = Object.values(searchFilters).some(value => value);
             try {
                 const token = getToken();
-                if (!token) {
-                    if (status) status.innerText = 'Sesión expirada. Por favor inicia sesión nuevamente.';
-                    console.warn('[fetchAndRender] No token found in storage.');
-                    return;
-                }
                 let response;
                 if (hasSearch) {
                     const query = new URLSearchParams(searchFilters).toString();
@@ -1797,16 +1791,14 @@
                     });
                 }
                 if (!response.ok) {
-                    console.error(`[fetchAndRender] HTTP ${response.status} for ${sectionKey}`);
                     if (response.status === 401 || response.status === 403) {
-                        if (status) status.innerText = 'No se pudo cargar. Revisa tus permisos o inicia sesión nuevamente.';
+                        status.innerText = 'No se pudo cargar. Revisa tus permisos o inicia sesión nuevamente.';
                         return;
                     }
                     const err = await response.json().catch(() => null);
                     throw new Error(err?.detail || 'Error al cargar datos');
                 }
                 const items = await response.json();
-                console.log(`[fetchAndRender] ${sectionKey}: ${items.length} items loaded.`);
                 if (!Array.isArray(items)) throw new Error('Respuesta inesperada del servidor');
                 items.forEach(item => {
                     if (sectionKey === 'solicitudes') {
@@ -1963,8 +1955,8 @@
                     pagination.appendChild(next);
                 }
             } catch (error) {
-                console.error('[fetchAndRender] Error:', error);
-                if (status) status.innerText = `Error: ${error.message}`;
+                console.error(error);
+                status.innerText = `Error: ${error.message}`;
             }
         }
 
@@ -2002,6 +1994,10 @@
             document.getElementById('modalTipoSangre').value = entityData.tipo_sangre || '';
             document.getElementById('modalAlergias').value = entityData.alergias || '';
             document.getElementById('modalPassword').value = '';
+            // Afiliación SUS/Privado
+            if(document.getElementById('modalTipoAfiliacion')) document.getElementById('modalTipoAfiliacion').value = entityData.tipo_afiliacion || 'Privado';
+            if(document.getElementById('modalNumAfiliadoSUS')) document.getElementById('modalNumAfiliadoSUS').value = entityData.numero_afiliado_sus || '';
+            if(document.getElementById('modalEntidadAseguradora')) document.getElementById('modalEntidadAseguradora').value = entityData.entidad_aseguradora || '';
             if(document.getElementById('modalValorReferencia')) document.getElementById('modalValorReferencia').value = entityData.valor_referencia || '';
             if(document.getElementById('modalUnidad')) document.getElementById('modalUnidad').value = entityData.unidad || '';
             if(document.getElementById('modalPrecio')) document.getElementById('modalPrecio').value = entityData.precio || '';
@@ -2022,7 +2018,7 @@
                 loadAreaOptions('', entityData.id_area);
             }
 
-            [fRol, fEspecialidad, fIdArea, document.getElementById('fIdAreaText'), document.getElementById('fDescripcion'), document.getElementById('fGenero'), document.getElementById('fDireccion'), document.getElementById('fTipoSangre'), document.getElementById('fAlergias'), document.getElementById('fValorReferencia'), document.getElementById('fUnidad'), document.getElementById('fPrecio'), document.getElementById('fTiempoEstimado')].forEach(el => { if (el) el.style.display = 'none'; });
+            [fRol, fEspecialidad, fIdArea, document.getElementById('fIdAreaText'), document.getElementById('fDescripcion'), document.getElementById('fGenero'), document.getElementById('fDireccion'), document.getElementById('fTipoSangre'), document.getElementById('fAlergias'), document.getElementById('fTipoAfiliacion'), document.getElementById('fNumAfiliadoSUS'), document.getElementById('fEntidadAseguradora'), document.getElementById('fValorReferencia'), document.getElementById('fUnidad'), document.getElementById('fPrecio'), document.getElementById('fTiempoEstimado')].forEach(el => { if (el) el.style.display = 'none'; });
             ['fNombre','fApellidoP','fApellidoM','fEmail','fTelefono','fFecha','fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
             if (sectionKey === 'areas') {
                 if (isEdit) {
@@ -2034,7 +2030,9 @@
             } else if (sectionKey === 'administradores') {
                 if (fRol) fRol.style.display = '';
             } else if (sectionKey === 'pacientes') {
-                ['fGenero','fDireccion','fTipoSangre','fAlergias'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                ['fGenero','fDireccion','fTipoSangre','fAlergias','fTipoAfiliacion','fEntidadAseguradora'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                // Show/hide SUS fields based on current value
+                toggleAfiliacionFields();
             } else if (sectionKey === 'medicos') {
                 if (fEspecialidad) fEspecialidad.style.display = '';
             } else if (sectionKey === 'laboratoristas') {
@@ -2062,7 +2060,7 @@
             const id = document.getElementById('modalId').value;
             const payload = {};
             // only include fields that are present in the form
-            ['modalNombre','modalApellidoP','modalApellidoM','modalEmail','modalTelefono','modalFecha','modalGenero','modalDireccion','modalTipoSangre','modalAlergias','modalPassword','modalRol','modalEspecialidad','modalIdArea','modalIdAreaText','modalDescripcion','modalValorReferencia','modalUnidad','modalPrecio','modalTiempoEstimado'].forEach(fid => {
+            ['modalNombre','modalApellidoP','modalApellidoM','modalEmail','modalTelefono','modalFecha','modalGenero','modalDireccion','modalTipoSangre','modalAlergias','modalTipoAfiliacion','modalNumAfiliadoSUS','modalEntidadAseguradora','modalPassword','modalRol','modalEspecialidad','modalIdArea','modalIdAreaText','modalDescripcion','modalValorReferencia','modalUnidad','modalPrecio','modalTiempoEstimado'].forEach(fid => {
                 const el = document.getElementById(fid);
                 if (!el || el.style.display === 'none' || el.closest('.field').style.display === 'none') return;
                 if (fid === 'modalPassword' && !el.value) return;
@@ -2086,6 +2084,9 @@
                 else if (fid === 'modalUnidad') payload['unidad'] = el.value || null;
                 else if (fid === 'modalPrecio') payload['precio'] = el.value ? parseFloat(el.value) : 0.0;
                 else if (fid === 'modalTiempoEstimado') payload['tiempo_estimado_minutos'] = el.value ? parseInt(el.value) : 30;
+                else if (fid === 'modalTipoAfiliacion') payload['tipo_afiliacion'] = el.value || 'Privado';
+                else if (fid === 'modalNumAfiliadoSUS') payload['numero_afiliado_sus'] = el.value || null;
+                else if (fid === 'modalEntidadAseguradora') payload['entidad_aseguradora'] = el.value || null;
             });
             // Validar contraseña solo para secciones de usuarios, no para áreas o pruebas
             const userSections = ['pacientes', 'medicos', 'laboratoristas', 'administradores'];
@@ -4038,11 +4039,27 @@
             document.getElementById('ia-analysis-modal').style.display = 'none';
             document.getElementById('ia-analysis-result').innerHTML = '';
         }
+
+        // Función para mostrar/ocultar campos de afiliación SUS
+        function toggleAfiliacionFields() {
+            const tipo = document.getElementById('modalTipoAfiliacion');
+            const numSUS = document.getElementById('fNumAfiliadoSUS');
+            const entidad = document.getElementById('fEntidadAseguradora');
+            if (!tipo) return;
+            
+            if (tipo.value === 'SUS') {
+                if (numSUS) numSUS.style.display = '';
+                if (entidad) entidad.style.display = 'none';
+            } else {
+                if (numSUS) numSUS.style.display = 'none';
+                if (entidad) entidad.style.display = '';
+            }
+        }
     </script>
 
     <!-- Clinical AI Widget Container -->
     <div id="clinical-ai-widget-container"></div>
 
+    <script src="{% static 'js/chatbot.js' %}"></script>
 </body>
 </html>
-

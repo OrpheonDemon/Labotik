@@ -3,8 +3,11 @@ Router de IA Clínica - Endpoints para análisis inteligentes
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any
+from typing import Dict, Any, AsyncGenerator
+import logging
+import json
 
 from app.database import get_db
 from app.dependencies import require_medico, require_admin, get_current_active_user
@@ -17,6 +20,8 @@ from app.ai_engine import (
     AuditService,
     SmartClinicalChatbot
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/ai",
@@ -40,8 +45,8 @@ async def get_ollama_client():
 async def ai_status():
     """Verifica el estado del motor IA y Ollama."""
     try:
-        client = OllamaClient()
-        is_available = await client.check_status()
+        async with OllamaClient() as client:
+            is_available = await client.check_status()
         
         return {
             "status": "available" if is_available else "unavailable",
@@ -277,8 +282,8 @@ async def health_check():
         from app.ai_engine.medical_prompts import get_system_prompt_names
         
         # Test Ollama
-        client = OllamaClient()
-        ollama_status = await client.check_status()
+        async with OllamaClient() as client:
+            ollama_status = await client.check_status()
         
         # Test módulos
         modules_ok = True
@@ -393,10 +398,9 @@ async def list_models():
     """Lista modelos de IA disponibles en Ollama."""
     
     try:
-        client = OllamaClient()
-        
-        # Verificar disponibilidad
-        is_available = await client.check_status()
+        async with OllamaClient() as client:
+            # Verificar disponibilidad
+            is_available = await client.check_status()
         
         if not is_available:
             return {
@@ -500,6 +504,27 @@ async def smart_chat(
         
         # Obtener resultados de laboratorio
         lab_results = request.get("lab_results", {})
+        if not lab_results and patient_id:
+            from app.models import Solicitud, DetalleSolicitud, Resultado, Prueba
+            from sqlalchemy import select
+            try:
+                stmt_res = (
+                    select(Prueba.nombre, Resultado.resultado)
+                    .join(DetalleSolicitud, DetalleSolicitud.id_prueba == Prueba.id_prueba)
+                    .join(Resultado, Resultado.id_detalle == DetalleSolicitud.id_detalle)
+                    .join(Solicitud, Solicitud.id_solicitud == DetalleSolicitud.id_solicitud)
+                    .where(
+                        Solicitud.id_paciente == patient_id,
+                        Solicitud.activo == 1,
+                        Resultado.activo == 1,
+                        Resultado.estado.in_(['registrado', 'reportado'])
+                    )
+                )
+                res_query = await db.execute(stmt_res)
+                rows = res_query.all()
+                lab_results = {row[0]: row[1] for row in rows}
+            except Exception as db_err:
+                logger.error(f"Error querying patient lab results: {db_err}")
         
         # Info del usuario
         user_info = {
@@ -541,6 +566,116 @@ async def smart_chat(
             "respuesta": "Error al procesar la consulta. Verifica que Ollama/MedGema esté disponible.",
             "error": str(e)
         }
+
+
+@router.post("/smart-chat-stream")
+async def smart_chat_stream(
+    request: Dict[str, Any],
+    current_user: dict = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Chatbot inteligente con streaming SSE (Server-Sent Events) usando MedGema.
+    """
+    try:
+        client = await get_ollama_client()
+        if not await client.check_status():
+            raise HTTPException(status_code=503, detail="Motor IA no disponible. Verifica que Ollama esté corriendo.")
+        
+        question = request.get("question", "").strip()
+        if not question:
+            raise HTTPException(status_code=400, detail="La pregunta es requerida")
+        
+        # Obtener contexto del paciente
+        patient_context = None
+        patient_id = request.get("patient_id")
+        if patient_id:
+            from app.models import Paciente
+            from sqlalchemy import select
+            stmt = select(Paciente).where(Paciente.id_paciente == patient_id, Paciente.activo == 1)
+            result = await db.execute(stmt)
+            patient = result.scalar_one_or_none()
+            if patient:
+                from datetime import date
+                today = date.today()
+                age = today.year - patient.fecha_nacimiento.year - (
+                    (today.month, today.day) < (patient.fecha_nacimiento.month, patient.fecha_nacimiento.day)
+                ) if patient.fecha_nacimiento else None
+                
+                patient_context = {
+                    "id_paciente": patient.id_paciente,
+                    "nombre": patient.nombre,
+                    "apellido_paterno": patient.apellido_paterno,
+                    "edad": age,
+                    "genero": patient.genero,
+                    "alergias": patient.alergias,
+                    "tipo_sangre": patient.tipo_sangre,
+                }
+        
+        # Obtener resultados
+        lab_results = request.get("lab_results", {})
+        if not lab_results and patient_id:
+            from app.models import Solicitud, DetalleSolicitud, Resultado, Prueba
+            from sqlalchemy import select
+            try:
+                stmt_res = (
+                    select(Prueba.nombre, Resultado.resultado)
+                    .join(DetalleSolicitud, DetalleSolicitud.id_prueba == Prueba.id_prueba)
+                    .join(Resultado, Resultado.id_detalle == DetalleSolicitud.id_detalle)
+                    .join(Solicitud, Solicitud.id_solicitud == DetalleSolicitud.id_solicitud)
+                    .where(
+                        Solicitud.id_paciente == patient_id,
+                        Solicitud.activo == 1,
+                        Resultado.activo == 1,
+                        Resultado.estado.in_(['registrado', 'reportado'])
+                    )
+                )
+                res_query = await db.execute(stmt_res)
+                rows = res_query.all()
+                lab_results = {row[0]: row[1] for row in rows}
+            except Exception as db_err:
+                logger.error(f"Error querying patient lab results: {db_err}")
+        
+        # Info del usuario
+        user_info = {
+            "rol": current_user["rol"],
+            "nombre": getattr(current_user["user"], "nombre", "Usuario")
+        }
+        
+        # Crear chatbot
+        chatbot = SmartClinicalChatbot(client, db)
+        
+        async def event_generator():
+            try:
+                async for chunk in chatbot.ask_stream(
+                    question=question,
+                    user_info=user_info,
+                    patient_context=patient_context,
+                    lab_results=lab_results
+                ):
+                    yield f"data: {json.dumps({'token': chunk})}\n\n"
+            except Exception as stream_err:
+                logger.error(f"Error in stream generator: {stream_err}")
+                yield f"data: {json.dumps({'error': str(stream_err)})}\n\n"
+        
+        # Registrar en auditoría de forma asíncrona si hay contexto clínico
+        if lab_results or patient_context:
+            audit_service.log_analysis(
+                analysis_type="smart_chat_stream",
+                user_email=current_user["user"].email,
+                patient_id=patient_id or "unknown",
+                input_data={"question": question, "patient_id": patient_id},
+                ai_output="[Streaming Response]",
+                confidence=0.85
+            )
+            
+        return StreamingResponse(event_generator(), media_type="text/event-stream")
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Smart chat stream error")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/validate-results")

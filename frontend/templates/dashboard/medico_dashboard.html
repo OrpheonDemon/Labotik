@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -38,6 +38,8 @@
     <title>Dashboard Médico - Labotik</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Specific dashboard overrides to form a modular application layout */
@@ -1212,7 +1214,7 @@
             // if not in DOM, fetch and append
             if (!section && ['administradores', 'pacientes', 'medicos', 'laboratoristas', 'areas', 'pruebas', 'solicitudes', 'resultados', 'reportes'].includes(key)) {
                 try {
-                    const response = await fetch(`/static/partials/${key}.html`);
+                    const response = await fetch(`{% static 'partials/' %}${key}.html`);
                     if (response.ok) {
                         const html = await response.text();
                         const temp = document.createElement('div');
@@ -3416,7 +3418,7 @@
     <script>
         (async function loadClinicalAI() {
             try {
-                const response = await fetch('/static/partials/clinical-assistant-ai.html');
+                const response = await fetch("{% static 'partials/clinical-assistant-ai.html' %}");
                 if (response.ok) {
                     const html = await response.text();
                     document.getElementById('clinical-ai-widget-container').innerHTML = html;
@@ -3427,6 +3429,7 @@
         })();
     </script>
 
+    <script src="{% static 'js/chatbot.js' %}"></script>
 </body>
 </html>
 
