@@ -14,6 +14,13 @@ def main():
     backend_dir = os.path.join(base_dir, "backend")
     frontend_dir = os.path.join(base_dir, "frontend")
 
+    # Use the virtual environment's Python interpreter if available
+    venv_python = os.path.join(base_dir, "venv", "Scripts", "python.exe")
+    if os.path.exists(venv_python):
+        python_executable = venv_python
+    else:
+        python_executable = sys.executable
+
     creation_flags = 0
     if sys.platform == "win32":
         # 0x08000000 corresponds to CREATE_NO_WINDOW
@@ -26,9 +33,9 @@ def main():
     # Start Ollama IA Engine
     ollama_cmd = "ollama serve"
     # Start FastAPI backend (run uvicorn as a python module to use the same interpreter environment)
-    backend_cmd = [sys.executable, "-m", "uvicorn", "app.main:app", "--port", "8000"]
+    backend_cmd = [python_executable, "-m", "uvicorn", "app.main:app", "--port", "8000"]
     # Start Django frontend
-    frontend_cmd = [sys.executable, "manage.py", "runserver", "3000"]
+    frontend_cmd = [python_executable, "manage.py", "runserver", "3000"]
 
     pids = {}
 

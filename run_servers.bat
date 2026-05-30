@@ -17,11 +17,11 @@ if %errorlevel% equ 0 (
 
 echo.
 echo [2/3] Iniciando Backend (FastAPI en Puerto 8000)...
-start "Labotik Backend (FastAPI)" cmd /k "cd backend && python -m uvicorn app.main:app --reload --port 8000"
+start "Labotik Backend (FastAPI)" cmd /k "venv\Scripts\activate.bat && cd backend && python -m uvicorn app.main:app --reload --port 8000"
 
 echo.
 echo [3/3] Iniciando Frontend (Django en Puerto 3000)...
-start "Labotik Frontend (Django)" cmd /k "cd frontend && python manage.py runserver 3000"
+start "Labotik Frontend (Django)" cmd /k "venv\Scripts\activate.bat && cd frontend && python manage.py runserver 3000"
 
 echo.
 echo ==========================================================

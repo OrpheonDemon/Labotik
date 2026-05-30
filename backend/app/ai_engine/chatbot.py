@@ -4,7 +4,7 @@ Combina información de pacientes, resultados, rangos de referencia y el modelo 
 """
 import json
 import logging
-from typing import Dict, Any, List, Optional
+from typing import AsyncGenerator, Dict, Any, List, Optional
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
