@@ -1,0 +1,144 @@
+<section id="solicitudes" class="dashboard-section" aria-hidden="true">
+    <!-- VISTA: LISTA DE SOLICITUDES -->
+    <div id="solicitudesListView" class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Solicitudes de Laboratorio</h1>
+                <p class="profile-panel-subtitle">Gestión de órdenes médicas, toma de muestras y pruebas asignadas.</p>
+            </div>
+            <button class="btn btn-primary" style="padding: 10px 20px; display: inline-flex; align-items: center; gap: 8px; border-radius: 12px; width: auto;" onclick="showSolicitudForm(false)">
+                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" style="width: 16px; height: 16px; fill: currentColor;"><path d="M10 4v12m6-6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                Nueva Solicitud
+            </button>
+        </div>
+        <div class="search-panel">
+            <input id="solicitudesSearchId" class="search-input" placeholder="Buscar por ID de Solicitud..." type="number" />
+            <input id="solicitudesSearchPacienteId" class="search-input" placeholder="Buscar por ID de Paciente..." type="text" />
+            <input id="solicitudesSearchNombre" class="search-input" placeholder="Nombre paciente..." type="text" />
+            <input id="solicitudesSearchApellidoP" class="search-input" placeholder="Apellido paterno..." type="text" />
+            <input id="solicitudesSearchApellidoM" class="search-input" placeholder="Apellido materno..." type="text" />
+            <button class="icon-btn search-btn" title="Buscar" aria-label="Buscar solicitudes" onclick="searchSection('solicitudes')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zm7-1l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </button>
+            <button class="icon-btn search-btn" title="Limpiar" aria-label="Limpiar busqueda solicitudes" onclick="clearSearch('solicitudes')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div id="solicitudesStatus" class="profile-status-message"></div>
+        
+            <div style="overflow:auto; max-width:100%;">
+                <table class="entity-table" id="solicitudesTable" style="width:100%; table-layout:fixed;">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Paciente</th>
+                    <th>Médico</th>
+                    <th>Prioridad</th>
+                    <th>Estado</th>
+                    <th>Estado Pago</th>
+                    <th>Pruebas</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="solicitudesTbody"></tbody>
+        </table>
+        
+        </table>
+        </div>
+        <div class="pagination" id="solicitudesPagination"></div>
+    </div>
+
+    <!-- VISTA: FORMULARIO DE SOLICITUD (NUEVA / EDITAR) -->
+    <div id="solicitudesFormView" class="profile-panel" style="display: none; margin-top: 0;">
+        <div class="profile-panel-header">
+            <div>
+                <h1 id="solicitudFormTitle" class="profile-panel-title">Nueva Solicitud</h1>
+                <p class="profile-panel-subtitle">Complete los datos generales y seleccione las pruebas de laboratorio.</p>
+            </div>
+            <button class="btn btn-secondary" style="padding: 10px 20px; width: auto; border-radius: 12px;" onclick="hideSolicitudForm()">
+                Volver a la lista
+            </button>
+        </div>
+
+        <form id="solicitudSubmitForm" onsubmit="handleSolicitudSubmit(event)">
+            <input type="hidden" id="solicitudIdField" value="">
+            
+            <div class="profile-grid" style="margin-bottom: 24px;">
+                <!-- Paciente Select -->
+                <div class="profile-field-card">
+                    <label class="profile-label" for="solicitudPaciente">Paciente *</label>
+                    <select id="solicitudPaciente" class="profile-select" required>
+                        <option value="">Seleccione un paciente...</option>
+                    </select>
+                </div>
+                
+                <!-- Médico Select (Opcional) -->
+                <div class="profile-field-card">
+                    <label class="profile-label" for="solicitudMedico">Médico (Opcional)</label>
+                    <select id="solicitudMedico" class="profile-select">
+                        <option value="">Ninguno / Sin derivación</option>
+                    </select>
+                </div>
+
+                <!-- Prioridad Select -->
+                <div class="profile-field-card">
+                    <label class="profile-label" for="solicitudPrioridad">Prioridad</label>
+                    <select id="solicitudPrioridad" class="profile-select">
+                        <option value="baja">Baja</option>
+                        <option value="media" selected>Media</option>
+                        <option value="alta">Alta</option>
+                    </select>
+                </div>
+
+                <!-- Estado Select (Solo visible al editar) -->
+                <div class="profile-field-card" id="solicitudEstadoContainer" style="display: none;">
+                    <label class="profile-label" for="solicitudEstado">Estado</label>
+                    <select id="solicitudEstado" class="profile-select">
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En Proceso</option>
+                        <option value="completado">Completado</option>
+                        <option value="entregado">Entregado</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+
+                <!-- Estado de Pago Select (Solo visible al editar) -->
+                <div class="profile-field-card" id="solicitudPagoContainer" style="display: none;">
+                    <label class="profile-label" for="solicitudPago">Estado del Pago</label>
+                    <select id="solicitudPago" class="profile-select">
+                        <option value="no_pagado">No Pagado</option>
+                        <option value="pagado_parcial">Pagado Parcial</option>
+                        <option value="pagado_total">Pagado Total</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Observaciones -->
+            <div style="margin-bottom: 24px;">
+                <label class="profile-label" for="solicitudObservaciones">Observaciones / Indicaciones Clínicas</label>
+                <textarea id="solicitudObservaciones" class="profile-input" style="height: 100px; resize: vertical;" placeholder="Ej. Paciente en ayunas, requiere resultados urgentes..."></textarea>
+            </div>
+
+            <!-- Pruebas por área checklist -->
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-family: 'Outfit', sans-serif; font-size: 18px; color: var(--accent-gold); margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 8px;">
+                    Pruebas de Laboratorio por Área
+                </h3>
+                <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                    Seleccione las pruebas clínicas que formarán parte de esta solicitud.
+                </p>
+                
+                <div id="pruebasPorAreaContainer" style="display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Se poblará dinámicamente -->
+                    <div style="color: var(--text-cream); font-style: italic;">Cargando pruebas disponibles...</div>
+                </div>
+            </div>
+
+            <div class="profile-actions">
+                <button type="button" class="btn btn-secondary" style="width: auto;" onclick="hideSolicitudForm()">Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="width: auto;">Guardar Solicitud</button>
+            </div>
+        </form>
+    </div>
+</section>

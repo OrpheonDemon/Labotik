@@ -1,0 +1,31 @@
+<section id="laboratoristas" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Laboratoristas</h1>
+                <p class="profile-panel-subtitle">Lista de laboratoristas registrados.</p>
+            </div>
+            <button class="icon-btn add-btn" title="Agregar laboratorista" onclick="openAddModal('laboratoristas')">
+                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 4v12m6-6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="search-panel">
+            <input id="laboratoristasSearchId" class="search-input" placeholder="Buscar por ID" />
+            <input id="laboratoristasSearchApellidoP" class="search-input" placeholder="Apellido paterno" />
+            <input id="laboratoristasSearchApellidoM" class="search-input" placeholder="Apellido materno" />
+            <input id="laboratoristasSearchAreaId" class="search-input" placeholder="Buscar por ID área" />
+            <button class="icon-btn search-btn" title="Buscar" aria-label="Buscar laboratoristas" onclick="searchSection('laboratoristas')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zm7-1l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </button>
+            <button class="icon-btn search-btn" title="Limpiar" aria-label="Limpiar busqueda laboratoristas" onclick="clearSearch('laboratoristas')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div id="laboratoristasStatus" class="profile-status-message"></div>
+        <table class="entity-table" id="laboratoristasTable">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Área</th><th>Acciones</th></tr></thead>
+            <tbody id="laboratoristasTbody"></tbody>
+        </table>
+        <div class="pagination" id="laboratoristasPagination"></div>
+    </div>
+</section>

@@ -1,0 +1,321 @@
+[
+  {
+    "timestamp": "2026-05-25T09:46:11.187001",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x193b60ce850 state=finished raised TimeoutError>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "b0181136"
+  },
+  {
+    "timestamp": "2026-05-25T09:58:13.193011",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x24dad8ae350 state=finished raised TimeoutError>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "eb0fbda7"
+  },
+  {
+    "timestamp": "2026-05-25T10:10:53.201634",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x24dad9a4830 state=finished raised TimeoutError>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "215c3732"
+  },
+  {
+    "timestamp": "2026-05-25T11:36:41.192176",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x202b332aad0 state=finished raised TimeoutError>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "de26f04d"
+  },
+  {
+    "timestamp": "2026-05-25T23:07:08.549530",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1ded991d1d0 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "11fab769"
+  },
+  {
+    "timestamp": "2026-05-25T23:07:41.762248",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1ded98d6690 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "6d4da24e"
+  },
+  {
+    "timestamp": "2026-05-26T18:09:38.639492",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x1b21d719590 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "37d55211"
+  },
+  {
+    "timestamp": "2026-05-27T14:55:50.160981",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115fa1f9d0 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "3a8bd4ef"
+  },
+  {
+    "timestamp": "2026-05-27T14:56:17.241784",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115f7cec30 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "615178b2"
+  },
+  {
+    "timestamp": "2026-05-27T14:56:29.341826",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19950809RCM",
+      "edad": 31,
+      "sexo": "masculino",
+      "resultados": {
+        "1000": "4.8"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "error": "RetryError[<Future at 0x2115fa0f450 state=finished raised Exception>]",
+      "hallazgos": [],
+      "prioridad": "REVISIÓN",
+      "requiere_revision_humana": true
+    },
+    "id_registro": "a43e5c3d"
+  },
+  {
+    "timestamp": "2026-05-28T10:44:15.495976",
+    "tipo": "smart_chat",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19950809RCM",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "question": "dame el perfil de este paciente",
+      "patient_id": "19950809RCM"
+    },
+    "salida": "Error al generar respuesta",
+    "id_registro": "563eea3e"
+  },
+  {
+    "timestamp": "2026-05-29T09:26:58.071010",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.8,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valores de referencia para la proteína 1000 no están disponibles"
+      ],
+      "interpretacion": "El valor de la proteína 1000 es 10. Sin valores de referencia, no se puede determinar si este valor es normal o anormal.",
+      "alertas": [],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.8,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Obtener valores de referencia para la proteína 1000.  Si los valores de referencia son proporcionados, se puede determinar si el valor de 10 es dentro del rango normal o anormal. Sin los valores de referencia, esta es una lectura que requiere una revisión humana."
+      ]
+    },
+    "id_registro": "0a575fcd"
+  },
+  {
+    "timestamp": "2026-05-29T09:28:04.280316",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valor de referencia de la proteína 1000: 10"
+      ],
+      "interpretacion": "El valor de la proteína 1000 es 10. Es importante considerar el rango de referencia para la proteína 1000 específico del laboratorio que realizó el análisis. Un valor fuera de rango podría indicar una variedad de condiciones, incluyendo problemas renales, enfermedades hepáticas, o trastornos del metabolismo de la proteína 1000. Sin embargo, sin el rango de referencia, es imposible determinar si este valor es anormal.",
+      "alertas": [],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.85,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Determinar el rango de referencia para la proteína 1000 del laboratorio que realizó el análisis.",
+        "Evaluar la historia clínica del paciente para identificar posibles factores de riesgo para trastornos renales, hepáticos o metabólicos.",
+        "Considerar la posibilidad de realizar pruebas adicionales para evaluar la función renal y hepática, así como el metabolismo de la proteína 1000.",
+        "Si el valor de la proteína 1000 es significativamente fuera de rango, se debe considerar la posibilidad de una enfermedad subyacente."
+      ]
+    },
+    "id_registro": "70aa5e04"
+  }
+]

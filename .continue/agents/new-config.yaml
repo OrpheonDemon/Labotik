@@ -1,0 +1,32 @@
+name: Ollama - Fix Tools
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Qwen2.5 Coder 7B
+    provider: ollama
+    model: qwen2.5-coder:7b
+    numCtx: 4000
+    numGpu: 2
+    numThread: 1
+    
+    # === IMPORTANTE: Desactivar tools ===
+    capabilities: []
+    
+    completionOptions:
+      temperature: 0.3
+      topP: 0.9
+
+  - name: Qwen2.5 Chat
+    provider: ollama
+    model: qwen2.5-coder:7b
+    numCtx: 4000
+    numGpu: 2
+    capabilities: []
+
+tabAutocompleteModel:
+  name: Qwen2.5 Autocomplete
+  provider: ollama
+  model: qwen2.5-coder:7b
+  temperature: 0.2
+  numCtx: 4096

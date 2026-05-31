@@ -1,0 +1,648 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Facial - Laboratorio Clínico</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        /* Estilos específicos para login facial */
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        #videoElement {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1); /* Efecto espejo */
+        }
+
+        #canvasElement {
+            display: none;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .face-guide {
+            width: 180px;
+            height: 220px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        .camera-status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .camera-status.ready {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .camera-status.error {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .camera-status.processing {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+            border: 1px solid rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-capture {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--chocolate-medium), var(--chocolate-dark));
+            color: var(--text-cream);
+            border: 1px solid rgba(200, 150, 102, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px auto;
+        }
+
+        .btn-capture:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(200, 150, 102, 0.15);
+            background: linear-gradient(135deg, #703c27, #4b2819);
+            border-color: rgba(200, 150, 102, 0.3);
+        }
+
+        .btn-capture:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-capture .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .back-to-login {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-to-login a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s ease;
+        }
+
+        .back-to-login a:hover {
+            color: #fff;
+            text-decoration: underline;
+        }
+
+        .preview-container {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .preview-container img {
+            max-width: 200px;
+            border-radius: 12px;
+            border: 2px solid var(--accent-gold);
+            transform: scaleX(-1);
+        }
+
+        .instructions {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .instructions ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+
+        .instructions li {
+            padding: 5px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .instructions li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent-gold);
+        }
+
+        .quality-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .quality-bar {
+            width: 100px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div id="toastAlert" class="alert">
+        <svg class="alert-icon" id="toastIcon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="toastMessage">Error</span>
+    </div>
+
+    <div class="container">
+        <div class="card" id="faceLoginCard">
+            <div class="header">
+                <div class="logo-container">
+                    <img src="{% static 'images/LaboLogo.png' %}" alt="Labotik Logo" class="logo-img">
+                </div>
+                <p class="subtitle">Autenticación Biométrica Facial</p>
+            </div>
+
+            <div class="instructions">
+                <strong>Instrucciones para el reconocimiento facial:</strong>
+                <ul>
+                    <li>Permita el acceso a su cámara cuando se solicite</li>
+                    <li>Coloque su rostro dentro del círculo guía</li>
+                    <li>Mantenga una buena iluminación</li>
+                    <li>Mire directamente a la cámara</li>
+                </ul>
+            </div>
+
+            <div class="camera-container">
+                <video id="videoElement" autoplay playsinline></video>
+                <div class="camera-overlay">
+                    <div class="face-guide"></div>
+                </div>
+            </div>
+
+            <canvas id="canvasElement"></canvas>
+
+            <div style="margin: 10px auto; max-width: 400px;">
+                <label style="display: block; color: var(--text-cream); font-size: 13px; margin-bottom: 6px;">Seleccionar tipo de usuario:</label>
+                <select id="roleSelect" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); color: var(--text-cream); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 14px;">
+                    <option value="">Todos los usuarios</option>
+                    <option value="administradores">Administradores</option>
+                    <option value="medicos">Médicos</option>
+                    <option value="laboratoristas">Laboratoristas</option>
+                    <option value="pacientes">Pacientes</option>
+                </select>
+            </div>
+
+            <div style="margin: 10px auto; max-width: 400px;">
+                <label style="display: block; color: var(--text-cream); font-size: 13px; margin-bottom: 6px;">Seleccionar cámara:</label>
+                <select id="cameraSelect" onchange="switchCamera(this.value)" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); color: var(--text-cream); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 14px;">
+                    <option value="">Cargando cámaras...</option>
+                </select>
+            </div>
+
+            <div class="camera-status ready" id="cameraStatus">
+                <span id="statusText">Esperando acceso a la cámara...</span>
+            </div>
+
+            <div class="quality-indicator" id="qualityIndicator" style="display: none;">
+                <span>Calidad:</span>
+                <div class="quality-bar">
+                    <div class="quality-fill" id="qualityFill"></div>
+                </div>
+                <span id="qualityText">0%</span>
+            </div>
+
+            <div class="preview-container" id="previewContainer">
+                <p style="margin-bottom: 10px; font-size: 14px;">Vista previa:</p>
+                <img id="previewImage" src="" alt="Vista previa">
+            </div>
+
+            <button class="btn-capture" id="captureBtn" onclick="captureAndAuthenticate()" disabled>
+                <div class="spinner" id="btnSpinner"></div>
+                <span id="btnText">📸 Capturar y Autenticar</span>
+            </button>
+
+            <div class="back-to-login">
+                <a href="{% url 'login' %}">← Volver al login tradicional</a>
+            </div>
+        </div>
+
+        <!-- Success Card -->
+        <div class="card profile-card" id="profileCard" style="display: none;">
+            <div class="header">
+                <div class="success-icon-container">
+                    <svg class="success-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h1>¡Reconocimiento Exitoso!</h1>
+                <p class="subtitle">Autenticación biométrica completada</p>
+            </div>
+
+            <div class="user-info">
+                <div class="info-row">
+                    <span class="info-label">Usuario</span>
+                    <span class="info-value" id="profileEmail">usuario@correo.com</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Rol Asignado</span>
+                    <span class="badge" id="profileRole">administrador</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Método</span>
+                    <span class="info-value">Reconocimiento Facial</span>
+                </div>
+            </div>
+
+            <button class="btn" onclick="redirectToDashboard()" style="background: var(--accent-gold); border: none;">
+                Ir al Dashboard
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let videoStream = null;
+        let video = document.getElementById('videoElement');
+        let canvas = document.getElementById('canvasElement');
+        let cameraStatus = document.getElementById('cameraStatus');
+        let statusText = document.getElementById('statusText');
+        let captureBtn = document.getElementById('captureBtn');
+        let qualityIndicator = document.getElementById('qualityIndicator');
+        let qualityFill = document.getElementById('qualityFill');
+        let qualityText = document.getElementById('qualityText');
+        let selectedDeviceId = null;
+
+        async function enumerateCameras() {
+            try {
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                tempStream.getTracks().forEach(track => track.stop());
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    select.innerHTML = '<option value="">No se encontraron cámaras</option>';
+                    return;
+                }
+                
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Cámara ${index + 1}`;
+                    if (index === 0) {
+                        option.selected = true;
+                        selectedDeviceId = device.deviceId;
+                    }
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al enumerar cámaras:', error);
+                document.getElementById('cameraSelect').innerHTML = '<option value="">No se pudo detectar cámaras</option>';
+            }
+        }
+
+        async function switchCamera(deviceId) {
+            if (!deviceId || deviceId === selectedDeviceId) return;
+            selectedDeviceId = deviceId;
+            
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            
+            try {
+                setStatus('processing', 'Cambiando cámara...');
+                
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 }, 
+                        deviceId: { exact: deviceId }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = videoStream;
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    setStatus('ready', 'Cámara cambiada exitosamente.');
+                };
+
+            } catch (error) {
+                console.error('Error al cambiar cámara:', error);
+                setStatus('error', 'No se pudo cambiar la cámara.');
+                showAlert('Error al cambiar cámara', 'error');
+            }
+        }
+
+        async function initCamera() {
+            try {
+                setStatus('processing', 'Solicitando acceso a la cámara...');
+                
+                await enumerateCameras();
+                
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 640 },
+                        height: { ideal: 480 },
+                        facingMode: 'user'
+                    },
+                    audio: false
+                });
+
+                video.srcObject = videoStream;
+                
+                video.onloadedmetadata = () => {
+                    video.play();
+                    setStatus('ready', 'Cámara lista. Seleccione la cámara y posicione su rostro en el círculo.');
+                    captureBtn.disabled = false;
+                    qualityIndicator.style.display = 'flex';
+                    
+                    setInterval(updateQuality, 500);
+                };
+
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                let errorMsg = 'No se pudo acceder a la cámara.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'Permiso de cámara denegado.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'No se encontró ninguna cámara.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = 'La cámara está siendo usada por otra aplicación.';
+                }
+                setStatus('error', errorMsg);
+                showAlert(`Error: ${errorMsg}`, 'error');
+            }
+        }
+
+        function setStatus(type, message) {
+            cameraStatus.className = `camera-status ${type}`;
+            statusText.textContent = message;
+        }
+
+        function updateQuality() {
+            // Simulación de calidad basada en detección de movimiento/luz
+            // En producción, esto debería usar detección facial real
+            const quality = Math.random() * 30 + 70; // 70-100%
+            qualityFill.style.width = `${quality}%`;
+            qualityText.textContent = `${Math.round(quality)}%`;
+        }
+
+        async function captureAndAuthenticate() {
+            if (!videoStream) {
+                showAlert('Cámara no disponible', 'error');
+                return;
+            }
+
+            // Deshabilitar botón
+            captureBtn.disabled = true;
+            document.getElementById('btnSpinner').style.display = 'inline-block';
+            document.getElementById('btnText').textContent = 'Procesando...';
+
+            try {
+                setStatus('processing', 'Capturando imagen...');
+
+                // Configurar canvas
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Capturar frame (efecto espejo)
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convertir a base64
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+
+                // Mostrar vista previa
+                document.getElementById('previewImage').src = imageData;
+                document.getElementById('previewContainer').style.display = 'block';
+
+                setStatus('processing', 'Enviando para autenticación...');
+
+                // Obtener la tabla seleccionada
+                const selectedRole = document.getElementById('roleSelect').value;
+
+                // Enviar al backend
+                const response = await fetch(`${API_URL}/auth/face/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image_data: imageData,
+                        tabla_usuario: selectedRole || null
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Error en autenticación facial');
+                }
+
+                // Éxito - Autenticación exitosa
+                setStatus('ready', '¡Autenticación exitosa! Redirigiendo...');
+
+                // Guardar token en sessionStorage
+                if (data.access_token) {
+                    sessionStorage.setItem('access_token', data.access_token);
+                }
+
+                // Detener cámara
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+
+                // Decodificar JWT y obtener ruta del dashboard
+                const payload = decodeJwt(data.access_token);
+                const dashboardPath = payload ? getRoleDashboardPath(payload.rol) : null;
+                
+                if (dashboardPath) {
+                    // Redirigir al dashboard correspondiente (como en login normal)
+                    window.location.replace(dashboardPath);
+                } else {
+                    // Fallback: mostrar mensaje de éxito
+                    showAlert('Rol no reconocido: ' + (payload ? payload.rol : 'Desconocido'), 'error');
+                }
+            } catch (error) {
+                console.error('Error en autenticación:', error);
+                let errorMsg = error.message || 'Error en autenticación facial';
+                setStatus('error', errorMsg);
+                showAlert(errorMsg, 'error');
+            } finally {
+                captureBtn.disabled = false;
+                document.getElementById('btnSpinner').style.display = 'none';
+                document.getElementById('btnText').textContent = '📸 Capturar y Autenticar';
+            }
+        }
+
+        function showSuccessCard(userInfo) {
+            document.getElementById('faceLoginCard').style.display = 'none';
+            document.getElementById('profileCard').style.display = 'block';
+            
+            if (userInfo) {
+                document.getElementById('profileEmail').textContent = userInfo.email || 'N/A';
+                document.getElementById('profileRole').textContent = userInfo.rol || 'N/A';
+            }
+
+            // Detener stream de cámara
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function redirectToDashboard() {
+            const token = sessionStorage.getItem('access_token');
+            if (token) {
+                const payload = decodeJwt(token);
+                const dashboardPath = getRoleDashboardPath(payload.rol);
+                if (dashboardPath) {
+                    window.location.replace(dashboardPath);
+                } else {
+                    showAlert('Rol no reconocido', 'error');
+                }
+            }
+        }
+
+        function decodeJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                return JSON.parse(jsonPayload);
+            } catch (e) {
+                console.error("Error al decodificar JWT:", e);
+                return null;
+            }
+        }
+
+        function getRoleDashboardPath(role) {
+            switch (role) {
+                case 'administrador':
+                    return '/admin-dashboard/';
+                case 'recepcionista':
+                    return '/recepcionista-dashboard/';
+                case 'medico':
+                    return '/medico-dashboard/';
+                case 'paciente':
+                    return '/paciente-dashboard/';
+                case 'laboratorista':
+                    return '/laboratorista-dashboard/';
+                default:
+                    return null;
+            }
+        }
+
+        function showAlert(message, type = 'error') {
+            const toast = document.getElementById('toastAlert');
+            const icon = document.getElementById('toastIcon');
+            const msgSpan = document.getElementById('toastMessage');
+
+            msgSpan.innerText = message;
+            toast.className = `alert alert-${type} show`;
+
+            if (type === 'success') {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+            } else {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+            }
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 4000);
+        }
+
+        // Inicializar al cargar
+        window.addEventListener('DOMContentLoaded', initCamera);
+
+        // Limpiar al salir
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

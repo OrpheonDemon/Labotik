@@ -1,0 +1,145 @@
+<!-- Clinical AI Assistant Widget for Médico Dashboard -->
+<div style="margin-top: 40px; padding: 24px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; box-shadow: 0 15px 30px rgba(0,0,0,0.3);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h2 style="color: #fff; margin: 0; font-size: 20px;">🧠 Asistente IA Clínico - Análisis de Resultados</h2>
+    </div>
+
+    <!-- Estado del Sistema IA -->
+    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px;">
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Estado Servidor</p>
+            <h4 id="ollama-status-medico" style="color: #fff; margin: 0; font-size: 16px;">
+                <span style="display: inline-block; width: 8px; height: 8px; background: #fbbf24; border-radius: 50%; margin-right: 8px;"></span>
+                Verificando...
+            </h4>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Análisis Hoy</p>
+            <h4 id="analysis-count-medico" style="color: #fff; margin: 0; font-size: 16px;">0</h4>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Casos Críticos</p>
+            <h4 id="critical-count-medico" style="color: #fff; margin: 0; font-size: 16px;">0</h4>
+        </div>
+    </div>
+
+    <!-- Selección de Paciente y Análisis -->
+    <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+        <label style="display: block; color: rgba(255,255,255,0.9); margin-bottom: 12px; font-weight: 600;">Selecciona un paciente para analizar:</label>
+        <select id="ia-paciente-select-medico" onchange="this.value && (document.getElementById('ia-analyze-results-medico').disabled = false)" style="width: 100%; padding: 12px; background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; font-size: 14px; margin-bottom: 16px;">
+            <option value="">-- Cargando pacientes --</option>
+        </select>
+        
+        <button id="ia-analyze-results-medico" disabled onclick="analyzePatientResultsMedico()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
+    </div>
+
+    <!-- Modal para mostrar los resultados del análisis -->
+    <div id="ia-analysis-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;" onclick="if(event.target.id === 'ia-analysis-modal') closeAnalysisModal();">
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 30px; min-height: 300px; max-height: 80vh; width: 90%; max-width: 800px; color: rgba(255,255,255,0.7); overflow-y: auto; position: relative;">
+            <button onclick="closeAnalysisModal()" style="position: absolute; top: 10px; right: 10px; background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;">×</button>
+            <h2 style="color: #fff; margin-top: 0;">📊 Análisis de Resultados</h2>
+            <div id="ia-analysis-result-medico"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000";
+
+    function getTokenMedico() {
+        return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+    }
+
+    function getAuthHeadersMedico() {
+        const token = getTokenMedico();
+        return token ? { 'Authorization': `Bearer ${token}`, 'X-Access-Token': token } : {};
+    }
+
+    async function loadPatientsMedicoForAnalysis() {
+        const select = document.getElementById('ia-paciente-select-medico');
+        if (!select) return;
+        
+        try {
+            const response = await fetch(`${API_URL}/pacientes?limit=1000`, {
+                headers: getAuthHeadersMedico()
+            });
+            if (response.ok) {
+                const pacientes = await response.json();
+                select.innerHTML = '<option value="">-- Selecciona un paciente --</option>';
+                pacientes.forEach(p => {
+                    const option = document.createElement('option');
+                    option.value = p.id_paciente;
+                    option.textContent = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno || ''}`.trim();
+                    select.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error('Error cargando pacientes:', error);
+            select.innerHTML = '<option value="">Error al cargar pacientes</option>';
+        }
+    }
+
+    async function analyzePatientResultsMedico() {
+        const idPaciente = document.getElementById('ia-paciente-select-medico').value;
+        const analysisEl = document.getElementById('ia-analysis-result-medico');
+        const modal = document.getElementById('ia-analysis-modal');
+        
+        if (!idPaciente) {
+            analysisEl.innerHTML = '⚠️ Por favor selecciona un paciente';
+            modal.style.display = 'flex';
+            return;
+        }
+
+        analysisEl.innerHTML = '<p style="text-align: center;">⏳ Analizando resultados del paciente...</p>';
+        modal.style.display = 'flex';
+
+        try {
+            const response = await fetch(`${API_URL}/resultados?skip=0&limit=1000`, {
+                headers: getAuthHeadersMedico()
+            });
+            
+            if (!response.ok) throw new Error('Error al obtener resultados');
+            
+            const resultados = await response.json();
+            
+            if (!resultados || resultados.length === 0) {
+                analysisEl.innerHTML = '<p style="color: #fbbf24;">⚠️ No hay resultados registrados para este paciente</p>';
+                return;
+            }
+
+            let resultadosHTML = '<div style="color: #fff;"><h4>📊 Resultados Encontrados:</h4><ul style="list-style: none; padding: 0;">';
+            resultados.forEach(r => {
+                resultadosHTML += `<li style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <strong>${r.resultado}</strong> - Anormal: ${r.es_anormal ? '✓ Sí' : '✗ No'}
+                </li>`;
+            });
+            resultadosHTML += '</ul></div>';
+            analysisEl.innerHTML = resultadosHTML;
+
+            // Agregar análisis de IA
+            analysisEl.innerHTML += '<p style="color: #fbbf24; margin-top: 20px;">⏳ Consultando IA para análisis adicional...</p>';
+
+        } catch (error) {
+            analysisEl.innerHTML = `<p style="color: #ef4444;">❌ Error: ${error.message}</p>`;
+        }
+    }
+
+    function closeAnalysisModal() {
+        const modal = document.getElementById('ia-analysis-modal');
+        modal.style.display = 'none';
+    }
+
+    // Cargar pacientes cuando el widget está listo
+    window.addEventListener('DOMContentLoaded', () => {
+        loadPatientsMedicoForAnalysis();
+    });
+
+    // Si el DOM ya está cargado, cargar inmediatamente
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadPatientsMedicoForAnalysis);
+    } else {
+        loadPatientsMedicoForAnalysis();
+    }
+</script>

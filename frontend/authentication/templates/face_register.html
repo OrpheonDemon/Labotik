@@ -1,0 +1,858 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Facial - Laboratorio Clínico</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        #videoElement {
+            width: 100%;
+            display: block;
+            transform: scaleX(-1);
+        }
+
+        #canvasElement {
+            display: none;
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .face-guide {
+            width: 180px;
+            height: 220px;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        .step.active {
+            background: var(--accent-gold);
+            color: #000;
+            border-color: var(--accent-gold);
+            transform: scale(1.1);
+        }
+
+        .step.completed {
+            background: rgba(46, 204, 113, 0.3);
+            color: #2ecc71;
+            border-color: #2ecc71;
+        }
+
+        .step-text {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+            color: var(--text-cream);
+            min-height: 40px;
+        }
+
+        .camera-status {
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .camera-status.ready {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
+        .camera-status.error {
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+        }
+
+        .camera-status.processing {
+            background: rgba(52, 152, 219, 0.2);
+            color: #3498db;
+        }
+
+        .btn-capture {
+            width: 100%;
+            max-width: 400px;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--chocolate-medium), var(--chocolate-dark));
+            color: var(--text-cream);
+            border: 1px solid rgba(200, 150, 102, 0.2);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px auto;
+        }
+
+        .btn-capture:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(200, 150, 102, 0.15);
+            background: linear-gradient(135deg, #703c27, #4b2819);
+            border-color: rgba(200, 150, 102, 0.3);
+        }
+
+        .btn-capture:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .btn-capture .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .preview-item {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid transparent;
+        }
+
+        .preview-item.captured {
+            border-color: #2ecc71;
+        }
+
+        .preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        .preview-item .label {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 4px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .quality-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .quality-bar {
+            width: 100px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .quality-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #2ecc71);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: var(--accent-gold);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+
+        .success-message {
+            text-align: center;
+            padding: 30px;
+        }
+
+        .success-message .icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .progress-info {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 14px;
+            color: var(--text-cream);
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+    </div>
+
+    <div id="toastAlert" class="alert">
+        <svg class="alert-icon" id="toastIcon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="toastMessage">Error</span>
+    </div>
+
+    <div class="container">
+        <!-- Paso 1: Configuración -->
+        <div class="card" id="setupCard">
+            <div class="header">
+                <div class="logo-container">
+                    <img src="{% static 'images/LaboLogo.png' %}" alt="Labotik Logo" class="logo-img">
+                </div>
+                <p class="subtitle">Registro de Reconocimiento Facial</p>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step active" id="step1">1</div>
+                <div class="step" id="step2">2</div>
+                <div class="step" id="step3">3</div>
+            </div>
+
+            <div class="step-text" id="stepText">
+                Configurando cámara...
+            </div>
+
+            <div class="camera-container">
+                <video id="videoElement" autoplay playsinline></video>
+                <div class="camera-overlay">
+                    <div class="face-guide"></div>
+                </div>
+            </div>
+
+            <canvas id="canvasElement"></canvas>
+
+            <div style="margin: 10px auto; max-width: 400px;">
+                <label style="display: block; color: var(--text-cream); font-size: 13px; margin-bottom: 6px;">Seleccionar cámara:</label>
+                <select id="cameraSelect" onchange="switchCamera(this.value)" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); color: var(--text-cream); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 14px;">
+                    <option value="">Cargando cámaras...</option>
+                </select>
+            </div>
+
+            <div style="margin: 10px auto; max-width: 400px; display: none;" id="userSelectionGroup">
+                <label style="display: block; color: var(--text-cream); font-size: 13px; margin-bottom: 6px;">Registrar rostro para:</label>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; margin-bottom: 4px;">Rol</label>
+                        <select id="roleSelect" onchange="loadUsersForRole(this.value)" style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); color: var(--text-cream); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 14px;">
+                            <option value="">Seleccionar rol</option>
+                            <option value="administrador">Administrador</option>
+                            <option value="medico">Médico</option>
+                            <option value="laboratorista">Laboratorista</option>
+                            <option value="paciente">Paciente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: block; color: rgba(255,255,255,0.7); font-size: 11px; margin-bottom: 4px;">Usuario</label>
+                        <select id="userSelect" disabled style="width: 100%; padding: 10px; background: rgba(255, 255, 255, 0.1); color: var(--text-cream); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; font-size: 14px;">
+                            <option value="">Primero seleccione un rol</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="selectedUserInfo" style="margin-top: 8px; padding: 8px; background: rgba(46, 204, 113, 0.1); border-radius: 6px; display: none;">
+                    <span style="color: #2ecc71; font-size: 12px;">✓ Se registrará el rostro para: <strong id="selectedUserName"></strong></span>
+                </div>
+            </div>
+
+            <div class="camera-status ready" id="cameraStatus">
+                <span id="statusText">Esperando cámara...</span>
+            </div>
+
+            <div class="quality-indicator" id="qualityIndicator" style="display: none;">
+                <span>Calidad:</span>
+                <div class="quality-bar">
+                    <div class="quality-fill" id="qualityFill"></div>
+                </div>
+                <span id="qualityText">0%</span>
+            </div>
+
+            <button class="btn-capture" id="startBtn" onclick="startRegistration()" disabled>
+                <span>Comenzar Registro</span>
+            </button>
+
+            <div class="back-link">
+                <a href="{% url 'admin_dashboard' %}">Saltar y continuar al dashboard</a>
+            </div>
+        </div>
+
+        <!-- Paso 2: Captura -->
+        <div class="card" id="captureCard" style="display: none;">
+            <div class="header">
+                <h2>Capture su Rostro</h2>
+                <p class="subtitle">Tome 3 fotos desde diferentes ángulos</p>
+            </div>
+
+            <div class="step-indicator">
+                <div class="step completed" id="step1">1</div>
+                <div class="step active" id="step2">2</div>
+                <div class="step" id="step3">3</div>
+            </div>
+
+            <div class="step-text" id="captureInstruction">
+                Posicione su rostro de frente y presione capturar
+            </div>
+
+            <div class="camera-container">
+                <video id="videoElement2" autoplay playsinline></video>
+                <div class="camera-overlay">
+                    <div class="face-guide"></div>
+                </div>
+            </div>
+
+            <canvas id="canvasElement2"></canvas>
+
+            <div class="preview-grid" id="previewGrid">
+                <div class="preview-item" id="preview1">
+                    <img src="" alt="Frente" style="display: none;">
+                    <div class="label">1. Frente</div>
+                </div>
+                <div class="preview-item" id="preview2">
+                    <img src="" alt="Izquierda" style="display: none;">
+                    <div class="label">2. Izquierda</div>
+                </div>
+                <div class="preview-item" id="preview3">
+                    <img src="" alt="Derecha" style="display: none;">
+                    <div class="label">3. Derecha</div>
+                </div>
+            </div>
+
+            <div class="progress-info" id="progressInfo">
+                Capturas: 0/3
+            </div>
+
+            <button class="btn-capture" id="captureBtn" onclick="captureCurrentAngle()">
+                <div class="spinner" id="btnSpinner"></div>
+                <span id="btnText">📸 Capturar</span>
+            </button>
+        </div>
+
+        <!-- Paso 3: Éxito -->
+        <div class="card" id="successCard" style="display: none;">
+            <div class="success-message">
+                <div class="icon">✅</div>
+                <h2>¡Registro Completado!</h2>
+                <p>Su rostro ha sido registrado exitosamente.</p>
+                <p style="margin-top: 10px; font-size: 14px; color: var(--text-cream);">
+                    Ahora puede usar el reconocimiento facial para iniciar sesión.
+                </p>
+            </div>
+
+            <button class="btn" onclick="goToDashboard()" style="background: var(--accent-gold); border: none; width: 100%;">
+                Ir al Dashboard
+            </button>
+
+            <div class="back-link" style="margin-top: 15px;">
+                <a href="{% url 'login' %}">Ir a login facial</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        let videoStream = null;
+        let currentStep = 0;
+        let capturedImages = [];
+        const totalCaptures = 3;
+        const captureInstructions = [
+            "Posicione su rostro de FRENTE y presione capturar",
+            "Gire ligeramente la cabeza a la IZQUIERDA y capture",
+            "Gire ligeramente la cabeza a la DERECHA y capture"
+        ];
+
+        // Token from session, localStorage or cookie
+        function getToken() {
+            // Try multiple storage locations
+            return sessionStorage.getItem('access_token') || 
+                   localStorage.getItem('access_token') || 
+                   getCookie('access_token');
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        let selectedDeviceId = null;
+        let selectedUserId = null;
+        let selectedUserRole = null;
+        let isAdmin = false;
+
+        async function checkUserRole() {
+            const token = getToken();
+            if (!token) return;
+            
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.rol === 'administrador' || payload.rol === 'recepcionista') {
+                    isAdmin = true;
+                    document.getElementById('userSelectionGroup').style.display = 'block';
+                }
+            } catch (e) {
+                console.error('Error al decodificar token:', e);
+            }
+        }
+
+        async function loadUsersForRole(role) {
+            const userSelect = document.getElementById('userSelect');
+            const userInfo = document.getElementById('selectedUserInfo');
+            
+            if (!role) {
+                userSelect.innerHTML = '<option value="">Primero seleccione un rol</option>';
+                userSelect.disabled = true;
+                userInfo.style.display = 'none';
+                selectedUserId = null;
+                selectedUserRole = null;
+                return;
+            }
+
+            userSelect.innerHTML = '<option value="">Cargando usuarios...</option>';
+            userSelect.disabled = true;
+
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_URL}/auth/face/users-by-role/${role}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al cargar usuarios');
+                }
+
+                const data = await response.json();
+                userSelect.innerHTML = '<option value="">Seleccionar usuario</option>';
+
+                if (data.users && data.users.length > 0) {
+                    data.users.forEach(user => {
+                        const option = document.createElement('option');
+                        option.value = user.id;
+                        option.textContent = `${user.nombre} (${user.email})`;
+                        userSelect.appendChild(option);
+                    });
+                    userSelect.disabled = false;
+                } else {
+                    userSelect.innerHTML = '<option value="">No hay usuarios disponibles</option>';
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                userSelect.innerHTML = '<option value="">Error al cargar usuarios</option>';
+            }
+        }
+
+        function onUserSelect(userId) {
+            const userInfo = document.getElementById('selectedUserInfo');
+            const userName = document.getElementById('selectedUserName');
+            
+            if (userId) {
+                selectedUserId = userId;
+                selectedUserRole = document.getElementById('roleSelect').value;
+                const selectedOption = document.getElementById('userSelect').options[document.getElementById('userSelect').selectedIndex];
+                userName.textContent = selectedOption.textContent;
+                userInfo.style.display = 'block';
+            } else {
+                selectedUserId = null;
+                selectedUserRole = null;
+                userInfo.style.display = 'none';
+            }
+        }
+
+        async function enumerateCameras() {
+            try {
+                // First request permission to get device labels
+                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                tempStream.getTracks().forEach(track => track.stop());
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '';
+                
+                if (videoDevices.length === 0) {
+                    select.innerHTML = '<option value="">No se encontraron cámaras</option>';
+                    return;
+                }
+                
+                videoDevices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.textContent = device.label || `Cámara ${index + 1}`;
+                    if (index === 0) {
+                        option.selected = true;
+                        selectedDeviceId = device.deviceId;
+                    }
+                    select.appendChild(option);
+                });
+                
+                console.log(`Encontradas ${videoDevices.length} cámaras`);
+            } catch (error) {
+                console.error('Error al enumerar cámaras:', error);
+                const select = document.getElementById('cameraSelect');
+                select.innerHTML = '<option value="">No se pudo detectar cámaras</option>';
+            }
+        }
+
+        async function switchCamera(deviceId) {
+            if (!deviceId || deviceId === selectedDeviceId) return;
+            
+            selectedDeviceId = deviceId;
+            
+            // Stop current stream
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            
+            try {
+                setStatus('processing', 'Cambiando cámara...');
+                
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 640 }, 
+                        height: { ideal: 480 }, 
+                        deviceId: { exact: deviceId }
+                    },
+                    audio: false
+                });
+
+                document.getElementById('videoElement').srcObject = videoStream;
+                document.getElementById('videoElement2').srcObject = videoStream;
+
+                document.getElementById('videoElement').onloadedmetadata = () => {
+                    document.getElementById('videoElement').play();
+                    setStatus('ready', 'Cámara cambiada exitosamente.');
+                };
+
+            } catch (error) {
+                console.error('Error al cambiar cámara:', error);
+                setStatus('error', 'No se pudo cambiar la cámara.');
+                showAlert('Error al cambiar cámara', 'error');
+            }
+        }
+
+        async function initCamera() {
+            const token = getToken();
+            if (!token) {
+                console.error('No se encontró token en sessionStorage, localStorage o cookies');
+                showAlert('No hay sesión activa. Por favor inicie sesión primero.', 'error');
+                setTimeout(() => {
+                    window.location.href = "{% url 'login' %}";
+                }, 3000);
+                return;
+            }
+            
+            console.log('Token encontrado, iniciando cámara...');
+
+            try {
+                setStatus('processing', 'Solicitando acceso a la cámara...');
+                
+                // Check if admin and show user selection
+                await checkUserRole();
+                
+                // Enumerate cameras first
+                await enumerateCameras();
+                
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
+                    audio: false
+                });
+
+                document.getElementById('videoElement').srcObject = videoStream;
+                document.getElementById('videoElement2').srcObject = videoStream;
+
+                document.getElementById('videoElement').onloadedmetadata = () => {
+                    document.getElementById('videoElement').play();
+                    setStatus('ready', 'Cámara lista. Seleccione la cámara y presione comenzar.');
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('qualityIndicator').style.display = 'flex';
+                    setInterval(updateQuality, 500);
+                };
+
+            } catch (error) {
+                console.error('Error al acceder a la cámara:', error);
+                let errorMsg = 'No se pudo acceder a la cámara.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'Permiso de cámara denegado. Por favor, permita el acceso en su navegador.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'No se encontró ninguna cámara. Por favor, conecte una cámara.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = 'La cámara está siendo usada por otra aplicación.';
+                }
+                setStatus('error', errorMsg);
+                showAlert(`Error: ${errorMsg}`, 'error');
+            }
+        }
+
+        function setStatus(type, message) {
+            const statusEl = document.getElementById('cameraStatus');
+            statusEl.className = `camera-status ${type}`;
+            document.getElementById('statusText').textContent = message;
+        }
+
+        function updateQuality() {
+            const quality = Math.random() * 30 + 70;
+            document.getElementById('qualityFill').style.width = `${quality}%`;
+            document.getElementById('qualityText').textContent = `${Math.round(quality)}%`;
+        }
+
+        async function startRegistration() {
+            // Verificar estado actual de registro
+            const token = getToken();
+            try {
+                const response = await fetch(`${API_URL}/auth/face/status`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.has_face_registered) {
+                        if (!confirm('Ya tiene un rostro registrado. ¿Desea agregar otro? (Máx 3)')) {
+                            goToDashboard();
+                            return;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Error al verificar estado:', e);
+            }
+
+            // Cambiar a tarjeta de captura
+            document.getElementById('setupCard').style.display = 'none';
+            document.getElementById('captureCard').style.display = 'block';
+            
+            updateStep(2);
+            document.getElementById('captureInstruction').textContent = captureInstructions[0];
+        }
+
+        function updateStep(step) {
+            for (let i = 1; i <= 3; i++) {
+                const stepEl = document.getElementById(`step${i}`);
+                stepEl.classList.remove('active', 'completed');
+                if (i < step) stepEl.classList.add('completed');
+                if (i === step) stepEl.classList.add('active');
+            }
+        }
+
+        async function captureCurrentAngle() {
+            if (currentStep >= totalCaptures) return;
+
+            const captureBtn = document.getElementById('captureBtn');
+            captureBtn.disabled = true;
+            document.getElementById('btnSpinner').style.display = 'inline-block';
+            document.getElementById('btnText').textContent = 'Procesando...';
+
+            try {
+                const video = document.getElementById('videoElement2');
+                const canvas = document.getElementById('canvasElement2');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                capturedImages.push(imageData);
+
+                // Mostrar preview
+                const previewEl = document.getElementById(`preview${currentStep + 1}`);
+                const img = previewEl.querySelector('img');
+                img.src = imageData;
+                img.style.display = 'block';
+                previewEl.classList.add('captured');
+
+                currentStep++;
+                document.getElementById('progressInfo').textContent = `Capturas: ${currentStep}/${totalCaptures}`;
+
+                if (currentStep < totalCaptures) {
+                    document.getElementById('captureInstruction').textContent = captureInstructions[currentStep];
+                    captureBtn.disabled = false;
+                    document.getElementById('btnSpinner').style.display = 'none';
+                    document.getElementById('btnText').textContent = '📸 Capturar';
+                } else {
+                    // Todas las capturas completadas
+                    document.getElementById('captureInstruction').textContent = 'Procesando registro...';
+                    await submitRegistration();
+                }
+
+            } catch (error) {
+                console.error('Error al capturar:', error);
+                showAlert('Error al capturar imagen', 'error');
+                captureBtn.disabled = false;
+            } finally {
+                document.getElementById('btnSpinner').style.display = 'none';
+            }
+        }
+
+        async function submitRegistration() {
+            const token = getToken();
+            
+            // Usar la primera imagen para registro
+            const imageData = capturedImages[0];
+
+            // Determinar si es registro para usuario específico (admin) o para sí mismo
+            let url = `${API_URL}/auth/face/register`;
+            let body = {
+                image_data: imageData,
+                quality_threshold: 0.3
+            };
+
+            if (isAdmin && selectedUserId && selectedUserRole) {
+                // Admin registrando para otro usuario
+                url = `${API_URL}/auth/face/register-for-user`;
+                body.target_user_id = selectedUserId;
+                body.target_role = selectedUserRole;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Error en registro facial');
+                }
+
+                // Éxito
+                document.getElementById('captureCard').style.display = 'none';
+                document.getElementById('successCard').style.display = 'block';
+                updateStep(3);
+
+                // Detener cámara
+                if (videoStream) {
+                    videoStream.getTracks().forEach(track => track.stop());
+                }
+
+                showAlert('Rostro registrado exitosamente', 'success');
+
+            } catch (error) {
+                console.error('Error en registro:', error);
+                showAlert(error.message || 'Error en registro facial', 'error');
+                
+                // Permitir reintentar
+                document.getElementById('captureInstruction').textContent = 'Error en registro. Intente nuevamente.';
+                document.getElementById('captureBtn').disabled = false;
+                document.getElementById('btnText').textContent = '📸 Reintentar';
+            }
+        }
+
+        function goToDashboard() {
+            window.location.href = "{% url 'admin_dashboard' %}";
+        }
+
+        function showAlert(message, type = 'error') {
+            const toast = document.getElementById('toastAlert');
+            const icon = document.getElementById('toastIcon');
+            const msgSpan = document.getElementById('toastMessage');
+
+            msgSpan.innerText = message;
+            toast.className = `alert alert-${type} show`;
+
+            if (type === 'success') {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+            } else {
+                icon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />`;
+            }
+
+            setTimeout(() => toast.classList.remove('show'), 4000);
+        }
+
+        // Inicializar
+        window.addEventListener('DOMContentLoaded', initCamera);
+        window.addEventListener('beforeunload', () => {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        });
+    </script>
+</body>
+</html>

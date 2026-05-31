@@ -1,0 +1,32 @@
+name: Ollama - Rápido
+version: 1.0.0
+schema: v1
+
+models:
+  - name: Qwen2.5 Coder 3B (Rápido)
+    provider: ollama
+    model: qwen2.5-coder:3b
+    numCtx: 1024
+    numGpu: 0           # Forzar solo CPU (importante)
+    numThread: 5   # Usa casi todos tus núcleos
+    capabilities: []
+    
+    completionOptions:
+      temperature: 0.3
+      topP: 0.95
+
+  - name: Qwen2.5 Chat 3B
+    provider: ollama
+    model: qwen2.5-coder:3b
+    numCtx: 1024
+    numGpu: 0
+    numThread: 20
+    capabilities: []
+
+tabAutocompleteModel:
+  name: Qwen2.5 Autocomplete 3B
+  provider: ollama
+  model: qwen2.5-coder:3b
+  numCtx: 2048
+  numGpu: 0
+  temperature: 0.2

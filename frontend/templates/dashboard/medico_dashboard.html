@@ -1,0 +1,3444 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>
+        function getToken() {
+            return sessionStorage.getItem('access_token') || localStorage.getItem('access_token');
+        }
+
+        function getAuthHeaders() {
+            const token = getToken();
+            return token ? { 'Authorization': `Bearer ${token}`, 'X-Access-Token': token } : {};
+        }
+
+
+        (function() {
+            const token = getToken();
+            if (!token) {
+                window.location.href = "/";
+                return;
+            }
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(base64));
+                if (!payload || payload.rol !== 'medico') {
+                    window.location.href = "/";
+                    return;
+                }
+            } catch (e) {
+                window.location.href = "/";
+                return;
+            }
+        })();
+    </script>
+    <title>Dashboard Médico - Labotik</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/chatbot.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Specific dashboard overrides to form a modular application layout */
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: var(--bg-color);
+            color: var(--text-cream);
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        /* Container for sidebar and content */
+        .app-middle-container {
+            display: flex;
+            flex-direction: row;
+            flex-grow: 1;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* Sidebar styling */
+        .sidebar {
+            width: 320px;
+            background: rgba(248, 243, 238, 0.95);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(74, 46, 27, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 25px 20px 25px 16px;
+            z-index: 10;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            height: 100%;
+            overflow-y: auto;
+        }
+
+        .sidebar-logo {
+            max-width: 130px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .menu-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8c6a54;
+            margin-bottom: 15px;
+            margin-top: 20px;
+            padding-left: 10px;
+        }
+
+        .menu-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .menu-item a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            min-height: 52px;
+            border-radius: 14px;
+            background: var(--chocolate-dark);
+            color: #e5dfda;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+            width: calc(100% - 4px);
+        }
+
+        .menu-item a:hover,
+        .menu-item.active a {
+            background: var(--chocolate-medium);
+            color: #e5dfda;
+            border-color: var(--chocolate-light);
+            padding-left: 22px;
+        }
+
+        .menu-icon {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        /* Main Workspace layout */
+        .workspace {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            background-image: linear-gradient(rgba(18, 9, 7, 0.9), rgba(18, 9, 7, 0.95)), url('{% static "images/back.jpeg" %}');
+            background-size: cover;
+            background-position: center;
+            padding: 40px;
+        }
+
+        .dashboard-section {
+            display: none;
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .dashboard-section.active {
+            display: block;
+        }
+
+        .profile-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 18px;
+            padding: 28px;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.3);
+        }
+
+        .profile-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .profile-panel-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text-white);
+            margin: 0 0 6px;
+        }
+
+        .profile-panel-subtitle {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .profile-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .dashboard-welcome {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin: 18px auto 0;
+            max-width: 1180px;
+            align-items: stretch;
+            width: calc(100% - 32px);
+            justify-content: center;
+        }
+
+        .dashboard-welcome-card,
+        .dashboard-chart-card,
+        .metric-card,
+        .dashboard-summary-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 22px;
+            padding: 24px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(18px);
+        }
+
+        .dashboard-welcome-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 260px;
+            max-width: 960px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .dashboard-welcome-title {
+            font-size: 32px;
+            margin: 0 0 12px;
+            line-height: 1.05;
+            color: #fff;
+        }
+
+        .dashboard-welcome-text {
+            color: rgba(255,255,255,0.8);
+            margin: 0 0 18px;
+            line-height: 1.7;
+            max-width: 640px;
+        }
+
+        .dashboard-spotlight {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .dashboard-spot {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 16px;
+            padding: 14px 16px;
+            color: #f5e8d5;
+            min-height: 78px;
+        }
+
+        .dashboard-spot strong {
+            display: block;
+            color: #fff;
+            font-size: 18px;
+            margin-bottom: 6px;
+        }
+
+        .dashboard-chart-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px;
+            margin-top: 24px;
+        }
+
+        .metric-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
+            margin-top: 22px;
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 140px;
+        }
+
+        .metric-card-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 10px;
+        }
+
+        .metric-card-value {
+            font-size: 32px;
+            font-weight: 800;
+            color: #fff;
+            margin-bottom: 8px;
+        }
+
+        .metric-card-note {
+            color: rgba(255,255,255,0.75);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .dashboard-chart-card canvas {
+            width: 100% !important;
+            height: 280px !important;
+        }
+
+        .dashboard-hero {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            margin-bottom: 22px;
+        }
+
+        .dashboard-greeting {
+            margin: 0;
+            color: #fff;
+            font-size: 20px;
+            opacity: 0.95;
+        }
+
+        .dashboard-hero-title {
+            margin: 10px 0 8px;
+            color: #fff;
+            font-size: 34px;
+            line-height: 1.1;
+        }
+
+        .dashboard-card-title {
+            margin: 0 0 10px;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .dashboard-chart-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+
+        .dashboard-chart-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.14);
+            border-radius: 22px;
+            padding: 22px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+            backdrop-filter: blur(18px);
+        }
+
+        .dashboard-summary-card {
+            margin-top: 20px;
+        }
+
+        .dashboard-summary-card h3 {
+            margin-top: 0;
+            color: #fff;
+            font-size: 18px;
+        }
+
+        .dashboard-summary-card p {
+            color: rgba(255,255,255,0.82);
+            line-height: 1.7;
+            margin: 0;
+        }
+
+        .entity-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .entity-list-item {
+            background: #fff;
+            border: 1px solid #e1e8f5;
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .entity-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .entity-table th, .entity-table td {
+            padding: 12px 14px;
+            border-bottom: 1px solid #eef2f7;
+            text-align: left;
+            color: #4b2e2a;
+        }
+        .entity-table thead th {
+            background: #f7fafc;
+            font-weight: 700;
+        }
+        .entity-table td[style*="maxWidth"] {
+            max-width: 300px;
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+        .pagination { margin-top: 12px; display:flex; align-items:center; gap:8px }
+        .pagination .btn { padding:6px 10px; border-radius:8px; background: #fff; color:#4b2e2a; border:1px solid rgba(75,46,42,0.08); }
+        .search-panel { display:flex; flex-wrap: wrap; gap:10px; margin-bottom:16px; align-items:center; }
+        .search-input { min-width:160px; max-width:240px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 10px 12px; color: var(--text-cream); }
+        .search-input::placeholder { color: rgba(241,231,214,0.75); }
+        .icon-btn { background: transparent; border: none; cursor: pointer; padding: 8px; display:inline-flex; align-items:center; justify-content:center; border-radius: 12px; transition: background 0.2s ease; }
+        .icon-btn svg { width:18px; height:18px; fill: #3d2014; }
+        .icon-btn:hover { background: rgba(255,255,255,0.12); }
+        .icon-btn.search-btn { border: 1px solid rgba(255,255,255,0.18); width: 42px; height: 42px; color: var(--text-cream); }
+        .icon-btn.add-btn { border: 1px solid rgba(255,255,255,0.24); background: rgba(255,255,255,0.06); border-radius: 12px; width: 40px; height: 40px; color: var(--text-cream); }
+
+        /* Modal cancel/button styling */
+        .modal-inner { color: #4b2e2a; }
+        .modal-inner h3 { color: #4b2e2a; }
+        .modal-inner input, .modal-inner select, .modal-inner textarea { color:#4b2e2a; }
+        .modal-inner input::placeholder, .modal-inner select::placeholder, .modal-inner textarea::placeholder { color: rgba(75,46,42,0.55); }
+        .modal-inner .modal-cancel { background: transparent; color: #4b2e2a; border: 1px solid rgba(75,46,42,0.06); }
+        .modal-inner .field { position: relative; }
+        .modal-inner .field label { position: absolute; top: 8px; left: 12px; font-size: 11px; color: #4b2e2a; text-transform: uppercase; letter-spacing: 0.5px; pointer-events: none; }
+        .modal-inner .field input, .modal-inner .field select { padding-top: 24px; }
+        .modal-inner .field select { -webkit-appearance: none; -moz-appearance: none; appearance: none; }
+
+        .profile-field-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 16px;
+        }
+
+        .profile-label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .profile-value {
+            color: var(--text-cream);
+            font-size: 15px;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .profile-input, .profile-select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: var(--text-cream);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
+        }
+
+        .profile-input:focus, .profile-select:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .profile-input[disabled], .profile-select[disabled] {
+            opacity: 0.7;
+            cursor: not-allowed;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .profile-status-message {
+            color: var(--accent-gold);
+            font-size: 13px;
+            margin-top: 16px;
+            min-height: 18px;
+        }
+
+        .profile-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-gold), var(--chocolate-light));
+            color: #1e0f08;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-cream);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        /* Top Header */
+        .top-header {
+            width: 100%;
+            height: 80px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            background: rgba(35, 18, 11, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+
+        .page-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-white);
+        }
+
+        .header-clock {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-cream);
+            font-family: 'Outfit', sans-serif;
+            text-align: center;
+            pointer-events: none;
+        }
+
+        .header-clock-place {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .header-clock-time {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-white);
+            white-space: nowrap;
+        }
+
+        .app-footer {
+            width: 100%;
+            height: 45px;
+            background: rgba(35, 18, 11, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+            z-index: 100;
+            flex-shrink: 0;
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: 0.5px;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 6px 12px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            transition: all 0.2s ease;
+        }
+
+        .user-profile:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(200, 150, 102, 0.3);
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-gold), var(--chocolate-light));
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            color: var(--chocolate-dark);
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .user-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-white);
+        }
+
+        .user-role {
+            font-size: 10px;
+            color: var(--accent-gold);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 30px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-super {
+            background: rgba(200, 150, 102, 0.15);
+            color: var(--accent-gold);
+            border: 1px solid rgba(200, 150, 102, 0.3);
+        }
+
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-color);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            transition: opacity 0.5s ease;
+        }
+
+        .loader-ring {
+            width: 50px;
+            height: 50px;
+            border: 3px solid rgba(200, 150, 102, 0.1);
+            border-top: 3px solid var(--accent-gold);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--chocolate-medium);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--chocolate-light);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- TOP HEADER -->
+    <header class="top-header">
+        <div style="display: flex; align-items: center; gap: 24px;">
+            <img src="{% static 'images/LaboLogo.png' %}" alt="Labotik Logo" class="sidebar-logo" style="max-height: 40px; width: auto;">
+            <div class="page-title">Panel de Control</div>
+        </div>
+        <div class="header-clock" aria-live="polite">
+            <div class="header-clock-place">La Paz, Bolivia</div>
+            <div class="header-clock-time" id="headerDateTime">Cargando fecha y hora...</div>
+        </div>
+        <div class="header-actions">
+            <div class="user-profile" id="userProfileButton" style="cursor: pointer;">
+                <div class="user-avatar" id="avatarLetter">S</div>
+                <div class="user-details">
+                    <span class="user-name" id="adminName">Cargando...</span>
+                    <span class="user-role" id="adminRole">MÉDICO</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MIDDLE CONTAINER -->
+    <div class="app-middle-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <nav style="margin-top: 10px;">
+                <div class="menu-label">Menú</div>
+                <ul class="menu-list">
+                    <li class="menu-item active">
+                        <a href="#" onclick="navigateMenu(event, 'dashboard', 'Dashboard')">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
+                            </svg>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" onclick="navigateMenu(event, 'pacientes', 'Pacientes')">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                            Pacientes
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" onclick="navigateMenu(event, 'solicitudes', 'Solicitudes')">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7 21h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            Solicitudes
+                        </a>
+                    </li>
+                    <li class="menu-item">
+                        <a href="#" onclick="navigateMenu(event, 'reportes', 'Reportes')">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6a2 2 0 012-2h2a2 2 0 012 2v6M9 17h6M9 3h6" />
+                            </svg>
+                            Reportes
+                        </a>
+                    </li>
+                    <li class="menu-item" style="border-top: 1px solid rgba(255,255,255,0.1); margin-top: 20px; padding-top: 20px;">
+                        <a href="#" onclick="handleLogout()" style="color: #e74c3c;">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #e74c3c;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Cerrar Sesión
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- WORKSPACE -->
+        <main class="workspace">
+            <section id="user-profile" class="dashboard-section" aria-hidden="true">
+                <div class="profile-panel">
+                    <div class="profile-panel-header">
+                        <div>
+                            <h1 class="profile-panel-title">Perfil de usuario</h1>
+                            <p class="profile-panel-subtitle">Edita tus datos personales y actualiza tu contraseña.</p>
+                        </div>
+                    </div>
+
+                    <form id="profileForm">
+                        <div class="profile-grid">
+                            <!-- Campo: ID (solo lectura) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileId">ID médico</label>
+                                <input type="text" id="profileId" class="profile-input" disabled>
+                            </div>
+                            <!-- Campo: Nombre -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileFirstName">Nombre</label>
+                                <input type="text" id="profileFirstName" class="profile-input" required>
+                            </div>
+                            <!-- Campo: Apellido paterno -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileLastName">Apellido paterno</label>
+                                <input type="text" id="profileLastName" class="profile-input" required>
+                            </div>
+                            <!-- Campo: Apellido materno -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileMiddleName">Apellido materno</label>
+                                <input type="text" id="profileMiddleName" class="profile-input">
+                            </div>
+                            <!-- Campo: Email (bloqueado, solo lectura) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileEmail">Email</label>
+                                <input type="email" id="profileEmail" class="profile-input" disabled>
+                            </div>
+                            <!-- Campo: Rol (select) -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileRole">Rol</label>
+                                <select id="profileRole" class="profile-select">
+                                    <option value="super_admin">Super Administrador</option>
+                                    <option value="admin_general">Admin General</option>
+                                    <option value="admin_financiero">Admin Financiero</option>
+                                    <option value="admin_lab">Admin Laboratorio</option>
+                                    <option value="recepcionista">Recepcionista</option>
+                                </select>
+                            </div>
+                            <!-- Campo: Fecha de nacimiento -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profileBirthdate">Fecha de nacimiento</label>
+                                <input type="date" id="profileBirthdate" class="profile-input">
+                            </div>
+                            <!-- Campo: Teléfono -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePhone">Teléfono</label>
+                                <input type="tel" id="profilePhone" class="profile-input" placeholder="Ej. +591 71234567">
+                            </div>
+                            <!-- Campo: Nueva contraseña -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePassword">Nueva contraseña</label>
+                                <input type="password" id="profilePassword" class="profile-input" placeholder="Dejar vacío para no cambiar">
+                            </div>
+                            <!-- Campo: Confirmar contraseña -->
+                            <div class="profile-field-card">
+                                <label class="profile-label" for="profilePasswordConfirm">Confirmar contraseña</label>
+                                <input type="password" id="profilePasswordConfirm" class="profile-input" placeholder="Repite la nueva contraseña">
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                            <div style="display: flex; gap: 12px;">
+                                <a href="/face-register/" class="btn btn-secondary" style="text-decoration: none; background: linear-gradient(135deg, var(--chocolate-medium), var(--chocolate-dark)); color: var(--text-cream); border: 1px solid rgba(200, 150, 102, 0.2); padding: 10px 24px; border-radius: 30px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s ease; font-family: 'Outfit', sans-serif; display: inline-flex; align-items: center; gap: 8px;">
+                                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    Registro Facial
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="profile-actions" style="margin-top: 12px;">
+                            <button type="button" class="btn btn-secondary" id="cancelProfileBtn">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                        </div>
+                        <div class="profile-status-message" id="profileLoadStatus"></div>
+                    </form>
+                </div>
+            </section>
+            <section id="dashboard" class="dashboard-section active" aria-hidden="false">
+                <div class="profile-panel">
+                    <div class="profile-panel-header">
+                        <div>
+                            <h1 class="profile-panel-title">Dashboard</h1>
+                            <p class="profile-panel-subtitle">Visión general del sistema.</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-welcome">
+                        <div class="dashboard-welcome-card">
+                            <div class="dashboard-hero">
+                                <div>
+                                    <p class="dashboard-greeting">Hola, <strong id="dashboardAdminName">Cargando...</strong></p>
+                                    <h2 class="dashboard-hero-title">Bienvenido al panel de Control</h2>
+                                    <p class="dashboard-welcome-text">Aquí tienes un resumen inteligente de Labotik: usuarios, pruebas, solicitudes, reportes y resultados. Navega con datos clave y mantén el flujo operativo bajo control.</p>
+                                </div>
+                                <div class="dashboard-spotlight">
+                                    <div class="dashboard-spot">
+                                        <strong id="dashboardHighlightRequests">0</strong>
+                                        Solicitudes activas
+                                    </div>
+                                    <div class="dashboard-spot">
+                                        <strong id="dashboardHighlightResults">0</strong>
+                                        Resultados listos para reportar
+                                    </div>
+                                    <div class="dashboard-spot">
+                                        <strong id="dashboardHighlightReports">0</strong>
+                                        Reportes entregados
+                                    </div>
+                                    <div class="dashboard-spot">
+                                        <strong id="dashboardHighlightPayments">0</strong>
+                                        Pagos registrados
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="dashboard-summary-card">
+                                <h3>Estado del sistema</h3>
+                                <p id="dashboardInsightText">Cargando datos del sistema... Actualiza para ver un resumen completo de pacientes, médicos, laboratoristas, pruebas y más.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="metric-card-grid">
+                        <div class="metric-card">
+                            <div class="metric-card-label">Pacientes</div>
+                            <div class="metric-card-value" id="metricPacientes">0</div>
+                            <div class="metric-card-note">Número total de pacientes registrados en Labotik.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Médicos</div>
+                            <div class="metric-card-value" id="metricMedicos">0</div>
+                            <div class="metric-card-note">Médicos afiliados disponibles para solicitudes.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Laboratoristas</div>
+                            <div class="metric-card-value" id="metricLaboratoristas">0</div>
+                            <div class="metric-card-note">Profesionales que procesan resultados en el laboratorio.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Administradores</div>
+                            <div class="metric-card-value" id="metricAdministradores">0</div>
+                            <div class="metric-card-note">Usuarios con acceso administrativo al sistema.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Pruebas</div>
+                            <div class="metric-card-value" id="metricPruebas">0</div>
+                            <div class="metric-card-note">Pruebas disponibles para asignar a solicitudes.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Reportes</div>
+                            <div class="metric-card-value" id="metricReportes">0</div>
+                            <div class="metric-card-note">Reportes registrados y listos para descarga.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Resultados</div>
+                            <div class="metric-card-value" id="metricResultados">0</div>
+                            <div class="metric-card-note">Resultados guardados en el sistema para validar y reportar.</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-card-label">Solicitudes</div>
+                            <div class="metric-card-value" id="metricSolicitudes">0</div>
+                            <div class="metric-card-note">Órdenes médicas administradas y en proceso.</div>
+                        </div>
+                    </div>
+                    <div class="dashboard-chart-row">
+                        <div class="dashboard-chart-card">
+                            <h3 class="dashboard-card-title">Equipo y carga operativa</h3>
+                            <canvas id="dashboardRoleChart" aria-label="Gráfico de equipo" role="img"></canvas>
+                        </div>
+                        <div class="dashboard-chart-card">
+                            <h3 class="dashboard-card-title">Histograma de estados</h3>
+                            <canvas id="dashboardStateChart" aria-label="Histograma de estados" role="img"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- ENTITY EDIT MODAL (constrained to workspace, no cover header/sidebar/footer) -->
+            <div id="entityModal" class="modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.35); z-index:50;">
+                <div class="modal-inner" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 20px 40px rgba(0,0,0,0.3); color:#4b2e2a;">
+                    <h3 id="modalTitle">Editar registro</h3>
+                    <form id="entityForm">
+                        <input type="hidden" id="modalId">
+                        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                            <div class="field" id="fIdAreaText" style="display:none;"><label for="modalIdAreaText">ID Área</label><input id="modalIdAreaText" class="profile-input" placeholder="ID (ej. HEMATOLOGIA)" /></div>
+                            <div class="field" id="fNombre"><label for="modalNombre">Nombre</label><input id="modalNombre" class="profile-input" placeholder="Nombre" /></div>
+                            <div class="field" id="fDescripcion" style="display:none;"><label for="modalDescripcion">Descripción</label><input id="modalDescripcion" class="profile-input" placeholder="Descripción" /></div>
+                            <div class="field" id="fApellidoP"><label for="modalApellidoP">Apellido paterno</label><input id="modalApellidoP" class="profile-input" placeholder="Apellido paterno" /></div>
+                            <div class="field" id="fApellidoM"><label for="modalApellidoM">Apellido materno</label><input id="modalApellidoM" class="profile-input" placeholder="Apellido materno" /></div>
+                            <div class="field" id="fEmail"><label for="modalEmail">Email</label><input id="modalEmail" class="profile-input" placeholder="Email" /></div>
+                            <div class="field" id="fTelefono"><label for="modalTelefono">Teléfono</label><input id="modalTelefono" class="profile-input" placeholder="Teléfono" /></div>
+                            <div class="field" id="fFecha"><label for="modalFecha">Fecha de nacimiento</label><input id="modalFecha" type="date" class="profile-input" placeholder="Fecha de nacimiento" /></div>
+                            <div class="field" id="fGenero"><label for="modalGenero">Género</label><select id="modalGenero" class="profile-select"><option value="">Seleccione</option><option value="M">Masculino</option><option value="F">Femenino</option></select></div>
+                            <div class="field" id="fDireccion"><label for="modalDireccion">Dirección</label><input id="modalDireccion" class="profile-input" placeholder="Dirección" /></div>
+                            <div class="field" id="fTipoSangre"><label for="modalTipoSangre">Tipo de sangre</label><select id="modalTipoSangre" class="profile-select"><option value="">Seleccione</option><option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option><option value="AB+">AB+</option><option value="AB-">AB-</option><option value="O+">O+</option><option value="O-">O-</option></select></div>
+                            <div class="field" id="fAlergias"><label for="modalAlergias">Alergias</label><input id="modalAlergias" class="profile-input" placeholder="Alergias" /></div>
+                            <div class="field" id="fPassword"><label for="modalPassword">Contraseña</label><input id="modalPassword" class="profile-input" type="password" placeholder="Nueva contraseña (opcional)" /></div>
+                            <div class="field" id="fRol"><label for="modalRol">Rol</label><select id="modalRol" class="profile-select"><option value="admin_general">admin_general</option><option value="super_admin">super_admin</option><option value="admin_financiero">admin_financiero</option><option value="admin_lab">admin_lab</option><option value="recepcionista">recepcionista</option></select></div>
+                            <div class="field" id="fEspecialidad"><label for="modalEspecialidad">Especialidad</label><select id="modalEspecialidad" class="profile-select"><option value="">Seleccione especialidad</option><option value="Cardiología">Cardiología</option><option value="Dermatología">Dermatología</option><option value="Endocrinología">Endocrinología</option><option value="Gastroenterología">Gastroenterología</option><option value="Ginecología">Ginecología</option><option value="Neurología">Neurología</option><option value="Pediatría">Pediatría</option><option value="Psiquiatría">Psiquiatría</option><option value="Oncología">Oncología</option><option value="Ortopedia">Ortopedia</option><option value="Oftalmología">Oftalmología</option><option value="Otorrinolaringología">Otorrinolaringología</option><option value="Urología">Urología</option><option value="Nefrología">Nefrología</option><option value="Reumatología">Reumatología</option><option value="Cirugía general">Cirugía general</option><option value="Medicina interna">Medicina interna</option><option value="Neumología">Neumología</option><option value="Infectología">Infectología</option><option value="Medicina familiar">Medicina familiar</option><option value="Anestesiología">Anestesiología</option><option value="Radiología">Radiología</option><option value="Hematología">Hematología</option></select></div>
+                            <div class="field" id="fIdArea"><label for="modalIdArea">Área</label><select id="modalIdArea" class="profile-select"><option value="">Seleccione área</option></select></div>
+                            <div class="field" id="fValorReferencia" style="display:none;"><label for="modalValorReferencia">Valor de referencia</label><input id="modalValorReferencia" class="profile-input" placeholder="Valor de referencia" /></div>
+                            <div class="field" id="fUnidad" style="display:none;"><label for="modalUnidad">Unidad</label><input id="modalUnidad" class="profile-input" placeholder="Unidad (ej. mg/dL)" /></div>
+                            <div class="field" id="fPrecio" style="display:none;"><label for="modalPrecio">Precio</label><input id="modalPrecio" type="number" step="0.01" class="profile-input" placeholder="Precio" /></div>
+                            <div class="field" id="fTiempoEstimado" style="display:none;"><label for="modalTiempoEstimado">Tiempo estimado (minutos)</label><input id="modalTiempoEstimado" type="number" class="profile-input" placeholder="Tiempo en minutos" /></div>
+                        <div style="margin-top:12px; display:flex; gap:8px; justify-content:flex-end;">
+                            <button type="button" class="btn btn-secondary modal-cancel" onclick="closeEditModal()">Cancelar</button>
+                            <button type="submit" class="btn btn-primary">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="app-footer">
+        <p>&copy; 2026 Labotik. Todos los derechos reservados. | Conexión Segura SSL | Portal de Médico</p>
+    </footer>
+
+    <script>
+        const API_URL = "http://127.0.0.1:8000";
+        const DEFAULT_PAGE_SIZE = 5;
+
+        function decodeJwt(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                return JSON.parse(atob(base64));
+            } catch (e) {
+                return null;
+            }
+        }
+
+        let currentAdminData = null;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            const token = getToken();
+            if (!token) {
+                window.location.href = "/";
+                return;
+            }
+
+            const payload = decodeJwt(token);
+            if (!payload || payload.rol !== 'medico') {
+                window.location.href = "/";
+                return;
+            }
+
+            updateHeaderDateTime();
+            setInterval(updateHeaderDateTime, 1000);
+            await loadProfileData();
+
+            const profileButton = document.getElementById('userProfileButton');
+            if (profileButton) {
+                profileButton.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    showUserProfile();
+                });
+            }
+
+            const profileForm = document.getElementById('profileForm');
+            if (profileForm) profileForm.addEventListener('submit', saveProfileChanges);
+
+            const cancelBtn = document.getElementById('cancelProfileBtn');
+            if (cancelBtn) cancelBtn.addEventListener('click', () => loadProfileData());
+
+            const entityForm = document.getElementById('entityForm');
+            if (entityForm) entityForm.addEventListener('submit', submitEntityForm);
+
+            // close modal when clicking outside
+            const entityModal = document.getElementById('entityModal');
+            if (entityModal) {
+                entityModal.addEventListener('click', (ev) => {
+                    if (ev.target === entityModal) closeEditModal();
+                });
+            }
+
+            // Show dashboard by default on load
+            document.querySelector('.page-title').innerText = 'Panel de Control';
+            showOnlyDashboardSection('dashboard');
+            await loadDashboardStats();
+        });
+
+        function showOnlyDashboardSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                const isActive = section.id === sectionId;
+                section.classList.toggle('active', isActive);
+                section.setAttribute('aria-hidden', String(!isActive));
+            });
+            if (sectionId === 'user-profile') {
+                document.querySelector('.page-title').innerText = 'Perfil de usuario';
+            }
+        }
+
+        function formatDateForInput(value) {
+            if (!value) return '';
+            const date = new Date(value);
+            if (isNaN(date)) return '';
+            return date.toISOString().slice(0, 10);
+        }
+
+        function fillProfileForm(admin) {
+            currentAdminData = admin;
+            document.getElementById('profileId').value = admin.id_medico || '';
+            document.getElementById('profileFirstName').value = admin.nombre || '';
+            document.getElementById('profileLastName').value = admin.apellido_paterno || '';
+            document.getElementById('profileMiddleName').value = admin.apellido_materno || '';
+            document.getElementById('profileEmail').value = admin.email || '';
+            document.getElementById('profileBirthdate').value = formatDateForInput(admin.fecha_nacimiento);
+            document.getElementById('profilePhone').value = admin.telefono || '';
+            // Limpiar campos de contraseña
+            document.getElementById('profilePassword').value = '';
+            document.getElementById('profilePasswordConfirm').value = '';
+        }
+
+        async function loadProfileData() {
+            const statusDiv = document.getElementById('profileLoadStatus');
+            statusDiv.innerText = 'Cargando datos del usuario...';
+            const token = getToken();
+            const payload = token ? decodeJwt(token) : null;
+            if (!token || !payload || payload.rol !== 'medico' || !payload.sub) {
+                window.location.href = "/";
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/medicos/by-email?email=${encodeURIComponent(payload.sub)}`, {
+                    headers: getAuthHeaders()
+                });
+                if (!response.ok) throw new Error('Error al obtener perfil');
+                const medicoData = await response.json();
+                fillProfileForm(medicoData);
+                currentAdminData = medicoData;
+                updateHeaderWithMedicoData(medicoData);
+                statusDiv.innerText = 'Perfil cargado correctamente.';
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = 'Error al cargar los datos. Intente nuevamente.';
+            }
+        }
+
+        function updateHeaderWithMedicoData(medicoData) {
+            const adminNameEl = document.getElementById('adminName');
+            const dashboardNameEl = document.getElementById('dashboardAdminName');
+            const avatarLetterEl = document.getElementById('avatarLetter');
+            const fullName = `${medicoData.nombre || ''} ${medicoData.apellido_paterno || ''} ${medicoData.apellido_materno || ''}`.trim();
+            if (adminNameEl) {
+                adminNameEl.innerText = fullName || medicoData.email || 'Médico';
+            }
+            if (dashboardNameEl) {
+                dashboardNameEl.innerText = fullName || 'Médico';
+            }
+            if (avatarLetterEl && medicoData.nombre) {
+                avatarLetterEl.innerText = medicoData.nombre.charAt(0).toUpperCase();
+            }
+        }
+
+        async function saveProfileChanges(event) {
+            event.preventDefault();
+            const statusDiv = document.getElementById('profileLoadStatus');
+            const token = getToken();
+            if (!token) {
+                window.location.href = "/";
+                return;
+            }
+
+            const password = document.getElementById('profilePassword').value;
+            const confirmPassword = document.getElementById('profilePasswordConfirm').value;
+            if (password && password !== confirmPassword) {
+                statusDiv.innerText = 'Las contraseñas no coinciden.';
+                return;
+            }
+
+            // Solo campos editables (excluimos email, id, y campos eliminados)
+            const updatedData = {
+                nombre: document.getElementById('profileFirstName').value.trim(),
+                apellido_paterno: document.getElementById('profileLastName').value.trim(),
+                apellido_materno: document.getElementById('profileMiddleName').value.trim() || null,
+                telefono: document.getElementById('profilePhone').value.trim() || null,
+                fecha_nacimiento: document.getElementById('profileBirthdate').value || null,
+            };
+            if (password) {
+                updatedData.password = password;
+            }
+
+            const medicoId = document.getElementById('profileId').value;
+            if (!medicoId) {
+                statusDiv.innerText = 'ID de médico no encontrado.';
+                return;
+            }
+
+            statusDiv.innerText = 'Guardando cambios...';
+            try {
+                const response = await fetch(`${API_URL}/medicos/${medicoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => null);
+                    throw new Error(errorData?.detail || 'Error al guardar');
+                }
+                const savedAdmin = await response.json();
+                fillProfileForm(savedAdmin);
+                statusDiv.innerText = 'Perfil actualizado exitosamente.';
+                // Actualizar nombre en el header y en el saludo
+                const fullName = `${savedAdmin.nombre || ''} ${savedAdmin.apellido_paterno || ''} ${savedAdmin.apellido_materno || ''}`.trim();
+                const dashboardNameEl = document.getElementById('dashboardAdminName');
+                if (dashboardNameEl) {
+                    dashboardNameEl.innerText = fullName || 'Médico';
+                }
+                document.getElementById('adminName').innerText = fullName || savedAdmin.email;
+                document.getElementById('avatarLetter').innerText = (savedAdmin.nombre?.[0] || savedAdmin.email?.[0] || 'M').toUpperCase();
+            } catch (error) {
+                console.error(error);
+                statusDiv.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        function showUserProfile() {
+            showOnlyDashboardSection('user-profile');
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            loadProfileData();
+        }
+        async function loadSectionHtml(sectionId) {
+            const workspace = document.querySelector('.workspace');
+            const key = (sectionId || '').toLowerCase();
+            let section = document.getElementById(key);
+            // if not in DOM, fetch and append
+            if (!section && ['administradores', 'pacientes', 'medicos', 'laboratoristas', 'areas', 'pruebas', 'solicitudes', 'resultados', 'reportes'].includes(key)) {
+                try {
+                    const response = await fetch(`{% static 'partials/' %}${key}.html`);
+                    if (response.ok) {
+                        const html = await response.text();
+                        const temp = document.createElement('div');
+                        temp.innerHTML = html;
+                        const newSection = temp.firstElementChild;
+                        if(newSection) {
+                            workspace.insertBefore(newSection, document.getElementById('entityModal'));
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error loading section:", e);
+                }
+            }
+        }
+
+        async function navigateMenu(event, sectionId, title) {
+            event.preventDefault();
+            document.querySelectorAll('.menu-item').forEach(item => item.classList.remove('active'));
+            const menuItem = event.currentTarget.closest('.menu-item');
+            if (menuItem) {
+                menuItem.classList.add('active');
+            }
+            
+            const key = sectionId ? sectionId.toLowerCase() : sectionId;
+            await loadSectionHtml(key);
+            showOnlyDashboardSection(key);
+            if (title) document.querySelector('.page-title').innerText = title;
+            await loadSectionData(key);
+        }
+
+
+        async function loadSectionData(sectionId) {
+            if (!sectionId) return;
+            // use paginated fetch for common sections
+            if (['administradores','pacientes','medicos','laboratoristas','areas','pruebas','solicitudes'].includes(sectionId)) {
+                fetchAndRender(sectionId, 0, DEFAULT_PAGE_SIZE);
+            }
+            // Custom load for Resultados: listar solicitudes pagadas y resultados registrados
+            if (sectionId === 'Resultados' || sectionId === 'resultados') {
+                // ensure caches (patients, tests) are loaded for rendering
+                await loadSolicitudesCaches();
+                await loadPaidSolicitudes();
+                await loadResultados();
+                // NOTE: fetchAndRender not needed here, resultados has custom rendering
+            }
+            // Custom load for Reportes: listar reportes generados y resultados registrados
+            if (sectionId === 'reportes' || sectionId === 'Reportes') {
+                await loadReportes();
+                await loadReportesList();
+            }
+            if (sectionId === 'dashboard') {
+                await loadDashboardStats();
+            }
+        }
+
+        async function loadDashboardStats() {
+            const token = getToken();
+            const headers = getAuthHeaders();
+            const metricIds = {
+                pacientes: 'metricPacientes',
+                medicos: 'metricMedicos',
+                laboratoristas: 'metricLaboratoristas',
+                administradores: 'metricAdministradores',
+                pruebas: 'metricPruebas',
+                reportes: 'metricReportes',
+                resultados: 'metricResultados',
+                solicitudes: 'metricSolicitudes',
+            };
+
+            try {
+                const [pacientesRes, medicosRes, laboratoristasRes, administradoresRes, pruebasRes, solicitudesRes, reportesRes, resultadosRes] = await Promise.all([
+                    fetch(`${API_URL}/pacientes?limit=1000`, { headers }),
+                    fetch(`${API_URL}/medicos?limit=1000`, { headers }),
+                    fetch(`${API_URL}/laboratoristas?limit=1000`, { headers }),
+                    fetch(`${API_URL}/administradores?limit=1000`, { headers }),
+                    fetch(`${API_URL}/pruebas?limit=1000`, { headers }),
+                    fetch(`${API_URL}/solicitudes?limit=1000`, { headers }),
+                    fetch(`${API_URL}/reportes?skip=0&limit=1000`, { headers }),
+                    fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers }),
+                ]);
+
+                const [pacientes, medicos, laboratoristas, administradores, pruebas, solicitudes, reportes, resultados] = await Promise.all([
+                    pacientesRes.ok ? pacientesRes.json() : [],
+                    medicosRes.ok ? medicosRes.json() : [],
+                    laboratoristasRes.ok ? laboratoristasRes.json() : [],
+                    administradoresRes.ok ? administradoresRes.json() : [],
+                    pruebasRes.ok ? pruebasRes.json() : [],
+                    solicitudesRes.ok ? solicitudesRes.json() : [],
+                    reportesRes.ok ? reportesRes.json() : [],
+                    resultadosRes.ok ? resultadosRes.json() : [],
+                ]);
+
+                const counts = {
+                    pacientes: pacientes.length,
+                    medicos: medicos.length,
+                    laboratoristas: laboratoristas.length,
+                    administradores: administradores.length,
+                    pruebas: pruebas.length,
+                    reportes: reportes.length,
+                    resultados: resultados.length,
+                    solicitudes: solicitudes.length,
+                };
+
+                Object.entries(counts).forEach(([key, value]) => {
+                    const el = document.getElementById(metricIds[key]);
+                    if (el) el.innerText = value;
+                });
+
+                const reportesByState = reportes.reduce((acc, item) => {
+                    acc[item.estado] = (acc[item.estado] || 0) + 1;
+                    return acc;
+                }, {});
+                const resultadosByState = resultados.reduce((acc, item) => {
+                    acc[item.estado] = (acc[item.estado] || 0) + 1;
+                    return acc;
+                }, {});
+
+                const totalRequests = solicitudes.length;
+                const readyResults = resultadosByState.registrado || 0;
+                const completedReports = reportesByState.entregado || 0;
+                const pagosRes = await fetch(`${API_URL}/pagos?skip=0&limit=1000`, { headers });
+                const pagos = pagosRes.ok ? await pagosRes.json() : [];
+
+                document.getElementById('dashboardHighlightRequests').innerText = totalRequests;
+                document.getElementById('dashboardHighlightResults').innerText = readyResults;
+                document.getElementById('dashboardHighlightReports').innerText = completedReports;
+                document.getElementById('dashboardHighlightPayments').innerText = pagos.length;
+
+                const percentagePending = solicitudes.length ? Math.round(((reportes.length / solicitudes.length) * 100)) : 0;
+                const insightText = `Labotik registra ${counts.pacientes} pacientes, ${counts.medicos} médicos y ${counts.laboratoristas} laboratoristas. Hay ${readyResults} resultados en espera de reportar y ${completedReports} reportes entregados. El  ${percentagePending}% de las solicitudes contiene un reporte asociado.`;
+                const insightEl = document.getElementById('dashboardInsightText');
+                if (insightEl) insightEl.innerText = insightText;
+
+                const chartCtx = document.getElementById('dashboardRoleChart');
+                if (chartCtx) {
+                    const ctx = chartCtx.getContext('2d');
+                    if (window.dashboardRoleChart && typeof window.dashboardRoleChart.destroy === 'function') {
+                        window.dashboardRoleChart.destroy();
+                    }
+                    window.dashboardRoleChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Pacientes', 'Médicos', 'Laboratoristas', 'Administradores'],
+                            datasets: [{
+                                data: [counts.pacientes, counts.medicos, counts.laboratoristas, counts.administradores],
+                                backgroundColor: ['#ffca6d', '#8c6efe', '#5dd9c1', '#f1ad55'],
+                                borderColor: 'rgba(255,255,255,0.12)',
+                                borderWidth: 2,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'bottom', labels: { color: '#f4edde' } },
+                                tooltip: { backgroundColor: 'rgba(30, 30, 30, 0.92)', titleColor: '#fff', bodyColor: '#fff' }
+                            }
+                        }
+                    });
+                }
+
+                const dashboardNameEl = document.getElementById('dashboardAdminName');
+                if (dashboardNameEl) {
+                    let adminFullName = currentAdminData ? [currentAdminData.nombre, currentAdminData.apellido_paterno, currentAdminData.apellido_materno].filter(Boolean).join(' ') : '';
+                    if (!adminFullName && token) {
+                        const tokenPayload = decodeJwt(token);
+                        adminFullName = tokenPayload ? [tokenPayload.nombre, tokenPayload.apellido_paterno, tokenPayload.apellido_materno].filter(Boolean).join(' ') : '';
+                    }
+                    dashboardNameEl.innerText = adminFullName || 'Administrador';
+                }
+
+                const stateLabels = ['Pendiente', 'Registrado', 'Reportado', 'Borrador', 'Entregado', 'Completado'];
+                const stateDataset = {
+                    'Pendiente': resultadosByState.pendiente || 0,
+                    'Registrado': resultadosByState.registrado || 0,
+                    'Reportado': resultadosByState.reportado || 0,
+                    'Borrador': reportesByState.borrador || 0,
+                    'Entregado': reportesByState.entregado || 0,
+                    'Completado': reportesByState.completado || 0,
+                };
+
+                const stateChartCtx = document.getElementById('dashboardStateChart');
+                if (stateChartCtx) {
+                    const ctxState = stateChartCtx.getContext('2d');
+                    if (window.dashboardStateChart && typeof window.dashboardStateChart.destroy === 'function') {
+                        window.dashboardStateChart.destroy();
+                    }
+                    window.dashboardStateChart = new Chart(ctxState, {
+                        type: 'bar',
+                        data: {
+                            labels: stateLabels,
+                            datasets: [{
+                                label: 'Cantidad',
+                                data: stateLabels.map(label => stateDataset[label]),
+                                backgroundColor: ['#f6c36b', '#8c6efe', '#5dd9c1', '#f4d19c', '#2f8b57', '#b56c4d'],
+                                borderColor: 'rgba(255,255,255,0.18)',
+                                borderWidth: 1,
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: {
+                                    ticks: { color: '#f4edde' },
+                                    grid: { display: false }
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { color: '#f4edde' },
+                                    grid: { color: 'rgba(255,255,255,0.08)' }
+                                }
+                            },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { backgroundColor: 'rgba(30, 30, 30, 0.92)', titleColor: '#fff', bodyColor: '#fff' }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error cargando estadísticas del dashboard:', error);
+                const insightEl = document.getElementById('dashboardInsightText');
+                if (insightEl) insightEl.innerText = 'Resumen temporalmente no disponible. Por favor recarga o inténtalo de nuevo más tarde.';
+            }
+        }
+
+        // Utility to create action buttons for a row
+        function createActionCell(sectionKey, entity, page, pageSize) {
+            const td = document.createElement('td');
+            // Edit icon button (pencil)
+            const editBtn = document.createElement('button');
+            editBtn.className = 'icon-btn';
+            editBtn.title = 'Modificar';
+            editBtn.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M14.846 2.56a2.25 2.25 0 0 1 3.182 3.183l-9.193 9.194a.75.75 0 0 1-.338.197l-4.03.99a.75.75 0 0 1-.91-.91l.99-4.03a.75.75 0 0 1 .197-.338l9.193-9.193zM6.5 13.5l6-6"/></svg>`;
+            editBtn.addEventListener('click', () => {
+                if (sectionKey === 'solicitudes') {
+                    showSolicitudForm(true, entity);
+                } else {
+                    openEditModal(sectionKey, entity);
+                }
+            });
+
+            // Delete icon button (trash)
+            const delBtn = document.createElement('button');
+            delBtn.className = 'icon-btn';
+            delBtn.title = 'Borrar';
+            delBtn.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M6 7h8v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V7zm3-4h2a1 1 0 0 1 1 1v1H8V4a1 1 0 0 1 1-1z"/></svg>`;
+            delBtn.addEventListener('click', () => handleDeleteEntity(sectionKey, entity));
+
+            td.appendChild(editBtn);
+            td.appendChild(delBtn);
+            return td;
+        }
+
+        const sectionConfig = {
+            administradores: { endpoint: 'administradores', idField: 'id_administrador', searchIdParam: 'id_administrador' },
+            pacientes: { endpoint: 'pacientes', idField: 'id_paciente', searchIdParam: 'id_paciente' },
+            medicos: { endpoint: 'medicos', idField: 'id_medico', searchIdParam: 'id_medico' },
+            laboratoristas: { endpoint: 'laboratoristas', idField: 'id_laboratorista', searchIdParam: 'id_laboratorista', searchAreaIdParam: 'id_area' },
+            areas: { endpoint: 'areas', idField: 'id_area', searchIdParam: 'id_area' },
+            pruebas: { endpoint: 'pruebas', idField: 'id_prueba', searchIdParam: 'id_prueba', searchAreaIdParam: 'id_area' },
+            solicitudes: { endpoint: 'solicitudes', idField: 'id_solicitud', searchIdParam: 'id_solicitud' },
+            resultados: { endpoint: 'resultados', idField: 'id_resultado' }
+        };
+
+        function getSearchFilters(sectionKey) {
+            const cfg = sectionConfig[sectionKey];
+            if (!cfg) return {};
+            const filters = {};
+            const idValue = document.getElementById(`${sectionKey}SearchId`);
+            if (idValue && cfg.searchIdParam) filters[cfg.searchIdParam] = idValue.value.trim();
+            // Support searching by paciente id and nombre for solicitudes
+            const pacienteIdEl = document.getElementById(`${sectionKey}SearchPacienteId`);
+            if (pacienteIdEl) filters['id_paciente'] = pacienteIdEl.value.trim();
+            const nombreEl = document.getElementById(`${sectionKey}SearchNombre`);
+            if (nombreEl) filters['nombre'] = nombreEl.value.trim();
+            const apellidoP = document.getElementById(`${sectionKey}SearchApellidoP`);
+            const apellidoM = document.getElementById(`${sectionKey}SearchApellidoM`);
+            if (apellidoP) filters['apellido_paterno'] = apellidoP.value.trim();
+            if (apellidoM) filters['apellido_materno'] = apellidoM.value.trim();
+            if (sectionKey === 'laboratoristas') {
+                const areaId = document.getElementById('laboratoristasSearchAreaId');
+                if (areaId) filters['id_area'] = areaId.value.trim();
+            }
+            return filters;
+        }
+
+        function searchSection(sectionKey) {
+            fetchAndRender(sectionKey, 0, DEFAULT_PAGE_SIZE);
+        }
+
+        function clearSearch(sectionKey) {
+            ['SearchId','SearchPacienteId','SearchNombre','SearchApellidoP','SearchApellidoM'].forEach(field => {
+                const input = document.getElementById(`${sectionKey}${field}`);
+                if (input) input.value = '';
+            });
+            if (sectionKey === 'laboratoristas') {
+                const areaId = document.getElementById('laboratoristasSearchAreaId');
+                if (areaId) areaId.value = '';
+            }
+            fetchAndRender(sectionKey, 0, DEFAULT_PAGE_SIZE);
+        }
+
+        let areaSearchTimeout = null;
+        async function loadAreaOptions(query = '', selectedId = null) {
+            const select = document.getElementById('modalIdArea');
+            if (!select) return;
+            select.innerHTML = '<option value="">Cargando áreas...</option>';
+            
+            try {
+                const token = getToken();
+                const params = new URLSearchParams();
+                if (query && query.trim()) {
+                    params.set('query', query);
+                }
+                
+                const response = await fetch(`${API_URL}/areas/search?${params.toString()}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (!response.ok) {
+                    select.innerHTML = '<option value="">No se pudo cargar áreas</option>';
+                    return;
+                }
+                
+                const areas = await response.json();
+                select.innerHTML = '<option value="">Seleccione área</option>';
+                
+                if (!Array.isArray(areas) || areas.length === 0) {
+                    select.innerHTML += '<option value="" disabled>No hay áreas disponibles</option>';
+                    return;
+                }
+                
+                areas.forEach(area => {
+                    const option = document.createElement('option');
+                    option.value = area.id_area;
+                    option.textContent = area.nombre;
+                    if (selectedId && area.id_area === selectedId) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error al cargar áreas:', error);
+                select.innerHTML = '<option value="">Error al cargar áreas</option>';
+            }
+        }
+
+        let areasCache = {};
+        async function loadAreasCache() {
+            try {
+                const token = getToken();
+                const response = await fetch(`${API_URL}/areas/search`, {
+                    headers: getAuthHeaders()
+                });
+                if (response.ok) {
+                    const areas = await response.json();
+                    if (Array.isArray(areas)) {
+                        areasCache = {};
+                        areas.forEach(area => {
+                            areasCache[area.id_area] = area.nombre;
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error("Error al cargar áreas en caché:", error);
+            }
+        }
+
+        function debouncedAreaSearch() {
+            if (areaSearchTimeout) clearTimeout(areaSearchTimeout);
+            areaSearchTimeout = setTimeout(() => {
+                const query = document.getElementById('modalAreaSearch')?.value.trim() || '';
+                loadAreaOptions(query);
+            }, 300);
+        }
+
+        async function fetchAndRender(sectionKey, page = 0, pageSize = DEFAULT_PAGE_SIZE) {
+            const cfg = sectionConfig[sectionKey];
+            if (!cfg) return;
+            
+            if (sectionKey === 'pruebas' || sectionKey === 'laboratoristas') {
+                await loadAreasCache();
+            }
+            if (sectionKey === 'solicitudes') {
+                await loadSolicitudesCaches();
+            }
+
+            const status = document.getElementById(`${sectionKey}Status`);
+            const tbody = document.getElementById(`${sectionKey}Tbody`);
+            const pagination = document.getElementById(`${sectionKey}Pagination`);
+            
+            // Only update if elements exist
+            if (status) status.innerText = `Cargando ${sectionKey}...`;
+            if (tbody) tbody.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
+            const searchFilters = getSearchFilters(sectionKey);
+            const hasSearch = Object.values(searchFilters).some(value => value);
+            try {
+                const token = getToken();
+                let response;
+                if (hasSearch) {
+                    const query = new URLSearchParams(searchFilters).toString();
+                    response = await fetch(`${API_URL}/${cfg.endpoint}/search?${query}`, {
+                        headers: getAuthHeaders()
+                    });
+                } else {
+                    const skip = page * pageSize;
+                    response = await fetch(`${API_URL}/${cfg.endpoint}?skip=${skip}&limit=${pageSize}`, {
+                        headers: getAuthHeaders()
+                    });
+                }
+                if (!response.ok) {
+                    if (response.status === 401 || response.status === 403) {
+                        status.innerText = 'No se pudo cargar. Revisa tus permisos o inicia sesión nuevamente.';
+                        return;
+                    }
+                    const err = await response.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al cargar datos');
+                }
+                const items = await response.json();
+                if (!Array.isArray(items)) throw new Error('Respuesta inesperada del servidor');
+                items.forEach(item => {
+                    if (sectionKey === 'solicitudes') {
+                        const tr = document.createElement('tr');
+                        const idCell = document.createElement('td');
+                        idCell.textContent = item.id_solicitud || '';
+                        const pacCell = document.createElement('td');
+                        const fullName = (item.paciente_nombre_nombre ? `${item.paciente_nombre_nombre} ${item.paciente_apellido_paterno || ''} ${item.paciente_apellido_materno || ''}` : item.paciente_nombre) || patientsCacheMap[item.id_paciente] || item.id_paciente || '';
+                        pacCell.textContent = fullName;
+                        // Allow wrapping so entire content is visible without truncation
+                        pacCell.style.whiteSpace = 'normal';
+                        pacCell.style.wordWrap = 'break-word';
+                        pacCell.style.maxWidth = '360px';
+                        pacCell.style.lineHeight = '1.2';
+                        pacCell.title = fullName;
+                        const medCell = document.createElement('td');
+                        medCell.textContent = item.id_medico ? (doctorsCacheMap[item.id_medico] || item.id_medico) : 'Sin médico';
+                        
+                        const prioCell = document.createElement('td');
+                        prioCell.innerHTML = `<span class="badge" style="background: ${item.prioridad === 'alta' ? 'rgba(231, 76, 60, 0.15)' : item.prioridad === 'media' ? 'rgba(200, 150, 102, 0.15)' : 'rgba(46, 204, 113, 0.15)'}; color: ${item.prioridad === 'alta' ? '#e74c3c' : item.prioridad === 'media' ? 'var(--accent-gold)' : '#2ecc71'}; border: 1px solid ${item.prioridad === 'alta' ? 'rgba(231, 76, 60, 0.3)' : item.prioridad === 'media' ? 'rgba(200, 150, 102, 0.3)' : 'rgba(46, 204, 113, 0.3)'}; font-size: 11px; text-transform: uppercase;">${item.prioridad}</span>`;
+                        
+                        const estCell = document.createElement('td');
+                        estCell.innerHTML = `<span class="badge" style="background: ${item.estado === 'completado' || item.estado === 'entregado' ? 'rgba(46, 204, 113, 0.15)' : item.estado === 'cancelado' ? 'rgba(231, 76, 60, 0.15)' : 'rgba(200, 150, 102, 0.15)'}; color: ${item.estado === 'completado' || item.estado === 'entregado' ? '#2ecc71' : item.estado === 'cancelado' ? '#e74c3c' : 'var(--accent-gold)'}; border: 1px solid ${item.estado === 'completado' || item.estado === 'entregado' ? 'rgba(46, 204, 113, 0.3)' : item.estado === 'cancelado' ? 'rgba(231, 76, 60, 0.3)' : 'rgba(200, 150, 102, 0.3)'}; font-size: 11px; text-transform: uppercase;">${item.estado}</span>`;
+
+                        const pagoCell = document.createElement('td');
+                        let pagoBg = 'rgba(200, 150, 102, 0.15)';
+                        let pagoColor = 'var(--accent-gold)';
+                        let pagoBorder = 'rgba(200, 150, 102, 0.3)';
+                        if (item.estado_pago === 'pagado_total') { pagoBg = 'rgba(46, 204, 113, 0.15)'; pagoColor = '#2ecc71'; pagoBorder = 'rgba(46, 204, 113, 0.3)'; }
+                        else if (item.estado_pago === 'pagado_parcial') { pagoBg = 'rgba(241, 196, 15, 0.12)'; pagoColor = '#f1c40f'; pagoBorder = 'rgba(241, 196, 15, 0.25)'; }
+                        else if (item.estado_pago === 'no_pagado') { pagoBg = 'rgba(231, 76, 60, 0.08)'; pagoColor = '#e74c3c'; pagoBorder = 'rgba(231, 76, 60, 0.18)'; }
+                        pagoCell.innerHTML = `<span class="badge" style="background: ${pagoBg}; color: ${pagoColor}; border: 1px solid ${pagoBorder}; font-size: 11px; text-transform: uppercase;">${item.estado_pago || 'no_pagado'}</span>`;
+
+                        const pruebasCell = document.createElement('td');
+                        pruebasCell.style.maxWidth = '300px';
+                        pruebasCell.style.whiteSpace = 'normal';
+                        pruebasCell.style.wordWrap = 'break-word';
+                        if (item.detalles && item.detalles.length > 0) {
+                            const names = item.detalles.map(d => testsCacheMap[d.id_prueba] || `Prueba #${d.id_prueba}`);
+                            pruebasCell.textContent = names.join(', ');
+                        } else {
+                            pruebasCell.textContent = 'Ninguna';
+                        }
+                        
+                        const fechaCell = document.createElement('td');
+                        fechaCell.textContent = item.created_at ? new Date(item.created_at).toLocaleString('es-BO') : '';
+                        
+                        tr.appendChild(idCell);
+                        tr.appendChild(pacCell);
+                        tr.appendChild(medCell);
+                        tr.appendChild(prioCell);
+                        tr.appendChild(estCell);
+                        tr.appendChild(pagoCell);
+                        tr.appendChild(pruebasCell);
+                        tr.appendChild(fechaCell);
+                        tr.appendChild(createActionCell(sectionKey, item, page, pageSize));
+                        tbody.appendChild(tr);
+                        return;
+                    }
+
+                    if (sectionKey === 'resultados') {
+                        const tr = document.createElement('tr');
+                        const idCell = document.createElement('td');
+                        idCell.textContent = item.id_resultado || item.id || '';
+
+                        const solicitudCell = document.createElement('td');
+                        solicitudCell.textContent = item.id_solicitud || (item.solicitud && item.solicitud.id_solicitud) || '';
+
+                        const pruebaCell = document.createElement('td');
+                        // prefer detalle/prueba name if provided
+                        pruebaCell.textContent = item.prueba_nombre || item.detalle_prueba_nombre || item.prueba || item.id_prueba || item.id_detalle_solicitud || '';
+
+                        const resultadoCell = document.createElement('td');
+                        resultadoCell.textContent = item.resultado || item.valor || '';
+
+                        const estadoCell = document.createElement('td');
+                        estadoCell.textContent = item.estado || '';
+
+                        const actionsCell = document.createElement('td');
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'icon-btn';
+                        editBtn.title = 'Editar Resultado';
+                        editBtn.innerHTML = '<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M14.846 2.56a2.25 2.25 0 0 1 3.182 3.183l-9.193 9.194a.75.75 0 0 1-.338.197l-4.03.99a.75.75 0 0 1-.91-.91l.99-4.03a.75.75 0 0 1 .197-.338l9.193-9.193zM6.5 13.5l6-6"/></svg>';
+                        editBtn.addEventListener('click', () => openResultadoForEdit(item));
+                        actionsCell.appendChild(editBtn);
+
+                        tr.appendChild(idCell);
+                        tr.appendChild(solicitudCell);
+                        tr.appendChild(pruebaCell);
+                        tr.appendChild(resultadoCell);
+                        tr.appendChild(estadoCell);
+                        tr.appendChild(actionsCell);
+                        tbody.appendChild(tr);
+                        return;
+                    }
+
+                    const tr = document.createElement('tr');
+                    const idCell = document.createElement('td');
+                    idCell.textContent = item[cfg.idField] || item.id || '';
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = `${item.nombre || ''} ${item.apellido_paterno || ''} ${item.apellido_materno || ''}`.trim() || item.email || '';
+                    tr.appendChild(idCell);
+                    tr.appendChild(nameCell);
+                    
+                    // Agregar descripción para áreas
+                    if (sectionKey === 'areas') {
+                        const descCell = document.createElement('td');
+                        descCell.textContent = item.descripcion || '';
+                        descCell.style.maxWidth = '300px';
+                        descCell.style.whiteSpace = 'normal';
+                        descCell.style.wordWrap = 'break-word';
+                        tr.appendChild(descCell);
+                    }
+                    
+                    // Agregar área para laboratoristas
+                    if (sectionKey === 'laboratoristas') {
+                        const areaCell = document.createElement('td');
+                        areaCell.textContent = areasCache[item.id_area] || item.id_area || 'Sin asignar';
+                        tr.appendChild(areaCell);
+                    }
+                    
+                    // Agregar área y descripción para pruebas
+                    if (sectionKey === 'pruebas') {
+                        const areaCell = document.createElement('td');
+                        areaCell.textContent = areasCache[item.id_area] || item.id_area || 'Sin asignar';
+                        tr.appendChild(areaCell);
+                        
+                        const descCell = document.createElement('td');
+                        descCell.textContent = item.descripcion || '';
+                        descCell.style.maxWidth = '300px';
+                        descCell.style.whiteSpace = 'normal';
+                        descCell.style.wordWrap = 'break-word';
+                        tr.appendChild(descCell);
+                    }
+                    
+                    tr.appendChild(createActionCell(sectionKey, item, page, pageSize));
+                    tbody.appendChild(tr);
+                });
+                status.innerText = items.length ? '' : 'No hay registros.';
+                pagination.style.display = hasSearch ? 'none' : 'flex';
+                if (!hasSearch) {
+                    const prev = document.createElement('button');
+                    prev.className = 'btn';
+                    prev.textContent = 'Anterior';
+                    prev.disabled = page === 0;
+                    prev.addEventListener('click', () => fetchAndRender(sectionKey, Math.max(0, page - 1), pageSize));
+                    const next = document.createElement('button');
+                    next.className = 'btn';
+                    next.textContent = 'Siguiente';
+                    next.disabled = items.length < pageSize;
+                    next.addEventListener('click', () => fetchAndRender(sectionKey, page + 1, pageSize));
+                    pagination.appendChild(prev);
+                    pagination.appendChild(document.createTextNode(` Página ${page + 1} `));
+                    pagination.appendChild(next);
+                }
+            } catch (error) {
+                console.error(error);
+                status.innerText = `Error: ${error.message}`;
+            }
+        }
+
+        function openAddModal(sectionKey) {
+            openEntityModal(sectionKey, null, 'create');
+        }
+
+        function openEditModal(sectionKey, entity) {
+            openEntityModal(sectionKey, entity, 'edit');
+        }
+
+        function openEntityModal(sectionKey, entity = null, mode = 'edit') {
+            const modal = document.getElementById('entityModal');
+            const form = document.getElementById('entityForm');
+            form.dataset.section = sectionKey;
+            form.dataset.mode = mode;
+            const cfg = sectionConfig[sectionKey];
+            form.dataset.idField = cfg.idField;
+            const isEdit = mode === 'edit';
+            document.getElementById('entityModal').querySelector('#modalTitle').innerText = isEdit ? 'Editar registro' : 'Agregar registro';
+
+            const entityData = entity || {};
+            document.getElementById('modalId').value = entityData[cfg.idField] || entityData.id || '';
+            if(document.getElementById('modalIdAreaText')) document.getElementById('modalIdAreaText').value = entityData.id_area || '';
+            if(document.getElementById('modalIdAreaText')) document.getElementById('modalIdAreaText').disabled = (isEdit && sectionKey === 'areas');
+            if(document.getElementById('modalDescripcion')) document.getElementById('modalDescripcion').value = entityData.descripcion || '';
+            document.getElementById('modalNombre').value = entityData.nombre || '';
+            document.getElementById('modalApellidoP').value = entityData.apellido_paterno || '';
+            document.getElementById('modalApellidoM').value = entityData.apellido_materno || '';
+            document.getElementById('modalEmail').value = entityData.email || '';
+            document.getElementById('modalTelefono').value = entityData.telefono || '';
+            document.getElementById('modalFecha').value = entityData.fecha_nacimiento ? entityData.fecha_nacimiento.slice(0,10) : '';
+            document.getElementById('modalGenero').value = entityData.genero || '';
+            document.getElementById('modalDireccion').value = entityData.direccion || '';
+            document.getElementById('modalTipoSangre').value = entityData.tipo_sangre || '';
+            document.getElementById('modalAlergias').value = entityData.alergias || '';
+            document.getElementById('modalPassword').value = '';
+            if(document.getElementById('modalValorReferencia')) document.getElementById('modalValorReferencia').value = entityData.valor_referencia || '';
+            if(document.getElementById('modalUnidad')) document.getElementById('modalUnidad').value = entityData.unidad || '';
+            if(document.getElementById('modalPrecio')) document.getElementById('modalPrecio').value = entityData.precio || '';
+            if(document.getElementById('modalTiempoEstimado')) document.getElementById('modalTiempoEstimado').value = entityData.tiempo_estimado_minutos || '';
+
+            const fRol = document.getElementById('fRol');
+            const fEspecialidad = document.getElementById('fEspecialidad');
+            const fIdArea = document.getElementById('fIdArea');
+            if (document.getElementById('modalRol')) document.getElementById('modalRol').value = entityData.rol_administrador || entityData.rol || 'admin_general';
+            if (document.getElementById('modalEspecialidad')) document.getElementById('modalEspecialidad').value = entityData.especialidad || '';
+            const modalAreaSelect = document.getElementById('modalIdArea');
+            if (modalAreaSelect) {
+                modalAreaSelect.innerHTML = '<option value="">Seleccione área</option>';
+            }
+            if (sectionKey === 'laboratoristas') {
+                loadAreaOptions('', entityData.id_area);
+            } else if (sectionKey === 'pruebas') {
+                loadAreaOptions('', entityData.id_area);
+            }
+
+            [fRol, fEspecialidad, fIdArea, document.getElementById('fIdAreaText'), document.getElementById('fDescripcion'), document.getElementById('fGenero'), document.getElementById('fDireccion'), document.getElementById('fTipoSangre'), document.getElementById('fAlergias'), document.getElementById('fValorReferencia'), document.getElementById('fUnidad'), document.getElementById('fPrecio'), document.getElementById('fTiempoEstimado')].forEach(el => { if (el) el.style.display = 'none'; });
+            ['fNombre','fApellidoP','fApellidoM','fEmail','fTelefono','fFecha','fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+            if (sectionKey === 'areas') {
+                if (isEdit) {
+                    ['fIdAreaText', 'fDescripcion'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                } else {
+                    ['fDescripcion'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                }
+                ['fApellidoP', 'fApellidoM', 'fEmail', 'fTelefono', 'fFecha', 'fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+            } else if (sectionKey === 'administradores') {
+                if (fRol) fRol.style.display = '';
+            } else if (sectionKey === 'pacientes') {
+                ['fGenero','fDireccion','fTipoSangre','fAlergias'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+            } else if (sectionKey === 'medicos') {
+                if (fEspecialidad) fEspecialidad.style.display = '';
+            } else if (sectionKey === 'laboratoristas') {
+                if (fIdArea) fIdArea.style.display = '';
+            } else if (sectionKey === 'pruebas') {
+                if (fIdArea) fIdArea.style.display = '';
+                ['fDescripcion', 'fValorReferencia', 'fUnidad', 'fPrecio', 'fTiempoEstimado'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = ''; });
+                ['fApellidoP', 'fApellidoM', 'fEmail', 'fTelefono', 'fFecha', 'fPassword'].forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
+            }
+
+            modal.style.display = 'block';
+        }
+
+        function closeEditModal() {
+            const modal = document.getElementById('entityModal');
+            modal.style.display = 'none';
+        }
+
+        async function submitEntityForm(event) {
+            event.preventDefault();
+            const form = document.getElementById('entityForm');
+            const sectionKey = form.dataset.section;
+            const mode = form.dataset.mode || 'edit';
+            const cfg = sectionConfig[sectionKey];
+            const id = document.getElementById('modalId').value;
+            const payload = {};
+            // only include fields that are present in the form
+            ['modalNombre','modalApellidoP','modalApellidoM','modalEmail','modalTelefono','modalFecha','modalGenero','modalDireccion','modalTipoSangre','modalAlergias','modalPassword','modalRol','modalEspecialidad','modalIdArea','modalIdAreaText','modalDescripcion','modalValorReferencia','modalUnidad','modalPrecio','modalTiempoEstimado'].forEach(fid => {
+                const el = document.getElementById(fid);
+                if (!el || el.style.display === 'none' || el.closest('.field').style.display === 'none') return;
+                if (fid === 'modalPassword' && !el.value) return;
+                if (fid === 'modalApellidoP') payload['apellido_paterno'] = el.value || null;
+                else if (fid === 'modalApellidoM') payload['apellido_materno'] = el.value || null;
+                else if (fid === 'modalFecha') payload['fecha_nacimiento'] = el.value || null;
+                else if (fid === 'modalTipoSangre') payload['tipo_sangre'] = el.value || null;
+                else if (fid === 'modalAlergias') payload['alergias'] = el.value || null;
+                else if (fid === 'modalDireccion') payload['direccion'] = el.value || null;
+                else if (fid === 'modalGenero') payload['genero'] = el.value || null;
+                else if (fid === 'modalPassword') payload['password'] = el.value;
+                else if (fid === 'modalRol') payload['rol_administrador'] = el.value || null;
+                else if (fid === 'modalEspecialidad') payload['especialidad'] = el.value || null;
+                else if (fid === 'modalIdArea') payload['id_area'] = el.value || null;
+                else if (fid === 'modalNombre') payload['nombre'] = el.value || null;
+                else if (fid === 'modalIdAreaText') payload['id_area'] = el.value || null;
+                else if (fid === 'modalDescripcion') payload['descripcion'] = el.value || null;
+                else if (fid === 'modalEmail') payload['email'] = el.value || null;
+                else if (fid === 'modalTelefono') payload['telefono'] = el.value || null;
+                else if (fid === 'modalValorReferencia') payload['valor_referencia'] = el.value || null;
+                else if (fid === 'modalUnidad') payload['unidad'] = el.value || null;
+                else if (fid === 'modalPrecio') payload['precio'] = el.value ? parseFloat(el.value) : 0.0;
+                else if (fid === 'modalTiempoEstimado') payload['tiempo_estimado_minutos'] = el.value ? parseInt(el.value) : 30;
+            });
+            // Validar contraseña solo para secciones de usuarios, no para áreas o pruebas
+            const userSections = ['pacientes', 'medicos', 'laboratoristas', 'administradores'];
+            if (mode === 'create' && userSections.includes(sectionKey) && !payload.password) {
+                alert('Para crear un usuario debe ingresar una contraseña.');
+                return;
+            }
+            try {
+                const token = getToken();
+                const method = mode === 'create' ? 'POST' : 'PUT';
+                const url = mode === 'create' ? `${API_URL}/${cfg.endpoint}/` : `${API_URL}/${cfg.endpoint}/${id}`;
+                const res = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al guardar');
+                }
+                closeEditModal();
+                fetchAndRender(sectionKey);
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        async function handleDeleteEntity(sectionKey, entity) {
+            const cfg = sectionConfig[sectionKey];
+            const id = entity[cfg.idField] || entity.id;
+            if (!confirm('¿Confirma el borrado lógico de este registro?')) return;
+            try {
+                const token = getToken();
+                const res = await fetch(`${API_URL}/${cfg.endpoint}/${id}`, {
+                    method: 'DELETE',
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al borrar');
+                }
+                // refresh list
+                fetchAndRender(sectionKey);
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error(error);
+            }
+        }
+
+        // Solicitudes Custom Operations
+        let patientsCacheMap = {};
+        let doctorsCacheMap = {};
+        let testsCacheMap = {};
+
+        async function loadSolicitudesCaches() {
+            try {
+                const token = getToken();
+                
+                // Fetch patients
+                const pRes = await fetch(`${API_URL}/pacientes?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (pRes.ok) {
+                    const patients = await pRes.json();
+                    patientsCacheMap = {};
+                    patients.forEach(p => {
+                        patientsCacheMap[p.id_paciente] = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno || ''}`.trim();
+                    });
+                }
+
+                // Fetch doctors
+                const mRes = await fetch(`${API_URL}/medicos?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (mRes.ok) {
+                    const medicos = await mRes.json();
+                    doctorsCacheMap = {};
+                    medicos.forEach(m => {
+                        doctorsCacheMap[m.id_medico] = `${m.nombre} ${m.apellido_paterno} ${m.apellido_materno || ''}`.trim();
+                    });
+                }
+
+                // Fetch tests/pruebas
+                const tRes = await fetch(`${API_URL}/pruebas?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (tRes.ok) {
+                    const pruebas = await tRes.json();
+                    testsCacheMap = {};
+                    pruebas.forEach(t => {
+                        testsCacheMap[t.id_prueba] = t.nombre;
+                    });
+                }
+            } catch (e) {
+                console.error("Error al cargar los caches de solicitudes:", e);
+            }
+        }
+
+        // Resultados UI helpers
+        async function loadPaidSolicitudes(page = 0, pageSize = paidSolicitudesPageSize) {
+            const token = getToken();
+            const tbody = document.getElementById('paidSolicitudesTbody');
+            const status = document.getElementById('paidSolicitudesStatus');
+            const pagination = document.getElementById('paidSolicitudesPagination');
+            paidSolicitudesPage = page;
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
+            status.innerText = 'Cargando...';
+            try {
+                const skip = page * pageSize;
+                const requestLimit = pageSize + 1;
+                let res = await fetch(`${API_URL}/solicitudes/paid?skip=${skip}&limit=${requestLimit}`, { headers: getAuthHeaders() });
+                let items = [];
+                let totalItems = [];
+                if (res.ok) {
+                    items = await res.json();
+                    totalItems = items;
+                } else {
+                    console.warn('/solicitudes/paid failed, falling back to /solicitudes');
+                    res = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers: getAuthHeaders() });
+                    if (!res.ok) {
+                        status.innerText = 'Error cargando solicitudes.';
+                        return;
+                    }
+                    totalItems = await res.json();
+                    if (!Array.isArray(totalItems)) {
+                        status.innerText = 'Respuesta inesperada del servidor.';
+                        return;
+                    }
+                    items = totalItems.filter(s => (s.estado_pago || 'no_pagado') === 'pagado_total');
+                    items = items.filter(s => (s.estado || '') !== 'completado');
+                    totalItems = items;
+                    items = items.slice(skip, skip + pageSize);
+                }
+                items = items.filter(s => (s.estado || '') !== 'completado');
+                const hasNext = items.length > pageSize || (Array.isArray(totalItems) && totalItems.length > (page + 1) * pageSize);
+                const pagedItems = items.slice(0, pageSize);
+                if (!Array.isArray(pagedItems) || pagedItems.length === 0) {
+                    status.innerText = totalItems.length === 0 ? 'No hay solicitudes pagadas (pagado_total) disponibles.' : 'No hay más solicitudes pagadas en esta página.';
+                    renderPaginationControls('paidSolicitudesPagination', page, page > 0, hasNext, () => loadPaidSolicitudes(page - 1, pageSize), () => loadPaidSolicitudes(page + 1, pageSize));
+                    return;
+                }
+                status.innerText = '';
+                pagedItems.forEach(s => {
+                    const tr = document.createElement('tr');
+                    const idTd = document.createElement('td'); idTd.textContent = s.id_solicitud || s.id || '';
+                    const pacTd = document.createElement('td');
+                    const fullName = (s.paciente_nombre_nombre ? `${s.paciente_nombre_nombre} ${s.paciente_apellido_paterno || ''} ${s.paciente_apellido_materno || ''}` : s.paciente_nombre) || patientsCacheMap[s.id_paciente] || s.id_paciente || '';
+                    pacTd.textContent = fullName;
+                    pacTd.style.whiteSpace = 'normal'; pacTd.style.wordWrap = 'break-word'; pacTd.title = fullName;
+                    const pruebasTd = document.createElement('td');
+                    if (s.detalles && s.detalles.length) {
+                        const names = s.detalles.map(d => testsCacheMap[d.id_prueba] || `Prueba #${d.id_prueba}`);
+                        pruebasTd.textContent = names.join(', ');
+                    } else {
+                        pruebasTd.textContent = 'Ninguna';
+                    }
+                    const actionTd = document.createElement('td');
+                    const btn = document.createElement('button');
+                    btn.className = 'btn';
+                    btn.textContent = 'Registrar Resultado';
+                    btn.addEventListener('click', () => openResultadoFromSolicitud(s));
+                    actionTd.appendChild(btn);
+
+                    tr.appendChild(idTd);
+                    tr.appendChild(pacTd);
+                    tr.appendChild(pruebasTd);
+                    tr.appendChild(actionTd);
+                    tbody.appendChild(tr);
+                });
+                renderPaginationControls('paidSolicitudesPagination', page, page > 0, hasNext, () => loadPaidSolicitudes(page - 1, pageSize), () => loadPaidSolicitudes(page + 1, pageSize));
+            } catch (e) {
+                console.error(e);
+                status.innerText = 'Error cargando solicitudes.';
+            }
+        }
+
+        async function loadResultados(page = 0, pageSize = resultadosPageSize) {
+            const token = getToken();
+            const tbody = document.getElementById('resultadosTbody');
+            const status = document.getElementById('resultadosStatus');
+            const pagination = document.getElementById('resultadosPagination');
+            resultadosPage = page;
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (pagination) pagination.innerHTML = '';
+            status.innerText = 'Cargando resultados...';
+            try {
+                const res = await fetch(`${API_URL}/resultados?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (!res.ok) {
+                    status.innerText = 'Error cargando resultados.';
+                    return;
+                }
+                const items = await res.json();
+                const registered = Array.isArray(items) ? items.filter(r => (r.estado || '') === 'registrado') : [];
+                if (!Array.isArray(registered) || registered.length === 0) {
+                    status.innerText = 'No hay resultados registrados.';
+                    return;
+                }
+                const start = page * pageSize;
+                const pagedResults = registered.slice(start, start + pageSize);
+                if (!pagedResults.length) {
+                    status.innerText = 'No hay más resultados registrados en esta página.';
+                    renderPaginationControls('resultadosPagination', page, page > 0, false, () => loadResultados(page - 1, pageSize), () => loadResultados(page + 1, pageSize));
+                    return;
+                }
+                status.innerText = '';
+                pagedResults.forEach(r => {
+                    const tr = document.createElement('tr');
+                    const idTd = document.createElement('td');
+                    idTd.textContent = r.id_resultado || '-';
+                    const solTd = document.createElement('td');
+                    solTd.textContent = r.id_detalle || '-';
+                    const pacienteTd = document.createElement('td');
+                    const pname = (r.paciente_nombre || '').trim();
+                    const pap = (r.paciente_apellido_paterno || '').trim();
+                    const pam = (r.paciente_apellido_materno || '').trim();
+                    let pacienteFull = '';
+                    if (pname) pacienteFull += pname;
+                    if (pap) pacienteFull += (pacienteFull ? ' ' : '') + pap;
+                    if (pam) pacienteFull += (pacienteFull ? ' ' : '') + pam;
+                    pacienteTd.textContent = pacienteFull || patientsCacheMap[r.id_paciente] || r.id_paciente || '-';
+                    pacienteTd.style.whiteSpace = 'normal'; pacienteTd.style.wordWrap = 'break-word'; pacienteTd.title = pacienteTd.textContent;
+                    const pruebaTd = document.createElement('td');
+                    pruebaTd.textContent = r.prueba_nombre || testsCacheMap[r.id_prueba] || '-';
+                    const resultTd = document.createElement('td');
+                    resultTd.textContent = r.resultado || '-';
+                    const estadoTd = document.createElement('td');
+                    estadoTd.textContent = r.estado || 'pendiente';
+                    const actionTd = document.createElement('td');
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'icon-btn';
+                    editBtn.title = 'Editar';
+                    editBtn.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M14.846 2.56a2.25 2.25 0 0 1 3.182 3.183l-9.193 9.194a.75.75 0 0 1-.338.197l-4.03.99a.75.75 0 0 1-.91-.91l.99-4.03a.75.75 0 0 1 .197-.338l9.193-9.193zM6.5 13.5l6-6"/></svg>`;
+                    editBtn.addEventListener('click', () => openResultadoForEdit(r));
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'icon-btn danger';
+                    deleteBtn.title = 'Borrar';
+                    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 3h6l1 1h3v2H5V4h3l1-1zm1 6v9h2V9H10zm4 0v9h2V9h-2z"/></svg>`;
+                    deleteBtn.addEventListener('click', async () => {
+                        if (!confirm('¿Confirma eliminar (desactivar) este resultado?')) return;
+                        try {
+                            const token = getToken();
+                            const res = await fetch(`${API_URL}/resultados/${r.id_resultado}`, { method: 'DELETE', headers: token ? { 'Authorization': `Bearer ${token}` } : {} });
+                            if (!res.ok) {
+                                const err = await res.json().catch(() => null);
+                                alert('Error borrando resultado: ' + (err?.detail || res.statusText || res.status));
+                                return;
+                            }
+                            tr.remove();
+                        } catch (err) {
+                            console.error(err);
+                            alert('Error conectando al servidor.');
+                        }
+                    });
+                    actionTd.appendChild(editBtn);
+                    actionTd.appendChild(deleteBtn);
+                    tr.appendChild(idTd);
+                    tr.appendChild(solTd);
+                    tr.appendChild(pacienteTd);
+                    tr.appendChild(pruebaTd);
+                    tr.appendChild(resultTd);
+                    tr.appendChild(estadoTd);
+                    tr.appendChild(actionTd);
+                    tbody.appendChild(tr);
+                });
+                const hasNext = (page + 1) * pageSize < registered.length;
+                renderPaginationControls('resultadosPagination', page, page > 0, hasNext, () => loadResultados(page - 1, pageSize), () => loadResultados(page + 1, pageSize));
+            } catch (e) {
+                console.error(e);
+                status.innerText = 'Error cargando resultados.';
+            }
+        }
+
+        function openResultadoFromSolicitud(solicitud) {
+            const backdrop = document.getElementById('resultadoBackdrop');
+            const title = document.getElementById('resultadoModalTitle');
+            const idField = document.getElementById('resultadoIdField');
+            const solicitudField = document.getElementById('resultadoSolicitudId');
+            const fields = document.getElementById('resultadoFields');
+            idField.value = '';
+            solicitudField.value = solicitud.id_solicitud || solicitud.id || '';
+            title.innerText = `Registrar Resultado - Solicitud ${solicitudField.value}`;
+            fields.innerHTML = '';
+            if (solicitud.detalles && solicitud.detalles.length) {
+                solicitud.detalles.forEach(d => {
+                    const pruebaName = testsCacheMap[d.id_prueba] || `Prueba #${d.id_prueba}`;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'field';
+                    wrapper.style.marginBottom = '8px';
+                    wrapper.dataset.detalleId = d.id_detalle_solicitud || d.id || d.id_detalle || '';
+                    wrapper.innerHTML = `
+                        <label style="font-weight:600;">${pruebaName}</label>
+                        <input type="text" name="resultado" placeholder="Resultado" style="width:100%; margin-top:4px;" />
+                        <input type="text" name="observacion" placeholder="Observación (opcional)" style="width:100%; margin-top:4px;" />
+                    `;
+                    fields.appendChild(wrapper);
+                });
+            } else {
+                fields.innerHTML = '<div>No hay detalles de pruebas en esta solicitud.</div>';
+            }
+            if (backdrop) backdrop.classList.add('show');
+        }
+
+        function openResultadoForEdit(item) {
+            const backdrop = document.getElementById('resultadoBackdrop');
+            const title = document.getElementById('resultadoModalTitle');
+            const idField = document.getElementById('resultadoIdField');
+            const solicitudField = document.getElementById('resultadoSolicitudId');
+            const fields = document.getElementById('resultadoFields');
+            idField.value = item.id_resultado || item.id || '';
+            solicitudField.value = item.id_solicitud || item.solicitud?.id_solicitud || '';
+            title.innerText = `Editar Resultado - ${idField.value}`;
+            fields.innerHTML = '';
+            const wrapper = document.createElement('div'); wrapper.className = 'field';
+            wrapper.innerHTML = `
+                <label style="font-weight:600;">Resultado</label>
+                <input type="text" name="resultado" value="${item.resultado || item.valor || ''}" style="width:100%; margin-top:4px;" />
+                <label style="font-weight:600; margin-top:6px; display:block;">Observación</label>
+                <input type="text" name="observacion" value="${item.observacion || ''}" style="width:100%; margin-top:4px;" />
+            `;
+            fields.appendChild(wrapper);
+            if (backdrop) backdrop.classList.add('show');
+        }
+
+        function closeResultadoModal() {
+            const backdrop = document.getElementById('resultadoBackdrop');
+            if (backdrop) backdrop.classList.remove('show');
+        }
+
+        async function handleResultadoSubmit(event) {
+            event.preventDefault();
+            const token = getToken();
+            const idField = document.getElementById('resultadoIdField');
+            const solicitudId = document.getElementById('resultadoSolicitudId').value;
+            const fields = Array.from(document.getElementById('resultadoFields').querySelectorAll('.field'));
+
+            const baseHeaders = { 'Content-Type': 'application/json' };
+            if (token) {
+                baseHeaders['Authorization'] = `Bearer ${token}`;
+                baseHeaders['X-Access-Token'] = token;
+            }
+
+            const safeFetch = async (url, options) => {
+                try {
+                    return await fetch(url, options);
+                } catch (err) {
+                    // Normalizar errores de red para mostrar al usuario
+                    console.error('Fetch failed:', err);
+                    throw new Error('No se pudo conectar al servidor API. Verifica que el backend esté en ejecución en ' + API_URL);
+                }
+            };
+
+            try {
+                if (idField.value) {
+                    // update single resultado
+                    const payload = {};
+                    const resInput = fields[0].querySelector('input[name="resultado"]');
+                    const obsInput = fields[0].querySelector('input[name="observacion"]');
+                    if (resInput) payload.resultado = resInput.value;
+                    if (obsInput) payload.observacion = obsInput.value;
+                    // Marcar estado al actualizar
+                    payload.estado = 'registrado';
+
+                    const res = await safeFetch(`${API_URL}/resultados/${idField.value}`, {
+                        method: 'PUT', headers: baseHeaders, body: JSON.stringify(payload)
+                    });
+
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => null);
+                        const detail = err?.detail ?? err?.message ?? err ?? null;
+                        const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? (detail[0]?.msg || JSON.stringify(detail)) : JSON.stringify(detail));
+                        if (res.status === 401) throw new Error(msg || 'No se pudieron validar las credenciales');
+                        throw new Error(msg || 'Error actualizando resultado');
+                    }
+                } else {
+                    // create one resultado per detalle field
+                    for (const f of fields) {
+                        const detalleId = parseInt(f.dataset.detalleId, 10);
+                        if (!detalleId || isNaN(detalleId)) {
+                            alert('Error: Detalle inválido');
+                            continue;
+                        }
+                        const resInput = f.querySelector('input[name="resultado"]');
+                        const obsInput = f.querySelector('input[name="observacion"]');
+                        if (!resInput || !resInput.value.trim()) {
+                            alert('Error: Debe ingresar un resultado');
+                            return;
+                        }
+                        const payload = {
+                            id_detalle: detalleId,
+                            resultado: resInput.value.trim(),
+                            observacion: obsInput && obsInput.value.trim() ? obsInput.value.trim() : null,
+                            estado: 'registrado'
+                        };
+
+                        const res = await safeFetch(`${API_URL}/resultados/`, {
+                            method: 'POST', headers: baseHeaders, body: JSON.stringify(payload)
+                        });
+
+                        if (!res.ok) {
+                            const err = await res.json().catch(() => null);
+                            const detail = err?.detail ?? err?.message ?? err ?? null;
+                            const msg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? (detail[0]?.msg || JSON.stringify(detail)) : JSON.stringify(detail));
+                            if (res.status === 401) throw new Error(msg || 'No se pudieron validar las credenciales');
+                            throw new Error(msg || 'Error creando resultado');
+                        }
+                    }
+                }
+
+                closeResultadoModal();
+                loadPaidSolicitudes();
+                loadResultados();
+            } catch (e) {
+                if (e.message && e.message.includes('credenciales')) {
+                    alert('Error de autenticación: ' + e.message + '. Por favor inicia sesión nuevamente.');
+                    return;
+                }
+                alert('Error: ' + (e.message || JSON.stringify(e)));
+                console.error(e);
+            }
+        }
+
+        async function populateSelectOptions() {
+            const token = getToken();
+            const pacSelect = document.getElementById('solicitudPaciente');
+            const medSelect = document.getElementById('solicitudMedico');
+            
+            if (!pacSelect || !medSelect) return;
+
+            pacSelect.innerHTML = '<option value="">Cargando pacientes...</option>';
+            medSelect.innerHTML = '<option value="">Cargando médicos...</option>';
+
+            try {
+                // Fetch patients
+                const pRes = await fetch(`${API_URL}/pacientes?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (pRes.ok) {
+                    const patients = await pRes.json();
+                    pacSelect.innerHTML = '<option value="">Seleccione un paciente...</option>';
+                    patients.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id_paciente;
+                        opt.textContent = `${p.nombre} ${p.apellido_paterno} ${p.apellido_materno || ''} (${p.id_paciente})`;
+                        pacSelect.appendChild(opt);
+                    });
+                } else {
+                    pacSelect.innerHTML = '<option value="">Error al cargar pacientes</option>';
+                }
+
+                // Fetch doctors
+                const mRes = await fetch(`${API_URL}/medicos?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (mRes.ok) {
+                    const medicos = await mRes.json();
+                    medSelect.innerHTML = '<option value="">Ninguno / Sin derivación</option>';
+                    medicos.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id_medico;
+                        opt.textContent = `Dr/a. ${m.nombre} ${m.apellido_paterno} (${m.especialidad || 'General'})`;
+                        medSelect.appendChild(opt);
+                    });
+                } else {
+                    medSelect.innerHTML = '<option value="">Error al cargar médicos</option>';
+                }
+            } catch (e) {
+                console.error("Error populating selects:", e);
+            }
+        }
+
+        async function renderPruebasChecklist(selectedPruebaIds = []) {
+            const token = getToken();
+            const container = document.getElementById('pruebasPorAreaContainer');
+            if (!container) return;
+
+            container.innerHTML = '<div style="color: var(--text-cream); font-style: italic;">Cargando pruebas...</div>';
+
+            try {
+                // 1. Fetch Areas
+                const aRes = await fetch(`${API_URL}/areas?limit=100`, {
+                    headers: getAuthHeaders()
+                });
+                if (!aRes.ok) throw new Error('Error al cargar áreas');
+                const areas = await aRes.json();
+
+                // 2. Fetch Pruebas
+                const tRes = await fetch(`${API_URL}/pruebas?limit=1000`, {
+                    headers: getAuthHeaders()
+                });
+                if (!tRes.ok) throw new Error('Error al cargar pruebas');
+                const pruebas = await tRes.json();
+
+                container.innerHTML = '';
+
+                // Group pruebas by id_area
+                const pruebasByArea = {};
+                areas.forEach(area => {
+                    pruebasByArea[area.id_area] = {
+                        nombreArea: area.nombre,
+                        pruebasList: []
+                    };
+                });
+
+                pruebas.forEach(prueba => {
+                    if (pruebasByArea[prueba.id_area]) {
+                        pruebasByArea[prueba.id_area].pruebasList.push(prueba);
+                    }
+                });
+
+                // Render group cards
+                Object.keys(pruebasByArea).forEach(areaId => {
+                    const group = pruebasByArea[areaId];
+                    if (group.pruebasList.length === 0) return; // Skip areas with no tests
+
+                    const areaCard = document.createElement('div');
+                    areaCard.style.background = 'rgba(255, 255, 255, 0.03)';
+                    areaCard.style.border = '1px solid rgba(255, 255, 255, 0.08)';
+                    areaCard.style.borderRadius = '14px';
+                    areaCard.style.padding = '16px';
+                    areaCard.style.marginBottom = '12px';
+
+                    const areaTitle = document.createElement('h4');
+                    areaTitle.textContent = group.nombreArea;
+                    areaTitle.style.fontFamily = "'Outfit', sans-serif";
+                    areaTitle.style.fontSize = "15px";
+                    areaTitle.style.color = "var(--accent-gold)";
+                    areaTitle.style.marginBottom = "10px";
+                    areaCard.appendChild(areaTitle);
+
+                    const grid = document.createElement('div');
+                    grid.style.display = 'grid';
+                    grid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(220px, 1fr))';
+                    grid.style.gap = '10px';
+
+                    group.pruebasList.forEach(prueba => {
+                        const itemWrapper = document.createElement('label');
+                        itemWrapper.style.display = 'flex';
+                        itemWrapper.style.alignItems = 'center';
+                        itemWrapper.style.gap = '8px';
+                        itemWrapper.style.fontSize = '13.5px';
+                        itemWrapper.style.cursor = 'pointer';
+                        itemWrapper.style.padding = '6px 8px';
+                        itemWrapper.style.borderRadius = '6px';
+                        itemWrapper.style.transition = 'background 0.2s';
+                        
+                        // Hover effect
+                        itemWrapper.addEventListener('mouseenter', () => {
+                            itemWrapper.style.background = 'rgba(255,255,255,0.05)';
+                        });
+                        itemWrapper.addEventListener('mouseleave', () => {
+                            itemWrapper.style.background = 'transparent';
+                        });
+
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = prueba.id_prueba;
+                        checkbox.className = 'prueba-checkbox';
+                        checkbox.style.accentColor = 'var(--accent-gold)';
+                        if (selectedPruebaIds.includes(prueba.id_prueba)) {
+                            checkbox.checked = true;
+                        }
+
+                        const textSpan = document.createElement('span');
+                        textSpan.textContent = `${prueba.nombre} (${prueba.precio.toFixed(2)} Bs.)`;
+
+                        itemWrapper.appendChild(checkbox);
+                        itemWrapper.appendChild(textSpan);
+                        grid.appendChild(itemWrapper);
+                    });
+
+                    areaCard.appendChild(grid);
+                    container.appendChild(areaCard);
+                });
+            } catch (e) {
+                console.error(e);
+                container.innerHTML = `<div style="color: var(--error-red);">Error al cargar pruebas: ${e.message}</div>`;
+            }
+        }
+
+        async function showSolicitudForm(isEdit, entity = null) {
+            // Hide list view, show form view
+            document.getElementById('solicitudesListView').style.display = 'none';
+            document.getElementById('solicitudesFormView').style.display = 'block';
+
+            const formTitle = document.getElementById('solicitudFormTitle');
+            const stateContainer = document.getElementById('solicitudEstadoContainer');
+            const pagoContainer = document.getElementById('solicitudPagoContainer');
+            const idField = document.getElementById('solicitudIdField');
+
+            // Populate selectors first
+            await populateSelectOptions();
+
+            if (isEdit && entity) {
+                formTitle.innerText = 'Editar Solicitud';
+                stateContainer.style.display = 'block';
+                pagoContainer.style.display = 'block';
+                idField.value = entity.id_solicitud;
+
+                // Pre-fill fields
+                document.getElementById('solicitudPaciente').value = entity.id_paciente || '';
+                document.getElementById('solicitudMedico').value = entity.id_medico || '';
+                document.getElementById('solicitudPrioridad').value = entity.prioridad || 'media';
+                document.getElementById('solicitudEstado').value = entity.estado || 'pendiente';
+                document.getElementById('solicitudPago').value = entity.estado_pago || 'no_pagado';
+                document.getElementById('solicitudObservaciones').value = entity.observaciones || '';
+
+                // Extract checked test IDs
+                const selectedIds = entity.detalles ? entity.detalles.map(d => d.id_prueba) : [];
+                await renderPruebasChecklist(selectedIds);
+            } else {
+                formTitle.innerText = 'Nueva Solicitud';
+                stateContainer.style.display = 'none';
+                pagoContainer.style.display = 'none';
+                idField.value = '';
+
+                // Reset fields
+                document.getElementById('solicitudPaciente').value = '';
+                document.getElementById('solicitudMedico').value = '';
+                document.getElementById('solicitudPrioridad').value = 'media';
+                document.getElementById('solicitudObservaciones').value = '';
+
+                await renderPruebasChecklist([]);
+            }
+        }
+
+        function hideSolicitudForm() {
+            document.getElementById('solicitudesFormView').style.display = 'none';
+            document.getElementById('solicitudesListView').style.display = 'block';
+        }
+
+        async function handleSolicitudSubmit(event) {
+            event.preventDefault();
+            const token = getToken();
+            const id = document.getElementById('solicitudIdField').value;
+            const isEdit = id !== '';
+
+            // Collect selected test details
+            const selectedCheckboxes = document.querySelectorAll('.prueba-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                alert('Debe seleccionar al menos una prueba de laboratorio.');
+                return;
+            }
+
+            const detalles = Array.from(selectedCheckboxes).map(cb => ({
+                id_prueba: parseInt(cb.value),
+                cantidad: 1
+            }));
+
+            const payload = {
+                id_paciente: document.getElementById('solicitudPaciente').value,
+                id_medico: document.getElementById('solicitudMedico').value || null,
+                prioridad: document.getElementById('solicitudPrioridad').value,
+                observaciones: document.getElementById('solicitudObservaciones').value.trim() || null,
+            };
+
+            if (isEdit) {
+                payload.estado = document.getElementById('solicitudEstado').value;
+                payload.estado_pago = document.getElementById('solicitudPago').value;
+                payload.detalles = detalles;
+            } else {
+                payload.detalles = detalles;
+            }
+
+            try {
+                const method = isEdit ? 'PUT' : 'POST';
+                const url = isEdit ? `${API_URL}/solicitudes/${id}` : `${API_URL}/solicitudes/`;
+
+                const res = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...getAuthHeaders()
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al guardar solicitud');
+                }
+
+                hideSolicitudForm();
+                fetchAndRender('solicitudes');
+            } catch (e) {
+                alert('Error: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        function updateHeaderDateTime() {
+            const target = document.getElementById('headerDateTime');
+            if (!target) return;
+            const formatter = new Intl.DateTimeFormat('es-BO', {
+                timeZone: 'America/La_Paz',
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            target.innerText = formatter.format(new Date());
+        }
+
+        async function handleLogout() {
+            const proceed = window.confirm('¿Está seguro de que desea cerrar la sesión?');
+            if (!proceed) return;
+            sessionStorage.removeItem('access_token');
+            window.location.href = "/";
+        }
+
+        // ---------- Reportes Section Logic ----------
+        let reportesPage = 0;
+        const reportesPageSize = 5;
+        let reportesResultsPage = 0;
+        const reportesResultsPageSize = 5;
+        let paidSolicitudesPage = 0;
+        const paidSolicitudesPageSize = DEFAULT_PAGE_SIZE;
+        let resultadosPage = 0;
+        const resultadosPageSize = 5;
+
+        function renderPaginationControls(containerId, page, hasPrev, hasNext, onPrev, onNext) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            container.style.display = hasPrev || hasNext ? 'flex' : 'none';
+            if (!hasPrev && !hasNext) return;
+            const prev = document.createElement('button');
+            prev.className = 'btn';
+            prev.textContent = 'Anterior';
+            prev.disabled = !hasPrev;
+            prev.addEventListener('click', onPrev);
+            const next = document.createElement('button');
+            next.className = 'btn';
+            next.textContent = 'Siguiente';
+            next.disabled = !hasNext;
+            next.addEventListener('click', onNext);
+            container.appendChild(prev);
+            container.appendChild(document.createTextNode(` Página ${page + 1} `));
+            container.appendChild(next);
+        }
+
+        // Cargar tabla de resultados registrados
+        async function loadReportes(page = 0, pageSize = reportesResultsPageSize){
+            const token = getToken();
+            const tbody = document.getElementById('reportesTbody');
+            const status = document.getElementById('reportesStatus');
+            const pagination = document.getElementById('reportesResultsPagination');
+            reportesResultsPage = page;
+            if(!tbody) { console.error('No se encontró tabla de resultados'); return; }
+            if (pagination) pagination.innerHTML = '';
+            
+            try{
+                const headers = getAuthHeaders();
+                console.log('Iniciando carga de resultados desde:', `${API_URL}/resultados?limit=1000`);
+                const res = await fetch(`${API_URL}/resultados?limit=1000`, { headers });
+                
+                console.log('Respuesta del servidor - Status:', res.status);
+                
+                if(!res.ok){ 
+                    status.innerText=`Error cargando resultados (${res.status})`;
+                    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando resultados</td></tr>`;
+                    return; 
+                }
+                const items = await res.json();
+                console.log('Datos recibidos:', items);
+                const filteredItems = Array.isArray(items) ? items.filter(r => (r.estado || '').toLowerCase() === 'registrado') : [];
+                
+                if(filteredItems.length === 0){ 
+                    status.innerText='No hay resultados registrados.';
+                    tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">No hay resultados registrados</td></tr>`;
+                    renderPaginationControls('reportesResultsPagination', page, page > 0, false, () => loadReportes(page - 1, pageSize), () => loadReportes(page + 1, pageSize));
+                    return; 
+                }
+                const start = page * pageSize;
+                const pagedResults = filteredItems.slice(start, start + pageSize);
+                const hasNext = (page + 1) * pageSize < filteredItems.length;
+                status.innerText='';
+                tbody.innerHTML='';
+                
+                pagedResults.forEach(r=>{
+                    const tr=document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.addEventListener('click', () => {
+                        openResultadoDetailsModal(r.id_resultado);
+                    });
+                    
+                    const idTd=document.createElement('td'); idTd.textContent=r.id_resultado||'-';
+                    const detTd=document.createElement('td'); detTd.textContent=r.id_detalle||'-';
+                    const pacTd=document.createElement('td'); 
+                    pacTd.textContent=((r.paciente_nombre||'') + ' ' + (r.paciente_apellido_paterno||'') + ' ' + (r.paciente_apellido_materno||'')).trim() || r.id_paciente || '-';
+                    const pruebaTd=document.createElement('td'); pruebaTd.textContent=r.prueba_nombre||'-';
+                    const valorRefTd=document.createElement('td'); valorRefTd.textContent=r.valor_referencia||'-';
+                    const resTd=document.createElement('td'); resTd.textContent=r.resultado||'-';
+                    
+                    // Premium badge styling for Resultado Estado
+                    const estTd=document.createElement('td'); 
+                    const stateBadge = document.createElement('span');
+                    stateBadge.className = 'badge';
+                    stateBadge.textContent = r.estado || '-';
+                    if (r.estado === 'reportado') {
+                        stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                        stateBadge.style.color = 'var(--success-green)';
+                        stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                    } else if (r.estado === 'validado') {
+                        stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                        stateBadge.style.color = 'var(--accent-gold)';
+                        stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    } else {
+                        stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                        stateBadge.style.color = 'var(--text-muted)';
+                        stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                    estTd.appendChild(stateBadge);
+                    
+                    // Column actions: Reportar button
+                    const aTd=document.createElement('td');
+                    aTd.style.textAlign = 'center';
+                    const repBtn=document.createElement('button');
+                    repBtn.className='btn btn-primary';
+                    repBtn.textContent='Reportar';
+                    repBtn.style.padding='6px 14px';
+                    repBtn.style.fontSize='12px';
+                    repBtn.style.width='auto';
+                    repBtn.style.margin='0 auto';
+                    repBtn.style.background='linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    repBtn.style.color='#1e0f08';
+                    repBtn.style.borderRadius='20px';
+                    repBtn.style.border='none';
+                    repBtn.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Evita que se dispare el click en la fila
+                        openResultadoDetailsModal(r.id_resultado);
+                    });
+                    aTd.appendChild(repBtn);
+                    
+                    tr.appendChild(idTd); 
+                    tr.appendChild(detTd); 
+                    tr.appendChild(pacTd); 
+                    tr.appendChild(pruebaTd); 
+                    tr.appendChild(valorRefTd); 
+                    tr.appendChild(resTd); 
+                    tr.appendChild(estTd);
+                    tr.appendChild(aTd);
+                    tbody.appendChild(tr);
+                });
+                renderPaginationControls('reportesResultsPagination', page, page > 0, hasNext, () => loadReportes(page - 1, pageSize), () => loadReportes(page + 1, pageSize));
+                console.log('Tabla de resultados cargada:', items.length, 'items');
+            }catch(e){ 
+                console.error('Error cargando resultados:', e); 
+                status.innerText=`Error: ${e.message}`;
+                tbody.innerHTML=`<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando resultados</td></tr>`;
+            }
+        }
+
+        // Cargar lista de reportes generados
+        async function loadReportesList(resetPage = false){
+            if (resetPage) reportesPage = 0;
+            const token = getToken();
+            const tbody = document.getElementById('reportesListTbody');
+            const headers = getAuthHeaders();
+            if(!tbody) { console.error('No se encontró tabla de reportes'); return; }
+            
+            tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Cargando...</td></tr>';
+            try{
+                const skip = reportesPage * reportesPageSize;
+                console.log('Iniciando carga de reportes desde:', `${API_URL}/reportes?skip=${skip}&limit=${reportesPageSize}`);
+                const res = await fetch(`${API_URL}/reportes?skip=${skip}&limit=${reportesPageSize}`, { headers });
+                
+                console.log('Respuesta del servidor - Status:', res.status);
+                
+                if(!res.ok){ 
+                    tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando reportes</td></tr>'; 
+                    return; 
+                }
+                const items = await res.json();
+                console.log('Datos de reportes recibidos:', items);
+                
+                if(!Array.isArray(items) || items.length===0){ 
+                    tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No hay reportes</td></tr>'; 
+                    return; 
+                }
+                
+                tbody.innerHTML = '';
+                items.forEach(r=>{
+                    const tr=document.createElement('tr');
+                    const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
+                    const sTd=document.createElement('td'); sTd.textContent=r.id_solicitud||'-';
+                    
+                    // State badge for Reporte
+                    const eTd=document.createElement('td'); 
+                    const stateBadge = document.createElement('span');
+                    stateBadge.className = 'badge';
+                    stateBadge.textContent = r.estado || '-';
+                    if (r.estado === 'entregado') {
+                        stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                        stateBadge.style.color = 'var(--success-green)';
+                        stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                    } else if (r.estado === 'completado') {
+                        stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                        stateBadge.style.color = 'var(--accent-gold)';
+                        stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    } else {
+                        stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                        stateBadge.style.color = 'var(--text-muted)';
+                        stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }
+                    eTd.appendChild(stateBadge);
+                    
+                    const fTd=document.createElement('td'); fTd.textContent=r.fecha_entrega||'-';
+                    
+                    // Acciones column: icon button to download PDF
+                    const aTd=document.createElement('td');
+                    aTd.style.textAlign = 'center';
+                    
+                    const dl = document.createElement('button'); 
+                    dl.className='btn-action-icon';
+                    dl.title = 'Descargar PDF';
+                    dl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text" style="vertical-align: middle; color: var(--accent-gold);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+                    dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                    dl.style.border = '1px solid rgba(200, 150, 102, 0.3)';
+                    dl.style.borderRadius = '50%';
+                    dl.style.width = '32px';
+                    dl.style.height = '32px';
+                    dl.style.cursor = 'pointer';
+                    dl.style.display = 'inline-flex';
+                    dl.style.alignItems = 'center';
+                    dl.style.justifyContent = 'center';
+                    dl.style.transition = 'all 0.2s ease';
+                    dl.style.margin = '0 auto';
+                    
+                    dl.addEventListener('mouseenter', () => {
+                        dl.style.background = 'rgba(200, 150, 102, 0.2)';
+                        dl.style.borderColor = 'var(--accent-gold)';
+                        dl.style.transform = 'scale(1.1)';
+                    });
+                    dl.addEventListener('mouseleave', () => {
+                        dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                        dl.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                        dl.style.transform = 'scale(1)';
+                    });
+                    
+                    dl.addEventListener('click', async (e)=>{
+                        e.stopPropagation();
+                        try {
+                            const resp = await fetch(`${API_URL}/reportes/${r.id_reporte}/generar`, { 
+                                method: 'POST', 
+                                headers: token?{ 'Authorization': `Bearer ${token}` }:{} 
+                            });
+                            if(!resp.ok){ alert('Error descargando reporte'); return; }
+                            const blob = await resp.blob(); 
+                            const url = URL.createObjectURL(blob); 
+                            window.open(url,'_blank');
+                            loadReportesList();
+                        } catch(err) {
+                            console.error(err);
+                            alert('Error de red al intentar descargar el PDF');
+                        }
+                    });
+                    
+                    aTd.appendChild(dl);
+                    tr.appendChild(idTd); 
+                    tr.appendChild(sTd); 
+                    tr.appendChild(eTd); 
+                    tr.appendChild(fTd); 
+                    tr.appendChild(aTd);
+                    tbody.appendChild(tr);
+                });
+                
+                document.getElementById('pageInfo').textContent = `Página ${reportesPage + 1}`;
+                console.log('Tabla de reportes cargada:', items.length, 'items');
+            }catch(e){ 
+                console.error('Error cargando reportes:', e);
+                tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error cargando reportes</td></tr>'; 
+            }
+        }
+
+        // Búsqueda de reporte por ID
+        async function searchReporte(){
+            const id = document.getElementById('searchReporteId').value;
+            if(!id) { loadReportesList(true); return; }
+            reportesPage = 0;
+            
+            const token = getToken();
+            const headers = getAuthHeaders();
+            const tbody = document.getElementById('reportesListTbody'); 
+            if(!tbody) return; 
+            
+            tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Buscando...</td></tr>';
+            try{
+                const res = await fetch(`${API_URL}/reportes/${id}`, { headers });
+                if(!res.ok){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Reporte no encontrado</td></tr>'; return; }
+                
+                const r = await res.json();
+                const tr=document.createElement('tr');
+                const idTd=document.createElement('td'); idTd.textContent=r.id_reporte||'-';
+                const sTd=document.createElement('td'); sTd.textContent=r.id_solicitud||'-';
+                
+                const eTd=document.createElement('td'); 
+                const stateBadge = document.createElement('span');
+                stateBadge.className = 'badge';
+                stateBadge.textContent = r.estado || '-';
+                if (r.estado === 'entregado') {
+                    stateBadge.style.background = 'rgba(46, 204, 113, 0.15)';
+                    stateBadge.style.color = 'var(--success-green)';
+                    stateBadge.style.borderColor = 'rgba(46, 204, 113, 0.3)';
+                } else if (r.estado === 'completado') {
+                    stateBadge.style.background = 'rgba(200, 150, 102, 0.15)';
+                    stateBadge.style.color = 'var(--accent-gold)';
+                    stateBadge.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                } else {
+                    stateBadge.style.background = 'rgba(255, 255, 255, 0.05)';
+                    stateBadge.style.color = 'var(--text-muted)';
+                    stateBadge.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }
+                eTd.appendChild(stateBadge);
+                
+                const fTd=document.createElement('td'); fTd.textContent=r.fecha_entrega||'-';
+                
+                const aTd=document.createElement('td');
+                aTd.style.textAlign = 'center';
+                
+                const dl = document.createElement('button'); 
+                dl.className='btn-action-icon';
+                dl.title = 'Descargar PDF';
+                dl.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file-text" style="vertical-align: middle; color: var(--accent-gold);"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+                dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                dl.style.border = '1px solid rgba(200, 150, 102, 0.3)';
+                dl.style.borderRadius = '50%';
+                dl.style.width = '32px';
+                dl.style.height = '32px';
+                dl.style.cursor = 'pointer';
+                dl.style.display = 'inline-flex';
+                dl.style.alignItems = 'center';
+                dl.style.justifyContent = 'center';
+                dl.style.transition = 'all 0.2s ease';
+                dl.style.margin = '0 auto';
+                
+                dl.addEventListener('mouseenter', () => {
+                    dl.style.background = 'rgba(200, 150, 102, 0.2)';
+                    dl.style.borderColor = 'var(--accent-gold)';
+                    dl.style.transform = 'scale(1.1)';
+                });
+                dl.addEventListener('mouseleave', () => {
+                    dl.style.background = 'rgba(255, 255, 255, 0.05)';
+                    dl.style.borderColor = 'rgba(200, 150, 102, 0.3)';
+                    dl.style.transform = 'scale(1)';
+                });
+                
+                dl.addEventListener('click', async (e)=>{
+                    e.stopPropagation();
+                    try {
+                        const resp = await fetch(`${API_URL}/reportes/${r.id_reporte}/generar`, { 
+                            method: 'POST', 
+                            headers: token?{ 'Authorization': `Bearer ${token}` }:{} 
+                        });
+                        if(!resp.ok){ alert('Error descargando reporte'); return; }
+                        const blob = await resp.blob(); 
+                        const url = URL.createObjectURL(blob); 
+                        window.open(url,'_blank');
+                        loadReportesList();
+                    } catch(err) {
+                        console.error(err);
+                        alert('Error de red al intentar descargar el PDF');
+                    }
+                });
+                
+                aTd.appendChild(dl);
+                tbody.innerHTML='';
+                tr.appendChild(idTd); 
+                tr.appendChild(sTd); 
+                tr.appendChild(eTd); 
+                tr.appendChild(fTd); 
+                tr.appendChild(aTd);
+                tbody.appendChild(tr);
+                const pageInfo = document.getElementById('pageInfo');
+                if (pageInfo) pageInfo.textContent = 'Página 1';
+            }catch(e){
+                console.error(e);
+                tbody.innerHTML='<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">Error buscando reporte</td></tr>';
+                const pageInfo = document.getElementById('pageInfo');
+                if (pageInfo) pageInfo.textContent = 'Página 1';
+            }
+        }
+
+        // Popup functions for Resultado Details and Report Saving
+        let isEditingReport = false;
+
+        async function openResultadoDetailsModal(id_resultado) {
+            console.log("Opening details modal for resultado ID:", id_resultado);
+            const token = getToken();
+            const headers = getAuthHeaders();
+            
+            const modal = document.getElementById('resultadoDetalleModal');
+            if (!modal) {
+                console.error("Modal element 'resultadoDetalleModal' not found.");
+                return;
+            }
+
+            try {
+                // Show modal first in loading state
+                modal.style.display = 'flex';
+                setTimeout(() => modal.classList.add('show'), 10);
+
+                const res = await fetch(`${API_URL}/resultados/${id_resultado}/completo`, { headers });
+                if (!res.ok) {
+                    throw new Error(`Error al obtener detalles completos (${res.status})`);
+                }
+                const r = await res.json();
+                console.log("Detalles completos obtenidos:", r);
+
+                // Populate Patient, Doctor, Laboratorist
+                const pacEl = document.getElementById('modalPacInfo');
+                if (pacEl) {
+                    const pac = r.paciente;
+                    pacEl.innerHTML = pac 
+                        ? `<strong>ID:</strong> ${pac.id_paciente || '-'}<br><strong>Nombre:</strong> ${pac.nombre || ''} ${pac.apellido_paterno || ''} ${pac.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos</span>';
+                }
+
+                const medEl = document.getElementById('modalMedInfo');
+                if (medEl) {
+                    const med = r.medico;
+                    medEl.innerHTML = med 
+                        ? `<strong>ID:</strong> ${med.id_medico || '-'}<br><strong>Nombre:</strong> ${med.nombre || ''} ${med.apellido_paterno || ''} ${med.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos / Automedicación</span>';
+                }
+
+                const labEl = document.getElementById('modalLabInfo');
+                if (labEl) {
+                    const lab = r.laboratorista;
+                    labEl.innerHTML = lab 
+                        ? `<strong>ID:</strong> ${lab.id_laboratorista || '-'}<br><strong>Nombre:</strong> ${lab.nombre || ''} ${lab.apellido_paterno || ''} ${lab.apellido_materno || ''}`
+                        : '<span style="color:var(--text-muted);">Sin datos</span>';
+                }
+
+                // Populate Resultado
+                const resIdEl = document.getElementById('modalResId');
+                if (resIdEl) resIdEl.textContent = r.id_resultado || '-';
+
+                const detIdEl = document.getElementById('modalDetId');
+                if (detIdEl) detIdEl.textContent = r.id_detalle || '-';
+
+                const pruebaEl = document.getElementById('modalPruebaInfo');
+                if (pruebaEl) pruebaEl.textContent = r.prueba ? r.prueba.nombre : '-';
+
+                const valRefEl = document.getElementById('modalValRef');
+                if (valRefEl) valRefEl.textContent = r.prueba ? `${r.prueba.valor_referencia || '-'} ${r.prueba.unidad || ''}` : '-';
+
+                const valResEl = document.getElementById('modalValRes');
+                if (valResEl) valResEl.textContent = r.resultado || '-';
+                
+                // Cargar valores en los campos editables
+                const resultadoEdit = document.getElementById('modalValResEdit');
+                if (resultadoEdit) {
+                    resultadoEdit.value = r.resultado || '';
+                }
+
+                const observacionEdit = document.getElementById('modalObservacionEdit');
+                if (observacionEdit) {
+                    observacionEdit.value = r.observacion || '';
+                }
+                
+                const estSpan = document.getElementById('modalResEstado');
+                if (estSpan) {
+                    estSpan.textContent = r.estado || '-';
+                    estSpan.style.color = r.estado === 'reportado' ? 'var(--success-green)' : (r.estado === 'validado' ? 'var(--accent-gold)' : 'var(--text-cream)');
+                }
+
+                const anormalSpan = document.getElementById('modalResAnormal');
+                if (anormalSpan) {
+                    anormalSpan.textContent = r.es_anormal === 1 ? 'Sí (Fuera de rango)' : 'No (Normal)';
+                    anormalSpan.style.color = r.es_anormal === 1 ? 'var(--error-red)' : 'var(--success-green)';
+                    anormalSpan.style.fontWeight = r.es_anormal === 1 ? '700' : '500';
+                }
+
+                // Cargar observación en display (para modo lectura)
+                const observacionDisplay = document.getElementById('modalObservacionDisplay');
+                if (observacionDisplay) {
+                    observacionDisplay.textContent = r.observacion || '-';
+                }
+
+                // Report form setup
+                const reporteSolicitudId = document.getElementById('reporteSolicitudId');
+                if (reporteSolicitudId) {
+                    reporteSolicitudId.value = r.solicitud ? r.solicitud.id_solicitud : '';
+                }
+
+                const reporteResultadoId = document.getElementById('reporteResultadoId');
+                if (reporteResultadoId) {
+                    reporteResultadoId.value = r.id_resultado || '';
+                }
+
+                // Reset Edit Mode
+                isEditingReport = false;
+                updateReportModalEditState();
+                
+            } catch(e) {
+                console.error("Error al abrir modal:", e);
+                alert("Error al cargar detalles: " + e.message);
+                closeResultadoDetailsModal();
+            }
+        }
+
+        function closeResultadoDetailsModal() {
+            const modal = document.getElementById('resultadoDetalleModal');
+            if (modal) {
+                modal.classList.remove('show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                }, 300);
+            }
+        }
+
+        function toggleReporteEdicion() {
+            isEditingReport = !isEditingReport;
+            updateReportModalEditState();
+        }
+
+        function updateReportModalEditState() {
+            const btnSave = document.getElementById('btnGuardarReporte');
+            const btnToggle = document.getElementById('btnHabilitarEdicion');
+            
+            // Campos de resultado y observación
+            const resultadoEdit = document.getElementById('modalValResEdit');
+            const resultadoDisplay = document.getElementById('modalValRes');
+            const observacionEdit = document.getElementById('modalObservacionEdit');
+            const observacionDisplay = document.getElementById('modalObservacionDisplay');
+
+            if (isEditingReport) {
+                // Enable inputs de resultado
+                if (resultadoEdit) {
+                    resultadoEdit.style.display = 'block';
+                    resultadoEdit.disabled = false;
+                }
+                if (resultadoDisplay) {
+                    resultadoDisplay.style.display = 'none';
+                }
+                if (observacionEdit) {
+                    observacionEdit.style.display = 'block';
+                    observacionEdit.disabled = false;
+                }
+                if (observacionDisplay) {
+                    observacionDisplay.style.display = 'none';
+                }
+
+                // Update Enable Edit Button
+                if (btnToggle) {
+                    btnToggle.textContent = 'Deshabilitar Edición';
+                    btnToggle.style.background = 'linear-gradient(135deg, #fff4de 0%, #f1d3a5 100%)';
+                    btnToggle.style.color = '#4a2f1b';
+                    btnToggle.style.borderColor = 'rgba(255,255,255,0.95)';
+                }
+
+                // Update Save Button
+                if (btnSave) {
+                    btnSave.style.background = 'linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    btnSave.style.color = '#1e0f08';
+                    btnSave.style.opacity = '1';
+                    btnSave.style.cursor = 'pointer';
+                    btnSave.style.borderColor = 'transparent';
+                    
+                    // Save Button Hover effects
+                    btnSave.onmouseover = () => {
+                        btnSave.style.transform = 'translateY(-1px)';
+                        btnSave.style.boxShadow = '0 4px 12px rgba(200, 150, 102, 0.3)';
+                    };
+                    btnSave.onmouseout = () => {
+                        btnSave.style.transform = 'translateY(0)';
+                        btnSave.style.boxShadow = 'none';
+                    };
+                }
+            } else {
+                // Disable inputs de resultado
+                if (resultadoEdit) {
+                    resultadoEdit.style.display = 'none';
+                    resultadoEdit.disabled = true;
+                }
+                if (resultadoDisplay) {
+                    resultadoDisplay.style.display = 'block';
+                }
+                if (observacionEdit) {
+                    observacionEdit.style.display = 'none';
+                    observacionEdit.disabled = true;
+                }
+                if (observacionDisplay) {
+                    observacionDisplay.style.display = 'block';
+                }
+
+                // Update Enable Edit Button
+                if (btnToggle) {
+                    btnToggle.textContent = 'Habilitar Edición';
+                    btnToggle.style.background = 'linear-gradient(135deg, #fff4de 0%, #f1d3a5 100%)';
+                    btnToggle.style.color = '#4a2f1b';
+                    btnToggle.style.borderColor = 'rgba(255,255,255,0.95)';
+                }
+
+                // Update Save Button (keep active styles)
+                if (btnSave) {
+                    btnSave.style.background = 'linear-gradient(135deg, var(--accent-gold), var(--chocolate-light))';
+                    btnSave.style.color = '#1e0f08';
+                    btnSave.style.opacity = '1';
+                    btnSave.style.cursor = 'pointer';
+                    btnSave.style.borderColor = 'transparent';
+                    btnSave.style.boxShadow = 'none';
+                    btnSave.onmouseover = () => {
+                        btnSave.style.transform = 'translateY(-1px)';
+                        btnSave.style.boxShadow = '0 4px 12px rgba(200,150,102,0.3)';
+                    };
+                    btnSave.onmouseout = () => {
+                        btnSave.style.transform = 'translateY(0)';
+                        btnSave.style.boxShadow = 'none';
+                    };
+                }
+            }
+        }
+
+        async function saveReporteFromResultadoModal() {
+            const token = getToken();
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const id_solicitud = document.getElementById('reporteSolicitudId')?.value;
+            const id_resultado = document.getElementById('reporteResultadoId')?.value;
+            
+            // Campos del resultado si están siendo editados
+            const resultadoEditField = document.getElementById('modalValResEdit');
+            const observacionEditField = document.getElementById('modalObservacionEdit');
+            const nuevoResultado = resultadoEditField?.value?.trim();
+            const nuevaObservacion = observacionEditField?.value?.trim();
+
+            if (!id_solicitud) {
+                alert("Error: No se encontró un ID de Solicitud asociado.");
+                return;
+            }
+
+            try {
+                // Verificar que el backend está respondiendo antes de intentar guardar
+                console.log("Verificando conectividad con el backend...");
+                try {
+                    const testRes = await fetch(`${API_URL}/test`);
+                    if (!testRes.ok) {
+                        throw new Error(`Backend test failed: ${testRes.status}`);
+                    }
+                    console.log("Backend conectado correctamente");
+                } catch (testError) {
+                    console.error("Error de conectividad con el backend:", testError);
+                    alert("Error: No se puede conectar con el servidor API. Verifica que el backend esté ejecutándose en " + API_URL);
+                    return;
+                }
+
+                // Disable save button to avoid double submits
+                const btnSave = document.getElementById('btnGuardarReporte');
+                if (btnSave) {
+                    btnSave.disabled = true;
+                    btnSave.textContent = 'Guardando...';
+                }
+
+                // 0. Actualizar el resultado si hay cambios
+                if (id_resultado && (nuevoResultado || nuevaObservacion)) {
+                    try {
+                        console.log(`Actualizando resultado ${id_resultado}...`);
+                        const updatePayload = {};
+                        if (nuevoResultado) updatePayload.resultado = nuevoResultado;
+                        if (nuevaObservacion) updatePayload.observacion = nuevaObservacion;
+                        
+                        const updateRes = await fetch(`${API_URL}/resultados/${id_resultado}`, {
+                            method: 'PUT',
+                            headers,
+                            body: JSON.stringify(updatePayload)
+                        });
+                        
+                        if (!updateRes.ok) {
+                            const err = await updateRes.json().catch(() => null);
+                            console.warn('Advertencia al actualizar resultado:', err?.detail || updateRes.status);
+                            // No lanzamos error, continuamos para guardar el reporte
+                        } else {
+                            console.log('Resultado actualizado exitosamente.');
+                        }
+                    } catch (e) {
+                        console.error('Error actualizando resultado:', e);
+                        // Continuamos aunque falle la actualización del resultado
+                    }
+                }
+
+                // 1. Create the Report with a valid backend estado for reportes
+                const reportPayload = {
+                    id_solicitud: parseInt(id_solicitud),
+                    estado: 'borrador'
+                };
+                
+                console.log("Submitting new report:", reportPayload);
+                console.log("API URL:", `${API_URL}/reportes/`);
+                console.log("Headers:", headers);
+                
+                const reportRes = await fetch(`${API_URL}/reportes/`, {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(reportPayload)
+                });
+
+                if (!reportRes.ok) {
+                    let errMsg = `Error ${reportRes.status}`;
+                    try {
+                        const err = await reportRes.json();
+                        errMsg = err?.detail || err?.message || errMsg;
+                    } catch (e) {
+                        const text = await reportRes.text();
+                        console.error("Response text:", text);
+                        errMsg = text || errMsg;
+                    }
+                    console.error("Error response from backend:", errMsg);
+                    throw new Error(`Error al guardar el reporte: ${errMsg}`);
+                }
+
+                const createdReport = await reportRes.json();
+                console.log("Report created successfully:", createdReport);
+
+                // 2. Mark the Resultado as 'reportado'
+                if (id_resultado) {
+                    try {
+                        console.log(`Marking resultado ${id_resultado} as 'reportado'...`);
+                        const reportarRes = await fetch(`${API_URL}/resultados/${id_resultado}/reportar`, {
+                            method: 'POST',
+                            headers
+                        });
+                        if (!reportarRes.ok) {
+                            const err = await reportarRes.json().catch(() => null);
+                            console.warn('Failed to mark resultado as reportado using /reportar:', err?.detail || reportarRes.status);
+                            
+                            // Fallback: update the Resultado estado via PUT if POST fails
+                            const fallbackRes = await fetch(`${API_URL}/resultados/${id_resultado}`, {
+                                method: 'PUT',
+                                headers,
+                                body: JSON.stringify({ estado: 'reportado' })
+                            });
+                            if (!fallbackRes.ok) {
+                                const fallbackErr = await fallbackRes.json().catch(() => null);
+                                throw new Error(fallbackErr?.detail || `PUT fallback failed with status ${fallbackRes.status}`);
+                            }
+                            console.log('Resultado estado actualizado a reportado via PUT fallback.');
+                        } else {
+                            console.log('Resultado marcado como reportado exitosamente.');
+                        }
+                    } catch (e) {
+                        console.error('Error marking resultado as reportado:', e);
+                        throw new Error('No se pudo marcar el resultado como reportado. ' + e.message);
+                    }
+                }
+
+                const estSpan = document.getElementById('modalResEstado');
+                if (estSpan) {
+                    estSpan.textContent = 'reportado';
+                    estSpan.style.color = '#ffffff';
+                }
+                alert("Reporte guardado con éxito y resultado actualizado.");
+                closeResultadoDetailsModal();
+                
+                // Refresh both lists
+                loadReportes();
+                loadReportesList();
+                loadResultados();
+                
+            } catch(e) {
+                console.error("Error al guardar reporte:", e);
+                alert("Error al guardar reporte: " + e.message);
+                
+                // Reset save button state
+                const btnSave = document.getElementById('btnGuardarReporte');
+                btnSave.disabled = false;
+                btnSave.textContent = 'Guardar Reporte';
+            }
+        }
+
+        // Paginación
+        function nextReportesPage(){
+            reportesPage++;
+            loadReportesList();
+        }
+
+        function prevReportesPage(){
+            if(reportesPage > 0) reportesPage--;
+            loadReportesList();
+        }
+    </script>
+
+    <!-- Load Clinical AI Assistant Widget dynamically -->
+    <div id="clinical-ai-widget-container"></div>
+    <script>
+        (async function loadClinicalAI() {
+            try {
+                const response = await fetch("{% static 'partials/clinical-assistant-ai.html' %}");
+                if (response.ok) {
+                    const html = await response.text();
+                    document.getElementById('clinical-ai-widget-container').innerHTML = html;
+                }
+            } catch (e) {
+                console.error('Error loading clinical AI widget:', e);
+            }
+        })();
+    </script>
+
+    <script src="{% static 'js/chatbot.js' %}"></script>
+</body>
+</html>
+

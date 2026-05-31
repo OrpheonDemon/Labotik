@@ -1,0 +1,53 @@
+"""
+Script para forzar el reseteo y prueba del reconocimiento facial.
+Elimina TODOS los embeddings y permite registrar de nuevo.
+"""
+import asyncio
+import sys
+sys.path.insert(0, '.')
+
+from app.database import engine
+from app.services.face_service import FaceService
+from sqlalchemy import text
+
+async def force_reset():
+    async with engine.connect() as conn:
+        # 1. Eliminar TODOS los embeddings
+        print("Eliminando todos los embeddings faciales...")
+        await conn.execute(text("DELETE FROM face_embeddings"))
+        await conn.execute(text("DELETE FROM face_auth_logs"))
+        await conn.commit()
+        print("✅ Embeddings eliminados")
+        
+        # 2. Verificar información del servicio
+        print(f"\nInformación del servicio:")
+        print(f"  - Disponible: {FaceService.is_available()}")
+        info = FaceService.get_model_info()
+        print(f"  - Modelo: {info['default_model']}")
+        print(f"  - Umbral: {info['default_threshold']}")
+        
+        # 3. Verificar que el modelo funciona
+        print("\nProbando extracción de embedding...")
+        import cv2
+        import numpy as np
+        
+        # Crear imagen de prueba
+        test_img = np.ones((200, 200, 3), dtype=np.uint8) * 200
+        cv2.imwrite('test_temp.jpg', test_img)
+        
+        embedding = FaceService.extract_embedding(image_path='test_temp.jpg')
+        if embedding:
+            print(f"✅ Embedding extraído correctamente")
+            print(f"  - Dimensiones: {len(embedding)}")
+            print(f"  - Primeros valores: {embedding[:5]}")
+        else:
+            print("❌ No se pudo extraer embedding")
+        
+        import os
+        try:
+            os.remove('test_temp.jpg')
+        except:
+            pass
+
+if __name__ == "__main__":
+    asyncio.run(force_reset())
