@@ -1,0 +1,28 @@
+<section id="areas" class="dashboard-section" aria-hidden="true">
+    <div class="profile-panel">
+        <div class="profile-panel-header">
+            <div>
+                <h1 class="profile-panel-title">Áreas de Laboratorio</h1>
+                <p class="profile-panel-subtitle">Gestión de áreas (ej. Hematología, Química).</p>
+            </div>
+            <button class="icon-btn add-btn" title="Agregar área" onclick="openAddModal('areas')">
+                <svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 4v12m6-6H4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div class="search-panel">
+            <input id="areasSearchId" class="search-input" placeholder="Buscar por ID área" />
+            <button class="icon-btn search-btn" title="Buscar" aria-label="Buscar areas" onclick="searchSection('areas')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M11 19a8 8 0 100-16 8 8 0 000 16zm7-1l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+            </button>
+            <button class="icon-btn search-btn" title="Limpiar" aria-label="Limpiar busqueda areas" onclick="clearSearch('areas')">
+                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+        <div id="areasStatus" class="profile-status-message"></div>
+        <table class="entity-table" id="areasTable">
+            <thead><tr><th>ID</th><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
+            <tbody id="areasTbody"></tbody>
+        </table>
+        <div class="pagination" id="areasPagination"></div>
+    </div>
+</section>

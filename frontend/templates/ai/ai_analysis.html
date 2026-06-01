@@ -1,0 +1,359 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Análisis de Resultados - IA Clínica{% endblock %}
+
+{% block content %}
+<div class="container pt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1>
+                <i class="fas fa-flask text-primary"></i> Análisis de Resultados de Laboratorio
+            </h1>
+            <p class="text-muted">Carga resultados para análisis inteligente con IA médica</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulario de Carga -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clipboard"></i> Ingresa Resultados
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="analysisForm">
+                        {% csrf_token %}
+
+                        <!-- Paciente -->
+                        <div class="mb-3">
+                            <label class="form-label">Paciente</label>
+                            <select class="form-control" id="patient_id" name="patient_id" required>
+                                <option value="">-- Seleccionar paciente --</option>
+                                <!-- Poblado dinámicamente -->
+                            </select>
+                        </div>
+
+                        <!-- Especialidad Análisis -->
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de Análisis</label>
+                            <select class="form-control" id="specialty" name="specialty" required>
+                                <option value="">-- Seleccionar especialidad --</option>
+                                <option value="hematology">Hematología</option>
+                                <option value="biochemistry">Bioquímica</option>
+                                <option value="coagulation">Coagulación</option>
+                                <option value="endocrinology">Endocrinología</option>
+                                <option value="immunology">Inmunología</option>
+                                <option value="microbiology">Microbiología</option>
+                            </select>
+                        </div>
+
+                        <!-- Resultados Dinámicos -->
+                        <div id="dynamicFields" class="mb-3">
+                            <!-- Rellenado según especialidad -->
+                        </div>
+
+                        <!-- Edad y Género -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Edad</label>
+                                    <input type="number" class="form-control" id="age" name="age" min="0" max="150">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Género</label>
+                                    <select class="form-control" id="gender" name="gender">
+                                        <option value="">-- Seleccionar --</option>
+                                        <option value="hombre">Masculino</option>
+                                        <option value="mujer">Femenino</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Antecedentes -->
+                        <div class="mb-3">
+                            <label class="form-label">Antecedentes Médicos</label>
+                            <textarea class="form-control" id="medical_history" name="medical_history" rows="3"></textarea>
+                        </div>
+
+                        <!-- Botones -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-brain"></i> Analizar con IA
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados del Análisis -->
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-line"></i> Análisis IA
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div id="analysisResults" class="text-center text-muted py-5">
+                        <i class="fas fa-inbox fa-3x mb-3"></i>
+                        <p>Carga resultados y presiona "Analizar"</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Validación -->
+            <div class="card mt-3" id="validationPanel" style="display:none;">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-check-double"></i> Validación de Rangos
+                    </h5>
+                </div>
+                <div class="card-body" id="validationResults">
+                    <!-- Rellenado dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Parámetros de Referencia -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-table"></i> Rangos de Referencia Disponibles
+                    </h5>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Parámetro</th>
+                                <th>Rango Normal</th>
+                                <th>Unidad</th>
+                                <th>Crítico Bajo</th>
+                                <th>Crítico Alto</th>
+                            </tr>
+                        </thead>
+                        <tbody id="referenceTable">
+                            <!-- Poblado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" role="dialog" backdrop="static" keyboard="false">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center py-5">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Analizando...</span>
+                </div>
+                <h5>Analizando con IA...</h5>
+                <p class="text-muted">Usando modelo MedGem para análisis profundo</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Mapeo de especialidades a parámetros
+const specialtyFields = {
+    hematology: [
+        { name: 'hemoglobina', label: 'Hemoglobina (g/dL)', type: 'number', step: '0.1' },
+        { name: 'hematocrito', label: 'Hematocrito (%)', type: 'number', step: '0.1' },
+        { name: 'leucocitos', label: 'Leucocitos (K/µL)', type: 'number', step: '0.1' },
+        { name: 'plaquetas', label: 'Plaquetas (K/µL)', type: 'number', step: '1' },
+        { name: 'MCV', label: 'MCV (fL)', type: 'number', step: '0.1' },
+        { name: 'INR', label: 'INR', type: 'number', step: '0.1' },
+        { name: 'PT', label: 'PT (seg)', type: 'number', step: '0.1' }
+    ],
+    biochemistry: [
+        { name: 'glucosa', label: 'Glucosa (mg/dL)', type: 'number', step: '1' },
+        { name: 'creatinina', label: 'Creatinina (mg/dL)', type: 'number', step: '0.1' },
+        { name: 'BUN', label: 'BUN (mg/dL)', type: 'number', step: '1' },
+        { name: 'sodio', label: 'Sodio (mEq/L)', type: 'number', step: '0.1' },
+        { name: 'potasio', label: 'Potasio (mEq/L)', type: 'number', step: '0.1' },
+        { name: 'AST', label: 'AST (U/L)', type: 'number', step: '1' },
+        { name: 'ALT', label: 'ALT (U/L)', type: 'number', step: '1' }
+    ],
+    coagulation: [
+        { name: 'INR', label: 'INR', type: 'number', step: '0.1' },
+        { name: 'PT', label: 'PT (seg)', type: 'number', step: '0.1' },
+        { name: 'PTT', label: 'PTT (seg)', type: 'number', step: '0.1' },
+        { name: 'fibrinogeno', label: 'Fibrinógeno (mg/dL)', type: 'number', step: '10' }
+    ],
+    endocrinology: [
+        { name: 'glucosa', label: 'Glucosa (mg/dL)', type: 'number', step: '1' },
+        { name: 'TSH', label: 'TSH (mIU/L)', type: 'number', step: '0.1' },
+        { name: 'T3_libre', label: 'T3 libre (pg/mL)', type: 'number', step: '0.1' },
+        { name: 'T4_libre', label: 'T4 libre (ng/dL)', type: 'number', step: '0.1' }
+    ],
+    immunology: [
+        { name: 'PCR', label: 'PCR (mg/L)', type: 'number', step: '0.1' },
+        { name: 'VSG', label: 'VSG (mm/h)', type: 'number', step: '1' },
+        { name: 'leucocitos', label: 'Leucocitos (K/µL)', type: 'number', step: '0.1' }
+    ],
+    microbiology: [
+        { name: 'organism', label: 'Organismo detectado', type: 'text' },
+        { name: 'susceptibility', label: 'Sensibilidad antibiótica', type: 'text' }
+    ]
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadPatients();
+    loadReferenceRanges();
+    
+    document.getElementById('specialty').addEventListener('change', updateDynamicFields);
+    document.getElementById('analysisForm').addEventListener('submit', submitAnalysis);
+});
+
+function loadPatients() {
+    fetch('/api/pacientes/')
+        .then(r => r.json())
+        .then(data => {
+            const select = document.getElementById('patient_id');
+            data.forEach(p => {
+                select.innerHTML += `<option value="${p.id}">${p.nombre} (${p.id})</option>`;
+            });
+        });
+}
+
+function updateDynamicFields() {
+    const specialty = document.getElementById('specialty').value;
+    const container = document.getElementById('dynamicFields');
+    
+    if (specialty && specialtyFields[specialty]) {
+        const fields = specialtyFields[specialty];
+        container.innerHTML = fields.map(field => `
+            <div class="mb-2">
+                <label class="form-label">${field.label}</label>
+                <input type="${field.type}" class="form-control" name="${field.name}" 
+                       step="${field.step}" placeholder="Ej: 15.5" />
+            </div>
+        `).join('');
+    }
+}
+
+function loadReferenceRanges() {
+    fetch('/api/ai/reference-ranges/')
+        .then(r => r.json())
+        .then(data => {
+            const tbody = document.getElementById('referenceTable');
+            tbody.innerHTML = data.ranges.map(r => `
+                <tr>
+                    <td><strong>${r.name}</strong></td>
+                    <td>${r.min} - ${r.max}</td>
+                    <td>${r.unit}</td>
+                    <td>${r.critical_low || '-'}</td>
+                    <td>${r.critical_high || '-'}</td>
+                </tr>
+            `).join('');
+        });
+}
+
+function submitAnalysis(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(document.getElementById('analysisForm'));
+    const data = {
+        patient_id: formData.get('patient_id'),
+        specialty: formData.get('specialty'),
+        results: {},
+        age: formData.get('age'),
+        gender: formData.get('gender'),
+        medical_history: formData.get('medical_history')
+    };
+    
+    // Recopilar resultados dinámicos
+    const specialty = data.specialty;
+    specialtyFields[specialty].forEach(field => {
+        const value = formData.get(field.name);
+        if (value) data.results[field.name] = parseFloat(value) || value;
+    });
+    
+    // Mostrar modal de carga
+    const modal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    modal.show();
+    
+    // Enviar análisis
+    fetch('/api/ai/specialized-analysis/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(r => r.json())
+    .then(result => {
+        modal.hide();
+        displayResults(result);
+    })
+    .catch(error => {
+        modal.hide();
+        alert('Error: ' + error.message);
+    });
+}
+
+function displayResults(result) {
+    const container = document.getElementById('analysisResults');
+    const html = `
+        <div class="text-start">
+            <div class="alert alert-${result.risk_color} mb-3">
+                <h5>Riesgo: <strong>${result.risk_level}</strong></h5>
+            </div>
+            
+            <h6>Hallazgos:</h6>
+            <ul class="mb-3">
+                ${result.findings.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+            
+            <h6>Recomendaciones:</h6>
+            <ul class="mb-3">
+                ${result.recommendations.map(r => `<li>${r}</li>`).join('')}
+            </ul>
+            
+            <div class="alert alert-info">
+                <strong>Análisis generado:</strong> ${new Date(result.timestamp).toLocaleString()}
+            </div>
+        </div>
+    `;
+    container.innerHTML = html;
+    
+    // Mostrar validación
+    showValidationResults(result.results_validation);
+}
+
+function showValidationResults(validation) {
+    const panel = document.getElementById('validationPanel');
+    const resultsDiv = document.getElementById('validationResults');
+    
+    const html = validation.map(v => `
+        <div class="mb-2 pb-2 border-bottom">
+            <div class="d-flex justify-content-between">
+                <strong>${v.parameter}</strong>
+                <span class="badge badge-${v.level === 'CRÍTICO' ? 'danger' : v.level === 'ALTO' ? 'warning' : 'success'}">
+                    ${v.level}
+                </span>
+            </div>
+            <small class="text-muted">Valor: ${v.value} | Rango: ${v.min}-${v.max} ${v.unit}</small>
+        </div>
+    `).join('');
+    
+    resultsDiv.innerHTML = html;
+    panel.style.display = 'block';
+}
+</script>
+{% endblock %}
