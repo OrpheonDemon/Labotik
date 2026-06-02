@@ -172,6 +172,7 @@ class Pago(Base):
     metodo_pago = Column(String(50), nullable=False)
     referencia_pago = Column(String(100))
     estado_pago = Column(Enum('pendiente','completado','fallido','reembolsado'), default='completado')
+    id_transaccion_externa = Column(String(100), nullable=True)
     activo = Column(Integer, default=1)
 
 class Administrador(Base):

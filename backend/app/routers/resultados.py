@@ -219,21 +219,42 @@ async def get_resultado(
     }
 
 
+def _obtener_id_laboratorista_desde_usuario(current_user: Optional[dict]) -> Optional[str]:
+    """
+    Devuelve el id_laboratorista SOLO si el usuario autenticado tiene rol 'laboratorista'.
+    Para cualquier otro rol (administrador, recepcionista, paciente, etc.) devuelve None
+    para que el campo id_laboratorista quede en blanco.
+    """
+    if not current_user:
+        return None
+    rol = current_user.get("rol")
+    if rol != "laboratorista":
+        return None
+    user = current_user.get("user")
+    if not user or not hasattr(user, "id_laboratorista") or not user.id_laboratorista:
+        return None
+    return user.id_laboratorista
+
+
 async def _actualizar_solicitud_con_laboratorista(db: AsyncSession, id_detalle: int, current_user: Optional[dict] = None, marcar_registrado: bool = False):
-    """Actualiza la solicitud padre: fecha_toma_muestra, id_laboratorista y estado si procede."""
+    """Actualiza la solicitud padre: fecha_toma_muestra, id_laboratorista y estado si procede.
+
+    Reglas:
+    - Si el usuario autenticado tiene rol 'laboratorista', se asigna su id_laboratorista
+      a la solicitud para registrar quién procesó/registró los resultados.
+    - Si el rol NO es 'laboratorista' (administrador, recepcionista, etc.) el campo
+      id_laboratorista se deja SIN MODIFICAR (en blanco si nunca fue asignado).
+    """
     stmt = select(models.DetalleSolicitud).where(models.DetalleSolicitud.id_detalle == id_detalle)
     result = await db.execute(stmt)
     detalle = result.scalar_one_or_none()
     if not detalle:
         return
 
-    id_laboratorista = None
-    if current_user:
-        user = current_user.get("user")
-        if user and hasattr(user, "id_laboratorista"):
-            id_laboratorista = user.id_laboratorista
+    id_laboratorista = _obtener_id_laboratorista_desde_usuario(current_user)
 
     values = {"fecha_toma_muestra": datetime.now()}
+    # Solo incluir id_laboratorista en el update si el rol es 'laboratorista'
     if id_laboratorista is not None:
         values["id_laboratorista"] = id_laboratorista
     if marcar_registrado:
@@ -261,16 +282,16 @@ async def create_resultado(
         if not detalle:
             raise HTTPException(status_code=400, detail=f"Detalle de solicitud {resultado_in.id_detalle} no encontrado")
 
-        # Preparar payload y registrar laboratorista que valida si está disponible
+        # Preparar payload y registrar laboratorista que valida SOLO si rol es 'laboratorista'
         data = resultado_in.dict(exclude_unset=True)
         validado_nombre = validado_ap = validado_am = None
-        if current_user:
-            user = current_user.get('user')
-            if user and hasattr(user, 'id_laboratorista') and user.id_laboratorista:
-                data['validado_por'] = user.id_laboratorista
-                validado_nombre = getattr(user, 'nombre', None)
-                validado_ap = getattr(user, 'apellido_paterno', None)
-                validado_am = getattr(user, 'apellido_materno', None)
+        id_lab = _obtener_id_laboratorista_desde_usuario(current_user)
+        if id_lab is not None:
+            data['validado_por'] = id_lab
+            user = current_user.get("user") if current_user else None
+            validado_nombre = getattr(user, 'nombre', None)
+            validado_ap = getattr(user, 'apellido_paterno', None)
+            validado_am = getattr(user, 'apellido_materno', None)
 
         nuevo = await crud.resultado_crud.create(db, schemas.ResultadoCreate(**data))
 
@@ -329,32 +350,26 @@ async def update_resultado(
 ):
     """Actualiza un resultado; si queda como 'registrado' actualiza la solicitud padre."""
     try:
-        # Preparar payload y registrar laboratorista validador si está disponible
         payload = resultado_in.dict(exclude_unset=True)
         validado_nombre = validado_ap = validado_am = None
-        if current_user:
-            user = current_user.get('user')
-            if user and hasattr(user, 'id_laboratorista') and user.id_laboratorista:
-                payload['validado_por'] = user.id_laboratorista
-                validado_nombre = getattr(user, 'nombre', None)
-                validado_ap = getattr(user, 'apellido_paterno', None)
-                validado_am = getattr(user, 'apellido_materno', None)
+        id_lab = _obtener_id_laboratorista_desde_usuario(current_user)
+        if id_lab is not None:
+            payload['validado_por'] = id_lab
+            user = current_user.get("user") if current_user else None
+            validado_nombre = getattr(user, 'nombre', None)
+            validado_ap = getattr(user, 'apellido_paterno', None)
+            validado_am = getattr(user, 'apellido_materno', None)
 
         updated = await crud.resultado_crud.update(db, id_resultado, schemas.ResultadoUpdate(**payload))
         if not updated:
             raise HTTPException(status_code=404, detail="Resultado no encontrado")
 
-        # Si se actualizó el resultado y su estado es 'registrado', actualizar la solicitud padre
         if getattr(updated, "id_detalle", None) and getattr(updated, "estado", None) == "registrado":
             stmt = select(models.DetalleSolicitud).where(models.DetalleSolicitud.id_detalle == updated.id_detalle)
             r = await db.execute(stmt)
             detalle = r.scalar_one_or_none()
             if detalle:
-                id_laboratorista = None
-                if current_user:
-                    user = current_user.get("user")
-                    if user and hasattr(user, "id_laboratorista"):
-                        id_laboratorista = user.id_laboratorista
+                id_laboratorista = _obtener_id_laboratorista_desde_usuario(current_user)
                 values = {"estado": "completado", "fecha_toma_muestra": datetime.now()}
                 if id_laboratorista is not None:
                     values["id_laboratorista"] = id_laboratorista
@@ -366,7 +381,6 @@ async def update_resultado(
                 await db.execute(stmt_upd)
                 await db.commit()
 
-        # Enriquecer con nombre de prueba y paciente
         stmt = (
             select(models.DetalleSolicitud, models.Prueba, models.Paciente)
             .join(models.Prueba, models.Prueba.id_prueba == models.DetalleSolicitud.id_prueba)
@@ -423,7 +437,6 @@ async def reportar_resultado(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_laboratorista),
 ):
-    """Marca un resultado individual como 'reportado'."""
     stmt = (
         update(models.Resultado)
         .where(models.Resultado.id_resultado == id_resultado, models.Resultado.activo == 1)
@@ -433,6 +446,7 @@ async def reportar_resultado(
     await db.commit()
     return {"message": "Resultado marcado como reportado"}
 
+
 @router.post("/{id_resultado}/generar_pdf")
 async def generar_pdf_resultado(
     id_resultado: int,
@@ -440,7 +454,6 @@ async def generar_pdf_resultado(
     current_user: dict = Depends(require_laboratorista),
 ):
     """Genera un PDF para un único resultado y marca el resultado como reportado."""
-    # Consultar resultado y datos relacionados
     stmt = (
         select(models.Resultado, models.DetalleSolicitud, models.Prueba, models.Solicitud, models.Paciente, models.Medico, models.Laboratorista)
         .join(models.DetalleSolicitud, models.DetalleSolicitud.id_detalle == models.Resultado.id_detalle)
@@ -458,60 +471,50 @@ async def generar_pdf_resultado(
 
     resultado, detalle, prueba, solicitud, paciente, medico, laboratorista = row
 
-    # Marcar resultado como reportado
     upd = (
         update(models.Resultado)
         .where(models.Resultado.id_resultado == id_resultado)
-        .values(estado='reportado', fecha_validacion=datetime.now())
+        .values(estado="reportado", fecha_validacion=datetime.now())
     )
     await db.execute(upd)
     await db.commit()
 
-    # Generar PDF
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.pdfgen import canvas
     except ImportError:
-        raise HTTPException(status_code=500, detail="Dependencia requerida 'reportlab' no instalada. Instale con: pip install reportlab")
+        raise HTTPException(status_code=500, detail="Dependencia requerida reportlab no instalada")
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
     y = height - 50
-
-    # Encabezado
-    c.setFont('Helvetica-Bold', 16)
-    c.drawString(40, y, 'Laboratorio Clínico - Resultado')
-    c.setFont('Helvetica', 10)
-    c.drawString(40, y-20, f'ID Resultado: {resultado.id_resultado}')
-    c.drawString(200, y-20, f'ID Detalle: {resultado.id_detalle}')
-    c.drawString(40, y-35, f'Fecha validación: {resultado.fecha_validacion or "-"}')
-
-    # Datos del paciente / médico / laboratorista
-    c.setFont('Helvetica-Bold', 12)
-    c.drawString(40, y-60, 'Datos del paciente:')
-    c.setFont('Helvetica', 10)
-    pac_name = (f"{paciente.nombre} {paciente.apellido_paterno} {paciente.apellido_materno or ''}".strip()) if paciente else '-'
-    c.drawString(60, y-75, f'Nombre: {pac_name}')
-    c.drawString(300, y-75, f'ID Paciente: {solicitud.id_paciente if solicitud else "-"}')
-
-    c.setFont('Helvetica-Bold', 12)
-    c.drawString(40, y-95, 'Solicitante / Laboratorista:')
-    c.setFont('Helvetica', 10)
-    medico_name = (f"{medico.nombre} {medico.apellido_paterno} {medico.apellido_materno or ''}".strip()) if medico else '-'
-    lab_name = (f"{laboratorista.nombre} {laboratorista.apellido_paterno} {laboratorista.apellido_materno or ''}".strip()) if laboratorista else '-'
-    c.drawString(60, y-110, f'Médico: {medico_name}')
-    c.drawString(60, y-125, f'Laboratorista: {lab_name}')
-
-    # Resultado y observaciones
-    c.setFont('Helvetica-Bold', 12)
-    c.drawString(40, y-150, 'Resultado:')
-    c.setFont('Helvetica', 10)
-    c.drawString(60, y-165, f'Prueba: {prueba.nombre if prueba else "-"}')
-    c.drawString(60, y-180, f'Valor: {resultado.resultado}')
-    c.drawString(60, y-195, f'Observación: {resultado.observacion or ""}')
-
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(40, y, "Laboratorio Clinico - Resultado")
+    c.setFont("Helvetica", 10)
+    c.drawString(40, y - 20, f"ID Resultado: {resultado.id_resultado}")
+    c.drawString(200, y - 20, f"ID Detalle: {resultado.id_detalle}")
+    c.drawString(40, y - 35, f"Fecha validacion: {resultado.fecha_validacion or '-'}")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y - 60, "Datos del paciente:")
+    c.setFont("Helvetica", 10)
+    pac_name = (f"{paciente.nombre} {paciente.apellido_paterno} {paciente.apellido_materno or ''}".strip()) if paciente else "-"
+    c.drawString(60, y - 75, f"Nombre: {pac_name}")
+    c.drawString(300, y - 75, f"ID Paciente: {solicitud.id_paciente if solicitud else '-'}")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y - 95, "Solicitante / Laboratorista:")
+    c.setFont("Helvetica", 10)
+    medico_name = (f"{medico.nombre} {medico.apellido_paterno} {medico.apellido_materno or ''}".strip()) if medico else "-"
+    lab_name = (f"{laboratorista.nombre} {laboratorista.apellido_paterno} {laboratorista.apellido_materno or ''}".strip()) if laboratorista else "-"
+    c.drawString(60, y - 110, f"Medico: {medico_name}")
+    c.drawString(60, y - 125, f"Laboratorista: {lab_name}")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y - 150, "Resultado:")
+    c.setFont("Helvetica", 10)
+    c.drawString(60, y - 165, f"Prueba: {prueba.nombre if prueba else '-'}")
+    c.drawString(60, y - 180, f"Valor: {resultado.resultado}")
+    c.drawString(60, y - 195, f"Observacion: {resultado.observacion or ''}")
     c.showPage()
     c.save()
     buffer.seek(0)
-    return StreamingResponse(buffer, media_type='application/pdf', headers={"Content-Disposition": f"inline; filename=resultado_{id_resultado}.pdf"})
+    return StreamingResponse(buffer, media_type="application/pdf", headers={"Content-Disposition": f"inline; filename=resultado_{id_resultado}.pdf"})

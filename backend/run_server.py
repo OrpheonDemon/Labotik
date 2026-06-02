@@ -2,9 +2,10 @@
 import os
 import sys
 
-# Set working directory
-os.chdir('c:\\Users\\Rothe\\Rotherick\\Laboratorio\\backend')
-sys.path.insert(0, os.getcwd())
+# Set working directory to current directory (backend folder)
+current_dir = os.path.dirname(os.path.abspath(__file__))
+os.chdir(current_dir)
+sys.path.insert(0, current_dir)
 
 # Run uvicorn
 if __name__ == '__main__':

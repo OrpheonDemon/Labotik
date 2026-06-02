@@ -341,6 +341,7 @@ class PagoBase(BaseModel):
     metodo_pago: str
     referencia_pago: Optional[str] = None
     estado_pago: Optional[str] = "completado"
+    id_transaccion_externa: Optional[str] = None
 
 class PagoCreate(PagoBase):
     pass
@@ -350,9 +351,26 @@ class PagoUpdate(BaseModel):
     metodo_pago: Optional[str] = None
     referencia_pago: Optional[str] = None
     estado_pago: Optional[str] = None
+    id_transaccion_externa: Optional[str] = None
 
 class PagoOut(PagoBase):
     activo: int
+
+class FacturaQRResponse(BaseModel):
+    id_factura: int
+    monto: float
+    estado: str
+    qr_base64: str
+    referencia: str
+
+class ConfirmarPagoResponse(BaseModel):
+    mensaje: str
+
+class WebhookPayload(BaseModel):
+    id_transaccion: str
+    estado: str
+    referencia: Optional[str] = None
+    monto: Optional[float] = None
 
 # ---------- Administradores ----------
 class AdministradorBase(BaseModel):

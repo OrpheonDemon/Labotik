@@ -158,3 +158,20 @@ async def require_admin_or_laboratorista(current_user: dict = Depends(get_curren
     if rol not in ["administrador", "laboratorista"]:
         raise HTTPException(status_code=403, detail="No tienes permisos suficientes (Se requiere Administrador o Laboratorista)")
     return current_user
+
+async def require_pagos_roles(current_user: dict = Depends(get_current_active_user)):
+    """
+    Permite el acceso a la sección de pagos únicamente a:
+    - Administrador
+    - Recepcionista
+    - Paciente
+
+    El laboratorista NO tiene acceso a la sección de pagos.
+    """
+    rol = current_user.get("rol")
+    if rol not in ["administrador", "recepcionista", "paciente"]:
+        raise HTTPException(
+            status_code=403,
+            detail="No tienes permisos para acceder a la sección de pagos. Esta sección es exclusiva para Administradores, Recepcionistas y Pacientes."
+        )
+    return current_user

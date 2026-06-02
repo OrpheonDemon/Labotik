@@ -1243,7 +1243,7 @@
             const key = (sectionId || '').toLowerCase();
             let section = document.getElementById(key);
             // if not in DOM, fetch and append
-            if (!section && ['dashboard', 'pacientes', 'laboratoristas', 'resultados', 'reportes'].includes(key)) {
+            if (!section && ['dashboard', 'pacientes', 'laboratoristas', 'resultados', 'reportes', 'solicitudes'].includes(key)) {
                 try {
                     const response = await fetch(`{% static 'partials/' %}${key}.html`);
                     if (response.ok) {
@@ -1302,12 +1302,14 @@
             }
             // Custom load for Reportes: listar reportes generados y resultados registrados
             if (sectionId === 'reportes' || sectionId === 'Reportes') {
-                await loadSolicitudesCaches();
                 await loadReportes();
                 await loadReportesList();
             }
             if (sectionId === 'dashboard') {
-                await loadDashboardStats();
+                await loadDashboardSummary();
+            }
+            if (sectionId === 'solicitudes' || sectionId === 'Solicitudes') {
+                await fetchAndRender('solicitudes', 0, DEFAULT_PAGE_SIZE);
             }
         }
 

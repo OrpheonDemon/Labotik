@@ -4,17 +4,81 @@ from sqlalchemy import select
 from app import schemas, crud, models
 from app.database import get_db
 from app.id_generator import get_next_int_id
-from app.dependencies import require_laboratorista
+from app.dependencies import require_laboratorista, require_paciente, require_pagos_roles
 from fastapi.responses import StreamingResponse
 import io
 import os
 from datetime import datetime
+from app.payment_qr import generate_payment_qr, generate_qr_reference
 
 router = APIRouter(prefix="/facturas", tags=["Facturas"])
 
 @router.get("/", response_model=list[schemas.FacturaOut])
-async def list_facturas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+async def list_facturas(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_pagos_roles),
+):
+    """
+    Lista todas las facturas. Acceso exclusivo para:
+    - Administrador
+    - Recepcionista
+    - Paciente
+    """
     return await crud.factura_crud.get_multi(db, skip, limit)
+
+
+@router.get("/paciente/{id_paciente}/pendientes", response_model=list[schemas.FacturaOut])
+async def list_facturas_pendientes_paciente(
+    id_paciente: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_paciente)
+):
+    """Lista facturas pendientes (no pagadas totalmente) de un paciente"""
+    stmt = select(models.Factura).where(
+        models.Factura.activo == 1,
+        models.Factura.id_paciente == id_paciente,
+        models.Factura.estado_factura.in_(['emitida', 'pagada_parcial'])
+    ).order_by(models.Factura.fecha_emision.desc())
+    result = await db.execute(stmt)
+    return result.scalars().all()
+
+
+@router.get("/{id_factura}/qr", response_model=schemas.FacturaQRResponse)
+async def get_factura_qr(
+    id_factura: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_paciente)
+):
+    """Genera un código QR con los datos de pago de la factura"""
+    factura = await crud.factura_crud.get(db, id_factura)
+    if not factura:
+        raise HTTPException(status_code=404, detail="Factura no encontrada")
+
+    # Cargar paciente para obtener email
+    stmt = select(models.Paciente).where(
+        models.Paciente.id_paciente == factura.id_paciente,
+        models.Paciente.activo == 1
+    )
+    result = await db.execute(stmt)
+    paciente = result.scalar_one_or_none()
+
+    base64_qr, _ = generate_payment_qr(
+        invoice_id=factura.id_factura,
+        amount=factura.total,
+        patient_id=str(factura.id_paciente),
+        patient_email=paciente.email if paciente else "no@especificado.com",
+        description=f"Pago de Factura {factura.id_factura}"
+    )
+
+    return {
+        "id_factura": factura.id_factura,
+        "monto": factura.total,
+        "estado": factura.estado_factura,
+        "qr_base64": base64_qr,
+        "referencia": generate_qr_reference(factura.id_factura, factura.total)
+    }
 
 
 @router.get("/sus/pendientes", response_model=list[schemas.FacturaOut])
@@ -180,14 +244,35 @@ async def delete_factura(id_factura: int, db: AsyncSession = Depends(get_db), cu
 
 
 @router.get('/pagadas', response_model=list[schemas.FacturaOut])
-async def list_facturas_pagadas(skip: int = 0, limit: int = 100, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+async def list_facturas_pagadas(
+    skip: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_pagos_roles),
+):
+    """
+    Lista las facturas pagadas. Acceso exclusivo para:
+    - Administrador
+    - Recepcionista
+    - Paciente
+    """
     stmt = select(models.Factura).where(models.Factura.activo == 1, models.Factura.estado_factura == 'pagada_total').offset(skip).limit(limit)
     res = await db.execute(stmt)
     return res.scalars().all()
 
 
 @router.get('/{id_factura}/pdf')
-async def factura_pdf(id_factura: int, db: AsyncSession = Depends(get_db), current_user: dict = Depends(require_laboratorista)):
+async def factura_pdf(
+    id_factura: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_pagos_roles),
+):
+    """
+    Genera el PDF de la factura. Acceso exclusivo para:
+    - Administrador
+    - Recepcionista
+    - Paciente
+    """
     factura = await crud.factura_crud.get(db, id_factura)
     if not factura:
         raise HTTPException(status_code=404, detail='Factura no encontrada')

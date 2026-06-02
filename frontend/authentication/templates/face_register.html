@@ -350,6 +350,13 @@
                 <span>Comenzar Registro</span>
             </button>
 
+            <button class="btn-capture" id="forceCameraBtn" onclick="forceCameraAccess()" style="background: linear-gradient(135deg, #8B4513, #D2691E); margin-top: -5px; display: none;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>🔄 Forzar Cámara (reintentar)</span>
+            </button>
+
             <div class="back-link">
                 <a href="{% url 'admin_dashboard' %}">Saltar y continuar al dashboard</a>
             </div>
@@ -538,14 +545,101 @@
             }
         }
 
+        // Clean up any existing stream before requesting camera
+        async function stopCurrentStream() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => {
+                    track.stop();
+                    track.enabled = false;
+                });
+                videoStream = null;
+            }
+            ['videoElement', 'videoElement2'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.srcObject = null;
+            });
+            // Small delay to ensure cleanup propagates
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+
+        // Try to get camera with multiple constraint fallbacks
+        async function tryGetUserMedia(constraints, maxRetries = 3) {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    // Ensure no leftover stream conflicts
+                    await stopCurrentStream();
+                    return await navigator.mediaDevices.getUserMedia(constraints);
+                } catch (error) {
+                    if (error.name === 'NotReadableError') {
+                        console.warn(`Intento ${attempt + 1}: Cámara ocupada, reintentando...`);
+                        if (attempt < maxRetries - 1) {
+                            // Wait before retry - give time for other app to release
+                            await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                            continue;
+                        }
+                    }
+                    throw error;
+                }
+            }
+            throw new Error('Max retries reached');
+        }
+
+        // Progressive constraint fallback to access camera
+        async function requestCameraWithFallback(preferredConstraints) {
+            // Try 1: With exact constraints
+            try {
+                return await tryGetUserMedia(preferredConstraints);
+            } catch (e) {
+                if (e.name !== 'NotReadableError' && e.name !== 'NotFoundError' && e.name !== 'OverconstrainedError') {
+                    throw e;
+                }
+                console.warn('Fallback 1 falló, intentando sin deviceId exacto...');
+            }
+
+            // Try 2: Relax - remove exact deviceId
+            try {
+                const relaxed = { ...preferredConstraints };
+                if (relaxed.video && relaxed.video.deviceId && relaxed.video.deviceId.exact) {
+                    const { deviceId, ...videoWithoutDevice } = relaxed.video;
+                    return await tryGetUserMedia({ ...relaxed, video: { ...videoWithoutDevice, facingMode: 'user' } });
+                }
+                throw new Error('No deviceId to relax');
+            } catch (e) {
+                if (e.name !== 'NotReadableError' && e.name !== 'NotFoundError' && e.name !== 'OverconstrainedError') {
+                    throw e;
+                }
+                console.warn('Fallback 2 falló, intentando sin facingMode...');
+            }
+
+            // Try 3: Minimal constraints
+            try {
+                return await tryGetUserMedia({ video: true, audio: false });
+            } catch (e) {
+                console.warn('Fallback 3 falló (video: true)');
+                throw e;
+            }
+        }
+
         async function enumerateCameras() {
             try {
-                // First request permission to get device labels
-                const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                tempStream.getTracks().forEach(track => track.stop());
+                // Use a lightweight request without affecting the main stream
+                // First try to just enumerate without requesting media
+                let devices = await navigator.mediaDevices.enumerateDevices();
+                let videoDevices = devices.filter(device => device.kind === 'videoinput');
                 
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
+                // If labels are empty, we need a temp stream for permissions
+                if (videoDevices.length === 0 || !videoDevices[0].label) {
+                    try {
+                        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                        tempStream.getTracks().forEach(track => track.stop());
+                        // Wait a moment for cleanup
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        devices = await navigator.mediaDevices.enumerateDevices();
+                        videoDevices = devices.filter(device => device.kind === 'videoinput');
+                    } catch (e) {
+                        console.warn('Could not get camera labels:', e);
+                    }
+                }
                 
                 const select = document.getElementById('cameraSelect');
                 select.innerHTML = '';
@@ -579,15 +673,10 @@
             
             selectedDeviceId = deviceId;
             
-            // Stop current stream
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-            }
-            
             try {
                 setStatus('processing', 'Cambiando cámara...');
                 
-                videoStream = await navigator.mediaDevices.getUserMedia({
+                videoStream = await requestCameraWithFallback({
                     video: { 
                         width: { ideal: 640 }, 
                         height: { ideal: 480 }, 
@@ -606,8 +695,46 @@
 
             } catch (error) {
                 console.error('Error al cambiar cámara:', error);
-                setStatus('error', 'No se pudo cambiar la cámara.');
-                showAlert('Error al cambiar cámara', 'error');
+                setStatus('error', 'No se pudo cambiar la cámara. Intente forzar la cámara.');
+                showAlert('Error al cambiar cámara. Use el botón "Forzar Cámara".', 'error');
+            }
+        }
+
+        async function forceCameraAccess() {
+            setStatus('processing', 'Forzando acceso a la cámara...');
+            showAlert('Intentando forzar acceso a la cámara...', 'success');
+            
+            try {
+                // Force stop any lingering streams
+                await stopCurrentStream();
+                // Longer wait
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Try with minimal constraints and more retries
+                videoStream = await tryGetUserMedia({ video: true, audio: false }, 5);
+                
+                document.getElementById('videoElement').srcObject = videoStream;
+                document.getElementById('videoElement2').srcObject = videoStream;
+                
+                document.getElementById('videoElement').onloadedmetadata = () => {
+                    document.getElementById('videoElement').play();
+                    setStatus('ready', 'Cámara forzada exitosamente.');
+                    document.getElementById('startBtn').disabled = false;
+                    document.getElementById('qualityIndicator').style.display = 'flex';
+                    showAlert('Cámara accedida exitosamente', 'success');
+                };
+            } catch (error) {
+                console.error('Error al forzar cámara:', error);
+                let errorMsg = 'No se pudo acceder a la cámara incluso después de intentos.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'Permiso de cámara denegado. Verifique los permisos del navegador.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMsg = 'No se encontró ninguna cámara.';
+                } else if (error.name === 'NotReadableError') {
+                    errorMsg = 'La cámara sigue ocupada. Cierre otras aplicaciones que usen la cámara y reintente.';
+                }
+                setStatus('error', errorMsg);
+                showAlert(`Error: ${errorMsg}`, 'error');
             }
         }
 
@@ -633,7 +760,7 @@
                 // Enumerate cameras first
                 await enumerateCameras();
                 
-                videoStream = await navigator.mediaDevices.getUserMedia({
+                videoStream = await requestCameraWithFallback({
                     video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
                     audio: false
                 });
@@ -657,10 +784,12 @@
                 } else if (error.name === 'NotFoundError') {
                     errorMsg = 'No se encontró ninguna cámara. Por favor, conecte una cámara.';
                 } else if (error.name === 'NotReadableError') {
-                    errorMsg = 'La cámara está siendo usada por otra aplicación.';
+                    errorMsg = 'La cámara está siendo usada por otra aplicación. Cierre otras apps o use el botón "Forzar Cámara" más abajo.';
                 }
                 setStatus('error', errorMsg);
                 showAlert(`Error: ${errorMsg}`, 'error');
+                // Show force camera button when camera access fails
+                document.getElementById('forceCameraBtn').style.display = 'flex';
             }
         }
 
@@ -850,7 +979,11 @@
         window.addEventListener('DOMContentLoaded', initCamera);
         window.addEventListener('beforeunload', () => {
             if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
+                videoStream.getTracks().forEach(track => {
+                    track.stop();
+                    track.enabled = false;
+                });
+                videoStream = null;
             }
         });
     </script>
