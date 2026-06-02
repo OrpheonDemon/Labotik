@@ -66,7 +66,7 @@ async def ai_status():
 @router.post("/interpret-results")
 async def interpret_results(
     request: Dict[str, Any],
-    current_user: dict = Depends(require_medico),
+    current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """Interpreta resultados de laboratorio usando IA."""
@@ -681,7 +681,7 @@ async def smart_chat_stream(
 @router.post("/validate-results")
 async def validate_results(
     request: Dict[str, Any],
-    current_user: dict = Depends(require_medico),
+    current_user: dict = Depends(get_current_active_user),
     db: AsyncSession = Depends(get_db)
 ):
     """

@@ -759,6 +759,15 @@
                     </li>
                 </ul>
                 <ul class="menu-list" style="margin-top: 20px;">
+                    <li class="menu-item">
+                        <a href="#" onclick="navigateMenu(event, 'ia-assistant', 'Asistente IA')">
+                            <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12a9 9 0 11-18 0 9 9 0 0118 0zm0 0h-1m-12 0H3m14.364 5.636l-.707-.707M12 21v-1m-6.364-1.636l.707-.707" />
+                            </svg>
+                            Asistente IA 🧠
+                        </a>
+                    </li>
+
                     <li class="menu-item" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 20px;">
                         <a href="#" onclick="handleLogout()" style="color: #e74c3c;">
                             <svg class="menu-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #e74c3c;">
@@ -945,7 +954,90 @@
                     </div>
                 </div>
             </section>
-            <!-- ENTITY EDIT MODAL (constrained to workspace, no cover header/sidebar/footer) -->
+            <!-- ASISTENTE IA SECTION -->
+            <section id="ia-assistant" class="dashboard-section" aria-hidden="true">
+                <div class="profile-panel">
+                    <div class="profile-panel-header">
+                        <div>
+                            <h1 class="profile-panel-title">🧠 Asistente IA Clínico</h1>
+                            <p class="profile-panel-subtitle">Análisis inteligente de resultados de laboratorio con MedGem</p>
+                        </div>
+                    </div>
+
+                    <!-- Estado del Sistema IA -->
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+                            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Estado Servidor</p>
+                            <h4 id="ollama-status" style="color: #fff; margin: 0; font-size: 16px;">
+                                <span style="display: inline-block; width: 8px; height: 8px; background: #fbbf24; border-radius: 50%; margin-right: 8px;"></span>
+                                Verificando...
+                            </h4>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+                            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Modelo Activo</p>
+                            <h4 id="model-name" style="color: #fff; margin: 0; font-size: 16px;">MedGem 7B</h4>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+                            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Análisis Hoy</p>
+                            <h4 id="analysis-count" style="color: #fff; margin: 0; font-size: 16px;">0</h4>
+                        </div>
+                        
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 16px;">
+                            <p style="color: rgba(255,255,255,0.7); font-size: 12px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.5px;">Casos Críticos</p>
+                            <h4 id="critical-count" style="color: #fff; margin: 0; font-size: 16px;">0</h4>
+                        </div>
+                    </div>
+
+                    <!-- Opciones Principales -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px;">
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="openIAnalysisPopup()" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <div style="font-size: 32px; margin-bottom: 12px;">🔬</div>
+                            <h5 style="color: #fff; margin: 0 0 8px; font-size: 16px;">Analizar Resultados</h5>
+                            <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">Carga resultados para análisis inteligente</p>
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: all 0.2s ease;" onclick="alert('Auditoría en desarrollo')" onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 10px 25px rgba(0,0,0,0.2)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">
+                            <div style="font-size: 32px; margin-bottom: 12px;">📋</div>
+                            <h5 style="color: #fff; margin: 0 0 8px; font-size: 16px;">Auditoría</h5>
+                            <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 13px;">Registro de decisiones y análisis</p>
+                        </div>
+                    </div>
+
+                    <!-- Información del Sistema -->
+                    <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px;">
+                        <h3 style="color: #fff; margin: 0 0 12px; font-size: 16px;">📊 Estado del Sistema IA</h3>
+                        <p id="ia-system-status" style="color: rgba(255,255,255,0.8); margin: 0; line-height: 1.6;">Iniciando conexión con motor IA... Verifica que Ollama esté ejecutándose y selecciona un tipo de análisis para comenzar</p>
+                    </div>
+                    <!-- Modal para mostrar análisis en popup -->
+                    <div id="ia-analysis-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center;" onclick="if(event.target.id === 'ia-analysis-modal') closeAnalysisModalAdmin();">
+                        <div style="background: rgba(255,255,255,0.95); border: 1px solid rgba(0,0,0,0.2); border-radius: 12px; padding: 30px; min-height: 300px; max-height: 85vh; width: 95%; max-width: 900px; color: #333; overflow-y: auto; position: relative; backdrop-filter: blur(8px);">
+    <button onclick="closeAnalysisModalAdmin()" style="position: absolute; top: 10px; right: 10px; background: #fff; border: 1px solid #ccc; color: #333; font-size: 24px; cursor: pointer; width: 40px; height: 40px; border-radius: 50%;">×</button>
+    <!-- Análisis por Paciente -->
+    <div style="margin-top: 32px; display:block;">
+        <h2 style="color: #333; margin: 24px 0 16px; font-size: 18px;">👤 Análisis por Paciente</h2>
+                                
+                                <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+                                    <label style="display: block; color: #333; margin-bottom: 12px; font-weight: 600;">Selecciona un paciente:</label>
+                                    <select id="ia-paciente-select" onchange="this.value && (document.getElementById('ia-analyze-general').disabled = false, document.getElementById('ia-analyze-results').disabled = false)" style="width: 100%; padding: 12px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 8px; font-size: 14px;">
+                                        <option value="">-- Cargando pacientes --</option>
+                                    </select>
+                                    
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px;">
+                                        <button id="ia-analyze-general" disabled onclick="analyzePatientGeneral()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">📊 Análisis General</button>
+                                        <button id="ia-analyze-results" disabled onclick="analyzePatientResults()" style="padding: 12px; background: linear-gradient(135deg, #c89666 0%, #dfaf7e 100%); color: #fff; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s ease;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 5px 15px rgba(200, 150, 102, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='none'">🔬 Analizar Resultados</button>
+                                    </div>
+                                </div>
+                                
+                                <div id="ia-analysis-result" style="display: none; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); border-radius: 12px; padding: 20px; min-height: 100px; color: #333;">ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+                        <!-- ENTITY EDIT MODAL (constrained to workspace, no cover header/sidebar/footer) -->
             <div id="entityModal" class="modal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.35); z-index:50;">
                 <div class="modal-inner" style="position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); background:#fff; padding:20px; border-radius:8px; width:90%; max-width:720px; box-shadow:0 20px 40px rgba(0,0,0,0.3); color:#4b2e2a;">
                     <h3 id="modalTitle">Editar registro</h3>
@@ -1249,6 +1341,10 @@
             }
             if (sectionId === 'dashboard') {
                 await loadDashboardStats();
+            }
+            if (sectionId === 'ia-assistant') {
+                checkOllamaStatus();
+                await loadPatientsForAnalysis();
             }
         }
 
@@ -3414,6 +3510,201 @@
             if(reportesPage > 0) reportesPage--;
             loadReportesList();
         }
+        // ========== FUNCIONES PARA ASISTENTE IA ==========
+
+        // Cache de pruebas para resolver nombres
+        let iaPruebasCache = {};
+
+        async function loadIaPruebasCache() {
+            if (Object.keys(iaPruebasCache).length > 0) return;
+            try {
+                const res = await fetch(`${API_URL}/pruebas?limit=1000`, { headers: getAuthHeaders() });
+                if (res.ok) {
+                    const pruebas = await res.json();
+                    if (Array.isArray(pruebas)) {
+                        pruebas.forEach(p => { iaPruebasCache[p.id_prueba] = p.nombre; });
+                    }
+                }
+            } catch (e) { console.error("Error loading pruebas cache:", e); }
+        }
+
+        function checkOllamaStatus() {
+            const el = document.getElementById('ollama-status');
+            if (!el) return;
+            el.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:#fbbf24; border-radius:50%; margin-right:8px;"></span>Verificando...`;
+            fetch(`${API_URL}/ai/status`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Status error');
+                    return res.json();
+                })
+                .then(data => {
+                    const status = data.status || (data.model ? 'online' : 'desconocido');
+                    const isOnline = status === 'online' || status === 'ok' || status === 'running' || status === 'available';
+                    el.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:${isOnline ? '#22c55e' : '#ef4444'}; border-radius:50%; margin-right:8px;"></span>${isOnline ? 'Conectado' : 'Desconectado'}`;
+                    if (isOnline) {
+                        const modelEl = document.getElementById('model-name');
+                        if (modelEl) modelEl.textContent = data.model || 'MedGem 7B';
+                    }
+                })
+                .catch(() => {
+                    el.innerHTML = `<span style="display:inline-block; width:8px; height:8px; background:#ef4444; border-radius:50%; margin-right:8px;"></span>Desconectado - Verifica Ollama`;
+                });
+        }
+
+        async function loadPatientsForAnalysis() {
+            const headers = getAuthHeaders();
+            try {
+                await loadIaPruebasCache();
+                const res = await fetch(`${API_URL}/pacientes?limit=1000`, { headers });
+                if (!res.ok) throw new Error('Error al cargar pacientes');
+                const pacientes = await res.json();
+                const select = document.getElementById('ia-paciente-select');
+                if (!select) return;
+                select.innerHTML = '<option value="">-- Selecciona un paciente --</option>';
+                if (Array.isArray(pacientes)) {
+                    pacientes.forEach(p => {
+                        const opt = document.createElement('option');
+                        opt.value = p.id_paciente;
+                        opt.textContent = `${p.nombre} ${p.apellido_paterno || ''} ${p.apellido_materno || ''} - ${p.id_paciente}`;
+                        select.appendChild(opt);
+                    });
+                }
+            } catch (e) { console.error("Error loading patients:", e); }
+        }
+
+        function openIAnalysisPopup() {
+            const modal = document.getElementById('ia-analysis-modal');
+            modal.style.display = 'flex';
+            const resultDiv = document.getElementById('ia-analysis-result');
+            if (resultDiv) {
+                resultDiv.style.display = 'none';
+                resultDiv.innerHTML = 'ℹ️ Selecciona un paciente y elige un tipo de análisis para comenzar';
+            }
+            loadPatientsForAnalysis();
+        }
+
+        function closeAnalysisModalAdmin() {
+            document.getElementById('ia-analysis-modal').style.display = 'none';
+            document.getElementById('ia-analysis-result').innerHTML = '';
+        }
+
+        async function analyzePatientGeneral() {
+            const pacienteId = document.getElementById('ia-paciente-select')?.value;
+            if (!pacienteId) { alert('Selecciona un paciente primero'); return; }
+            const resultDiv = document.getElementById('ia-analysis-result');
+            if (!resultDiv) return;
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '🔍 Analizando paciente...';
+            try {
+                const headers = getAuthHeaders();
+                const resP = await fetch(`${API_URL}/pacientes/search?id_paciente=${encodeURIComponent(pacienteId)}`, { headers });
+                if (!resP.ok) throw new Error('No se pudo cargar el paciente');
+                const pacientes = Array.isArray(await resP.json()) ? await resP.json() : [await resP.json()];
+                const paciente = pacientes[0] || pacientes;
+                
+                const resSol = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers });
+                const solicitudes = resSol.ok ? await resSol.json() : [];
+                const solicitudesPaciente = (Array.isArray(solicitudes) ? solicitudes : []).filter(s => s.id_paciente === pacienteId);
+                
+                const resRes = await fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers });
+                const resultados = resRes.ok ? await resRes.json() : [];
+                const resultadosPaciente = (Array.isArray(resultados) ? resultados : []).filter(r => {
+                    return solicitudesPaciente.some(s => s.id_solicitud === r.id_solicitud);
+                });
+                
+                const resIA = await fetch(`${API_URL}/ai/interpret-results`, {
+                    method: 'POST',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: pacienteId,
+                        patient_name: `${paciente.nombre || ''} ${paciente.apellido_paterno || ''}`.trim(),
+                        solicitudes: solicitudesPaciente,
+                        resultados: resultadosPaciente
+                    })
+                });
+                const data = await resIA.json();
+                resultDiv.innerHTML = `<div style="white-space:pre-wrap; line-height:1.7;">${data.analysis || data.respuesta || data.detail || 'Sin respuesta'}</div>`;
+            } catch (e) {
+                resultDiv.innerHTML = `❌ Error: ${e.message}`;
+            }
+        }
+
+        async function analyzePatientResults() {
+            const pacienteId = document.getElementById('ia-paciente-select')?.value;
+            if (!pacienteId) { alert('Selecciona un paciente primero'); return; }
+            const resultDiv = document.getElementById('ia-analysis-result');
+            if (!resultDiv) return;
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '🔬 Analizando resultados de laboratorio...';
+            try {
+                const headers = getAuthHeaders();
+                const resP = await fetch(`${API_URL}/pacientes/search?id_paciente=${encodeURIComponent(pacienteId)}`, { headers });
+                if (!resP.ok) throw new Error('No se pudo cargar el paciente');
+                const pacientes = Array.isArray(await resP.json()) ? await resP.json() : [await resP.json()];
+                const paciente = pacientes[0] || pacientes;
+
+                const resSol = await fetch(`${API_URL}/solicitudes?limit=1000`, { headers });
+                const solicitudes = resSol.ok ? await resSol.json() : [];
+                const solicitudesPaciente = (Array.isArray(solicitudes) ? solicitudes : []).filter(s => s.id_paciente === pacienteId);
+                
+                const resRes = await fetch(`${API_URL}/resultados?skip=0&limit=1000`, { headers });
+                const resultados = resRes.ok ? await resRes.json() : [];
+                const resultadosPaciente = (Array.isArray(resultados) ? resultados : []).filter(r => {
+                    return solicitudesPaciente.some(s => s.id_solicitud === r.id_solicitud);
+                });
+
+                const resIA = await fetch(`${API_URL}/ai/validate-results`, {
+                    method: 'POST',
+                    headers: { ...headers, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        patient_id: pacienteId,
+                        patient_name: `${paciente.nombre || ''} ${paciente.apellido_paterno || ''}`.trim(),
+                        resultados: resultadosPaciente
+                    })
+                });
+                const data = await resIA.json();
+                resultDiv.innerHTML = `<div style="white-space:pre-wrap; line-height:1.7;">${data.analysis || data.respuesta || data.detail || 'Sin respuesta'}</div>`;
+            } catch (e) {
+                resultDiv.innerHTML = `❌ Error: ${e.message}`;
+            }
+        }
+
+        async function sendSmartChat() {
+            const input = document.getElementById('ia-chat-input');
+            const question = input?.value?.trim();
+            if (!question) return;
+            input.value = '';
+            const messagesDiv = document.getElementById('ia-chat-messages');
+            if (!messagesDiv) return;
+            messagesDiv.innerHTML += `<div style="margin-bottom:10px; text-align:right;"><span style="display:inline-block; background:rgba(200,150,102,0.15); color:var(--text-cream); padding:10px 16px; border-radius:14px 14px 4px 14px; max-width:80%; font-size:13px; line-height:1.6; border:1px solid rgba(200,150,102,0.2);">${question}</span></div>`;
+            messagesDiv.innerHTML += `<div id="chat-typing" style="margin-bottom:10px;"><span style="display:inline-block; background:rgba(255,255,255,0.05); color:var(--text-muted); padding:10px 16px; border-radius:14px; font-size:13px;">Escribiendo...</span></div>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            try {
+                const pacSelect = document.getElementById('ia-paciente-select');
+                const patientId = pacSelect ? pacSelect.value : null;
+                const res = await fetch(`${API_URL}/ai/smart-chat`, {
+                    method: 'POST',
+                    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question, patient_id: patientId || undefined })
+                });
+                const typingEl = document.getElementById('chat-typing');
+                if (typingEl) typingEl.remove();
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => null);
+                    throw new Error(errData?.detail || `Error ${res.status}`);
+                }
+                const data = await res.json();
+                const respuesta = data.respuesta || data.detail || 'Sin respuesta del asistente.';
+                messagesDiv.innerHTML += `<div style="margin-bottom:10px;"><span style="display:inline-block; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:var(--text-cream); padding:10px 16px; border-radius:14px 14px 14px 4px; max-width:80%; font-size:13px; line-height:1.6;">${respuesta}</span></div>`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            } catch (error) {
+                const typingEl = document.getElementById('chat-typing');
+                if (typingEl) typingEl.remove();
+                messagesDiv.innerHTML += `<div style="margin-bottom:10px;"><span style="display:inline-block; background:rgba(239,68,68,0.1); color:#ef4444; padding:10px 16px; border-radius:14px; font-size:13px;">❌ ${error.message}</span></div>`;
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
+        }
+
     </script>
 
     <script src="{% static 'js/chatbot.js' %}"></script>
