@@ -261,6 +261,82 @@ async def list_facturas_pagadas(
     return res.scalars().all()
 
 
+def numero_a_letras(n):
+    """Convierte un número a letras en español (para montos de factura)"""
+    unidades = ['', 'Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho', 'Nueve']
+    decenas = ['', 'Diez', 'Veinte', 'Treinta', 'Cuarenta', 'Cincuenta', 'Sesenta', 'Setenta', 'Ochenta', 'Noventa']
+    centenas = ['', 'Cien', 'Doscientos', 'Trescientos', 'Cuatrocientos', 'Quinientos', 'Seiscientos', 'Setecientos', 'Ochocientos', 'Novecientos']
+    
+    def convertir_grupo(num):
+        if num == 0:
+            return ''
+        elif num < 10:
+            return unidades[num]
+        elif num < 100:
+            d = num // 10
+            u = num % 10
+            if num == 10:
+                return 'Diez'
+            elif num < 20:
+                return 'Dieci' + unidades[u].lower()
+            elif num == 20:
+                return 'Veinte'
+            elif num < 30:
+                return 'Veinti' + unidades[u].lower()
+            elif u == 0:
+                return decenas[d]
+            else:
+                return decenas[d] + ' y ' + unidades[u].lower()
+        else:
+            c = num // 100
+            resto = num % 100
+            if c == 1 and resto == 0:
+                return 'Cien'
+            elif c == 1:
+                return 'Ciento ' + convertir_grupo(resto).lower()
+            elif resto == 0:
+                return centenas[c]
+            else:
+                return centenas[c] + ' ' + convertir_grupo(resto).lower()
+    
+    if n == 0:
+        return 'Cero'
+    
+    entero = int(n)
+    centavos = int(round((n - entero) * 100))
+    
+    if entero == 0:
+        resultado = 'Cero'
+    elif entero < 1000:
+        resultado = convertir_grupo(entero)
+    elif entero < 1000000:
+        miles = entero // 1000
+        resto = entero % 1000
+        if miles == 1:
+            resultado = 'Mil'
+        else:
+            resultado = convertir_grupo(miles) + ' Mil'
+        if resto > 0:
+            resultado += ' ' + convertir_grupo(resto).lower()
+    else:
+        millones = entero // 1000000
+        resto = entero % 1000000
+        if millones == 1:
+            resultado = 'Un Millón'
+        else:
+            resultado = convertir_grupo(millones) + ' Millones'
+        if resto > 0:
+            resultado += ' ' + convertir_grupo(resto).lower()
+    
+    # Capitalizar primera letra
+    resultado = resultado[0].upper() + resultado[1:] if resultado else ''
+    
+    # Agregar centavos
+    resultado += f' {centavos:02d}/100 Bolivianos'
+    
+    return resultado
+
+
 @router.get('/{id_factura}/pdf')
 async def factura_pdf(
     id_factura: int,
@@ -268,7 +344,7 @@ async def factura_pdf(
     current_user: dict = Depends(require_pagos_roles),
 ):
     """
-    Genera el PDF de la factura. Acceso exclusivo para:
+    Genera el PDF de la factura con formato Labotik. Acceso exclusivo para:
     - Administrador
     - Recepcionista
     - Paciente
@@ -282,10 +358,20 @@ async def factura_pdf(
     result = await db.execute(stmt)
     detalles = result.scalars().all()
 
-    # Importar reportlab en tiempo de ejecución para no romper el arranque si falta la dependencia
+    # Cargar paciente
+    stmt_pac = select(models.Paciente).where(models.Paciente.id_paciente == factura.id_paciente)
+    result_pac = await db.execute(stmt_pac)
+    paciente = result_pac.scalar_one_or_none()
+
+    # Cargar recepcionista/administrador que emitió la factura (si existe en current_user)
+    recepcionista_nombre = current_user.get('nombre', '') + ' ' + current_user.get('apellido_paterno', '')
+    recepcionista_nombre = recepcionista_nombre.strip() or 'Administrador'
+
+    # Importar reportlab
     try:
         from reportlab.lib.pagesizes import A4
         from reportlab.pdfgen import canvas
+        from reportlab.lib.units import cm
     except ImportError:
         raise HTTPException(status_code=500, detail="Dependencia requerida 'reportlab' no instalada. Instale con: pip install reportlab")
 
@@ -293,56 +379,123 @@ async def factura_pdf(
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
 
+    # === ENCABEZADO LABOTIK ===
+    y = height - 40
+    
     # Logo (si existe)
-    logo_path = os.path.join(os.getcwd(), 'frontend', 'static', 'images', 'logo.png')
-    y = height - 50
+    logo_path = os.path.join(os.getcwd(), 'frontend', 'static', 'images', 'LaboLogo.png')
     if os.path.exists(logo_path):
         try:
-            c.drawImage(logo_path, 40, y-40, width=120, preserveAspectRatio=True, mask='auto')
+            c.drawImage(logo_path, 40, y-50, width=100, preserveAspectRatio=True, mask='auto')
         except Exception:
             pass
-
-    # Header
-    c.setFont('Helvetica-Bold', 16)
-    c.drawString(180, y, 'Laboratorio Clínico - Factura')
+    
+    # Título principal
+    c.setFont('Helvetica-Bold', 24)
+    c.drawCentredString(width/2, y, 'LABOTIK')
     c.setFont('Helvetica', 10)
-    c.drawString(40, y-60, f'ID Factura: {factura.id_factura}')
-    c.drawString(200, y-60, f'ID Solicitud: {factura.id_solicitud or "-"}')
-    c.drawString(40, y-75, f'Fecha emisión: {factura.fecha_emision}')
-    c.drawString(200, y-75, f'Total: {factura.total:.2f}')
-
-    # Tabla de items
+    c.drawCentredString(width/2, y-15, 'Laboratorio Clínico')
+    
+    # Línea separadora
+    y -= 40
+    c.setLineWidth(1.5)
+    c.line(40, y, width-40, y)
+    
+    # === DATOS DE FACTURA ===
+    y -= 30
+    c.setFont('Helvetica-Bold', 14)
+    # Factura N° (empezar desde 1000)
+    factura_numero = factura.id_factura + 999  # Para empezar desde 1000
+    c.drawString(40, y, f'Factura N° {factura_numero}')
+    
+    # Fecha en formato AA/MM/DD
+    fecha_str = factura.fecha_emision.strftime('%y/%m/%d') if hasattr(factura.fecha_emision, 'strftime') else str(factura.fecha_emision)
+    c.drawRightString(width-40, y, f'Fecha: {fecha_str}')
+    
+    # === DATOS DE RECEPCIONISTA ===
+    y -= 25
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(40, y, 'Atendido por:')
+    c.setFont('Helvetica', 10)
+    c.drawString(120, y, recepcionista_nombre)
+    
+    # === DATOS DE PACIENTE ===
+    y -= 20
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(40, y, 'Paciente:')
+    c.setFont('Helvetica', 10)
+    if paciente:
+        paciente_nombre = f'{paciente.nombre or ""} {paciente.apellido_paterno or ""} {paciente.apellido_materno or ""}'.strip()
+        c.drawString(120, y, paciente_nombre or str(factura.id_paciente))
+    else:
+        c.drawString(120, y, str(factura.id_paciente))
+    
+    # === IMPORTE ===
+    y -= 25
+    c.setFont('Helvetica-Bold', 10)
+    c.drawString(40, y, 'Importe:')
+    c.setFont('Helvetica-Bold', 12)
+    c.drawString(120, y, f'Bs {factura.total:.2f}')
+    
+    # === TABLA DE ANÁLISIS ===
+    y -= 35
+    c.setLineWidth(1)
+    c.line(40, y, width-40, y)
+    
+    # Encabezados de tabla
+    y -= 20
     c.setFont('Helvetica-Bold', 11)
-    table_y = y-110
-    c.drawString(40, table_y, 'Prueba')
-    c.drawString(300, table_y, 'Cantidad')
-    c.drawString(380, table_y, 'Precio Unit.')
-    c.drawString(480, table_y, 'Total')
+    c.drawString(50, y, 'Cantidad')
+    c.drawString(130, y, 'Descripción')
+    c.drawRightString(width-50, y, 'Precio Unitario')
+    
+    # Línea bajo encabezados
+    y -= 8
+    c.line(40, y, width-40, y)
+    
+    # Items de la tabla
     c.setFont('Helvetica', 10)
-    cur_y = table_y - 20
+    y -= 20
     for d in detalles:
-        # intentar obtener nombre de prueba
+        # Obtener nombre de prueba
         pname = str(d.id_prueba)
         try:
-            stmt = select(models.Prueba).where(models.Prueba.id_prueba == d.id_prueba)
-            pr = await db.execute(stmt)
+            stmt_prueba = select(models.Prueba).where(models.Prueba.id_prueba == d.id_prueba)
+            pr = await db.execute(stmt_prueba)
             p = pr.scalar_one_or_none()
             if p:
                 pname = p.nombre
         except Exception:
             pass
-        c.drawString(40, cur_y, pname)
-        c.drawString(300, cur_y, str(d.cantidad))
-        c.drawString(380, cur_y, f"{d.precio_unitario:.2f}")
-        c.drawString(480, cur_y, f"{d.total_item:.2f}")
-        cur_y -= 18
-
-    c.setFont('Helvetica-Bold', 12)
-    c.drawString(40, cur_y-20, f'Subtotal: {factura.subtotal:.2f}')
-    c.drawString(200, cur_y-20, f'Impuesto: {factura.impuesto:.2f}')
-    c.drawString(320, cur_y-20, f'Descuento: {factura.descuento:.2f}')
-    c.drawString(420, cur_y-20, f'Total: {factura.total:.2f}')
-
+        
+        c.drawString(70, y, str(d.cantidad))
+        c.drawString(130, y, pname[:50])  # Limitar longitud del nombre
+        c.drawRightString(width-50, y, f'Bs {d.precio_unitario:.2f}')
+        y -= 18
+        
+        if y < 150:  # Evitar que se salga de la página
+            c.showPage()
+            y = height - 100
+    
+    # === LÍNEA ANTES DEL TOTAL ===
+    y -= 10
+    c.line(40, y, width-40, y)
+    
+    # === MONTO TOTAL ===
+    y -= 25
+    c.setFont('Helvetica-Bold', 14)
+    c.drawRightString(width-50, y, f'Monto Total: Bs {factura.total:.2f}')
+    
+    # === MONTO TOTAL LITERAL ===
+    y -= 25
+    c.setFont('Helvetica', 11)
+    monto_literal = numero_a_letras(factura.total)
+    c.drawString(40, y, monto_literal)
+    
+    # === PIE DE PÁGINA ===
+    c.setFont('Helvetica', 8)
+    c.drawCentredString(width/2, 30, 'Labotik - Laboratorio Clínico | Gracias por su preferencia')
+    
     c.showPage()
     c.save()
     buffer.seek(0)

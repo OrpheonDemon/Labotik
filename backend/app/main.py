@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from app.database import engine, Base
 from app.routers import (
     areas, pruebas, pacientes, medicos, laboratoristas, administradores,
-    solicitudes, resultados, reportes, facturas, pagos, auth, ai, face_auth
+    solicitudes, resultados, reportes, facturas, pagos, auth, ai, face_auth, pagos_qr
 )
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -115,6 +115,7 @@ app.include_router(resultados.router)
 app.include_router(reportes.router)
 app.include_router(facturas.router)
 app.include_router(pagos.router)
+app.include_router(pagos_qr.router)
 app.include_router(ai.router)
 
 @app.get("/")

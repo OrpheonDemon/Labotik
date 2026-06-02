@@ -317,5 +317,145 @@
       ]
     },
     "id_registro": "70aa5e04"
+  },
+  {
+    "timestamp": "2026-06-02T09:49:37.391574",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valor de la proteína total (PT) es 10."
+      ],
+      "interpretacion": "El valor de la proteína total (PT) es 10. Es necesario determinar el rango normal para la población específica del laboratorio y el método analítico utilizado para interpretar este valor en contexto clínico.",
+      "alertas": [],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.85,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Verificar el rango normal para la proteína total (PT) en este laboratorio y método analítico.",
+        "Considerar el contexto clínico del paciente para interpretar el valor de la PT.  Factores como la función renal, estado nutricional y enfermedades sistémicas pueden afectar los valores normales de la PT.",
+        "Si es posible, obtener más información sobre el rango normal utilizado por el laboratorio."
+      ]
+    },
+    "id_registro": "8ddbce51"
+  },
+  {
+    "timestamp": "2026-06-02T09:50:51.776245",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valor de la proteína total (PT) = 10",
+        "Edad del paciente = 70 años",
+        "Sexo del paciente = femenino",
+        "Historial clínico no disponible"
+      ],
+      "interpretacion": "El valor de la proteína total (PT) es 10.  En un adulto, el rango normal para PT está generalmente entre 6 a 8 gramos por decilitro (g/dL). Un valor de 10 g/dL es significativamente elevado y sugiere una posible presencia de proteínas en el plasma que no son parte del plasma sérico. Esto podría ser debido a la presencia de proteínas totales, incluyendo albumina, globulinas y otras proteínas plasmáticas. Sin embargo, la causa subyacente necesita ser investigada. En ausencia de información clínica adicional (como historia clínica, otros resultados de laboratorio o síntomas), es difícil determinar la significación clínica exacta de este hallazgo.",
+      "alertas": [
+        "Valor elevado de PT",
+        "Falta de información clínica"
+      ],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.85,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Obtener más datos del paciente: historial clínico completo (incluyendo síntomas), resultados de otros análisis de laboratorio (especialmente albúmina, globulinas, electrolitos, función renal y hepática),  y posiblemente una evaluación física.",
+        "Considerar la posibilidad de proteína en el plasma (si se sospecha de un problema específico).",
+        "Si es posible, determinar si el valor de PT se midió en plasma o suero. Si se midió en plasma, es crucial verificar la presencia de proteínas en el plasma."
+      ]
+    },
+    "id_registro": "da3b1231"
+  },
+  {
+    "timestamp": "2026-06-02T09:51:27.044215",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valor de referencia: 10 (presumiblemente unidades/mL o alguna otra unidad relevante). El valor es 10."
+      ],
+      "interpretacion": "El valor del parámetro no está especificado, por lo que la interpretación es limitada. Sin embargo, el resultado es 10, lo cual podría ser un dato aislado o parte de una serie de análisis.",
+      "alertas": [],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.85,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Indicar el parámetro medido (ej: glucosa en sangre, colesterol total, etc.).",
+        "Indicar la unidad de medida del valor.",
+        "Considerar el rango normal esperado para el parámetro.",
+        "Si es posible, revisar los resultados de pruebas anteriores del paciente para ver si hay patrones."
+      ]
+    },
+    "id_registro": "76805b9d"
+  },
+  {
+    "timestamp": "2026-06-02T09:52:10.573795",
+    "tipo": "interpretacion",
+    "usuario": "rotherickcalderon.admin@labotik.com",
+    "paciente_id": "19565501APS",
+    "confianza": 0.85,
+    "aprobado": false,
+    "entrada": {
+      "id_paciente": "19565501APS",
+      "edad": 70,
+      "sexo": "femenino",
+      "resultados": {
+        "1000": "10"
+      },
+      "valores_criticos": []
+    },
+    "salida": {
+      "hallazgos": [
+        "Valor de la proteína C reactiva (PCR) es 10."
+      ],
+      "interpretacion": "El valor de PCR en esta paciente de 70 años es 10. La interpretación del significado clínico de este resultado requiere considerar el contexto clínico, incluyendo otros factores como los valores normales para la edad y el sexo de la paciente, así como la presencia o ausencia de síntomas clínicos. Un valor elevado de PCR sugiere inflamación en el cuerpo, pero una sola medición no es suficiente para establecer un diagnóstico definitivo.",
+      "alertas": [
+        "Valor de PCR ligeramente elevado; requiere contexto clínico."
+      ],
+      "prioridad": "REVISIÓN",
+      "confianza": 0.85,
+      "requiere_revision_humana": true,
+      "recomendaciones": [
+        "Obtener más información sobre el historial clínico de la paciente.",
+        "Considerar realizar pruebas adicionales para evaluar la causa de la inflamación si es clínicamente relevante."
+      ]
+    },
+    "id_registro": "4bc65a0e"
   }
 ]

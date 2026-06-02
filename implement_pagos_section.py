@@ -431,12 +431,33 @@ PAGOS_SECTION_JS = '''
             document.getElementById('pagoQRPaciente').textContent = pacienteNombre;
             document.getElementById('pagoQRMonto').textContent = `Bs ${monto.toFixed(2)}`;
             document.getElementById('pagoQRStatus').style.display = 'none';
+            document.getElementById('pagoQRImageContainer').style.display = 'block';
+            document.getElementById('pagoQRInfo').style.display = 'block';
             
-            // Generar QR simple (usando API de QR pública)
-            const qrData = `LABOTIK-PAGO|SOL:${solicitudId}|MONTO:${monto.toFixed(2)}|REF:SOL${solicitudId}-${Date.now()}`;
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrData)}`;
-            document.getElementById('pagoQRImage').src = qrUrl;
-            document.getElementById('pagoQRReferencia').textContent = `Ref: SOL${solicitudId}-${Date.now()}`;
+            // Mostrar loading mientras se genera el QR
+            document.getElementById('pagoQRImage').src = '';
+            document.getElementById('pagoQRImageContainer').innerHTML = '<p style="color:var(--text-muted); font-size:14px;"> Generando código QR...</p>';
+            
+            const headers = getAuthHeaders();
+            
+            try {
+                // Generar QR desde el backend
+                const res = await fetch(`${API_URL}/pagos/solicitudes/${solicitudId}/qr`, { headers });
+                
+                if (!res.ok) {
+                    const err = await res.json().catch(() => null);
+                    throw new Error(err?.detail || 'Error al generar QR');
+                }
+                
+                const data = await res.json();
+                
+                // Mostrar QR generado por el backend
+                document.getElementById('pagoQRImageContainer').innerHTML = `<img id="pagoQRImage" src="data:image/png;base64,${data.qr_base64}" alt="QR de pago" style="width:200px; height:200px;">`;
+                document.getElementById('pagoQRReferencia').textContent = `Ref: ${data.referencia}`;
+                
+            } catch (e) {
+                document.getElementById('pagoQRImageContainer').innerHTML = `<p style="color:#e74c3c; font-size:14px;">❌ Error al generar QR: ${e.message}</p>`;
+            }
             
             document.getElementById('pagoQRModal').style.display = 'flex';
         }
@@ -459,11 +480,15 @@ PAGOS_SECTION_JS = '''
             statusDiv.style.color = 'var(--accent-gold)';
             statusDiv.textContent = '⏳ Procesando pago...';
             
+            // Ocultar QR y mostrar animación de procesamiento
+            document.getElementById('pagoQRImageContainer').style.display = 'none';
+            document.getElementById('pagoQRInfo').style.display = 'none';
+            
             const headers = getAuthHeaders();
             
             try {
-                // Llamar al endpoint de pagar solicitud
-                const res = await fetch(`${API_URL}/pagos/solicitudes/${currentPagoSolicitudId}/pagar?metodo_pago=qr&monto=${currentPagoMonto}`, {
+                // Llamar al endpoint de confirmar pago QR
+                const res = await fetch(`${API_URL}/pagos/solicitudes/${currentPagoSolicitudId}/confirmar-pago-qr`, {
                     method: 'POST',
                     headers
                 });
@@ -475,15 +500,34 @@ PAGOS_SECTION_JS = '''
                 
                 const result = await res.json();
                 
-                statusDiv.style.background = 'rgba(46,204,113,0.15)';
-                statusDiv.style.color = '#2ecc71';
-                statusDiv.textContent = '✅ ' + (result.mensaje || 'Pago procesado exitosamente');
+                // Mostrar animación de "Pago Realizado"
+                statusDiv.style.display = 'none';
                 
-                // Cerrar modal y recargar después de 2 segundos
-                setTimeout(() => {
-                    cerrarPagoQRModal();
-                    cargarSeccionPagos();
-                }, 2000);
+                const modalContent = document.querySelector('#pagoQRModal > div');
+                modalContent.innerHTML = `
+                    <div style="text-align:center; padding:20px;">
+                        <div style="font-size:80px; margin-bottom:20px; animation: bounceIn 0.6s ease;">✅</div>
+                        <h3 style="color:#2ecc71; font-size:24px; margin-bottom:10px; animation: fadeInUp 0.6s ease 0.2s both;">¡Pago Realizado!</h3>
+                        <p style="color:var(--text-cream); font-size:16px; margin-bottom:5px; animation: fadeInUp 0.6s ease 0.4s both;">Factura N° ${result.id_factura}</p>
+                        <p style="color:var(--accent-gold); font-size:20px; font-weight:700; margin-bottom:20px; animation: fadeInUp 0.6s ease 0.6s both;">Bs ${result.monto.toFixed(2)}</p>
+                        <p style="color:var(--text-muted); font-size:13px; margin-bottom:20px; animation: fadeInUp 0.6s ease 0.8s both;">${result.mensaje}</p>
+                        <div style="display:flex; gap:10px; justify-content:center; animation: fadeInUp 0.6s ease 1s both;">
+                            <button class="btn btn-primary" onclick="generarFacturaLabotik(${result.id_factura})" style="background:var(--accent-gold); color:#1e0f08;">📄 Ver Factura</button>
+                            <button class="btn btn-secondary" onclick="cerrarPagoQRModal(); cargarSeccionPagos();">Cerrar</button>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes bounceIn {
+                            0% { transform: scale(0); opacity: 0; }
+                            50% { transform: scale(1.2); }
+                            100% { transform: scale(1); opacity: 1; }
+                        }
+                        @keyframes fadeInUp {
+                            0% { transform: translateY(20px); opacity: 0; }
+                            100% { transform: translateY(0); opacity: 1; }
+                        }
+                    </style>
+                `;
                 
             } catch (e) {
                 statusDiv.style.background = 'rgba(231,76,60,0.15)';
@@ -495,6 +539,12 @@ PAGOS_SECTION_JS = '''
         function generarFacturaPDF(facturaId) {
             const token = getToken();
             const url = `${API_URL}/facturas/${facturaId}/pdf?access_token=${token}`;
+            window.open(url, '_blank');
+        }
+
+        function generarFacturaLabotik(facturaId) {
+            const token = getToken();
+            const url = `${API_URL}/pagos/facturas/${facturaId}/pdf-labotik?access_token=${token}`;
             window.open(url, '_blank');
         }
 '''
@@ -527,15 +577,16 @@ def update_dashboard_file(filepath):
         print(f"  ERROR: No se encontró </main> en {filepath}")
         return False
     
-    # 4. Insertar JavaScript antes de </script> final (antes del chatbot)
+    # 4. Insertar JavaScript dentro de <script> tags antes del chatbot
+    js_wrapped = f'<script>\n{PAGOS_SECTION_JS}\n</script>\n'
     if '<script src="{% static \'js/chatbot.js\' %}"></script>' in content:
         content = content.replace(
             '<script src="{% static \'js/chatbot.js\' %}"></script>',
-            PAGOS_SECTION_JS + '\n    <script src="{% static \'js/chatbot.js\' %}"></script>'
+            js_wrapped + '    <script src="{% static \'js/chatbot.js\' %}"></script>'
         )
     else:
         # Buscar el último </script> antes de </body>
-        content = content.replace('</body>', PAGOS_SECTION_JS + '\n</body>')
+        content = content.replace('</body>', js_wrapped + '</body>')
     
     # 5. Actualizar loadSectionData para cargar la sección de pagos
     if "sectionId === 'pagos'" not in content:
